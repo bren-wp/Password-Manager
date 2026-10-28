@@ -376,6 +376,51 @@ class _BackupPageState extends State<BackupPage> {
 }
 
 class SettingsPage extends StatelessWidget {
+  Future<void> changePassword(BuildContext context) async {
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final confirm = TextEditingController();
+    try {
+      final approved = await showDialog<bool>(context: context, builder: (ctx) =>
+        AlertDialog(
+          title: const Text('Promijeni glavnu lozinku'),
+          content: SizedBox(width: 400, child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Nakon promjene izradite novu šifriranu sigurnosnu '
+                'kopiju. Stare kopije koriste prethodnu lozinku.'),
+              const SizedBox(height: 12),
+              TextField(controller: current, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Trenutačna lozinka')),
+              const SizedBox(height: 12),
+              TextField(controller: next, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Nova lozinka')),
+              const SizedBox(height: 12),
+              TextField(controller: confirm, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Potvrdite novu lozinku')),
+            ]),
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Odustani')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Spremi promjenu')),
+          ],
+        ));
+      if (approved != true) return;
+      if (next.text.length < 12 || next.text != confirm.text) {
+        onMessage('Nova lozinka mora imati barem 12 znakova i podudarati se.');
+        return;
+      }
+      await store.changeMasterPassword(current.text, next.text);
+      onMessage('Glavna lozinka je promijenjena. Izradite novu sigurnosnu kopiju.');
+    } catch (_) {
+      onMessage('Promjena nije uspjela. Provjerite trenutačnu lozinku.');
+    } finally {
+      current.dispose();
+      next.dispose();
+      confirm.dispose();
+    }
+  }
   final VaultStore store;
   final ValueChanged<String> onMessage;
   const SettingsPage({super.key, required this.store,
@@ -396,6 +441,13 @@ class SettingsPage extends StatelessWidget {
         subtitle: const Text('Zaštitite spremljene podatke'),
         trailing: const Icon(Icons.chevron_right),
         onTap: store.lock),
+      const Divider(color: VColors.border),
+      ListTile(
+        leading: const Icon(Icons.key_outlined, color: VColors.accent),
+        title: const Text('Promijeni glavnu lozinku'),
+        subtitle: const Text('Zaštitite trezor novom glavnom lozinkom'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => changePassword(context)),
       const Divider(color: VColors.border),
       const ListTile(
         leading: Icon(Icons.fingerprint, color: VColors.muted),
