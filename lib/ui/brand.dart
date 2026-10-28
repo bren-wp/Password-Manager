@@ -85,12 +85,27 @@ class _ShieldPainter extends CustomPainter {
           size.width * .16, size.height * .65)
       ..lineTo(size.width * .1, size.height * .21)
       ..close();
+    // The supplied Veldigo emblem has a soft teal halo behind a crisp
+    // shield outline. Paint the glow first to preserve sharp 1px edges.
+    canvas.drawPath(p, Paint()
+      ..color = VColors.accent.withValues(alpha: .26)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .09
+      ..strokeJoin = StrokeJoin.round
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * .075));
     canvas.drawPath(p, Paint()..color = VColors.accent
       ..style = PaintingStyle.stroke..strokeWidth = size.width * .066
       ..strokeJoin = StrokeJoin.round);
     final v = Path()..moveTo(size.width * .32, size.height * .32)
       ..lineTo(size.width * .5, size.height * .69)
       ..lineTo(size.width * .7, size.height * .32);
+    canvas.drawPath(v, Paint()
+      ..color = VColors.accent.withValues(alpha: .22)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * .11
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * .06));
     canvas.drawPath(v, Paint()..color = VColors.accent
       ..style = PaintingStyle.stroke..strokeWidth = size.width * .09
       ..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);

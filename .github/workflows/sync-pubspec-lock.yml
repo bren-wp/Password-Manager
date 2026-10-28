@@ -1,0 +1,45 @@
+name: Update locked Flutter dependencies
+
+on:
+  push:
+    branches: [fix/veldigo-recovery-consistency-v0.2.3]
+    paths:
+      - pubspec.yaml
+      - .github/workflows/sync-pubspec-lock.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veldigo-lockfile-update
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve safe, current package versions
+        run: flutter pub get
+      - name: Commit reproducible dependency lockfile to PR
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pubspec.lock
+          if git diff --cached --quiet; then
+            echo 'Dependencies already locked'
+            exit 0
+          fi
+          git commit -m 'build: lock file_picker 13 and updated Flutter dependencies'
+          # Flutter pub get can modify tracked analysis metadata.
+          git reset --hard HEAD
+          git fetch origin fix/veldigo-recovery-consistency-v0.2.3
+          git rebase origin/fix/veldigo-recovery-consistency-v0.2.3
+          git push origin HEAD:fix/veldigo-recovery-consistency-v0.2.3

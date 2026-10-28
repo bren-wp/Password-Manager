@@ -1,16 +1,16 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/password_generator.dart';
+import '../core/totp.dart';
 import '../core/vault_item.dart';
 import '../core/vault_store.dart';
 import 'brand.dart';
+import 'encrypted_backup_input.dart';
 
 class GeneratorPage extends StatefulWidget {
   const GeneratorPage({super.key});
@@ -205,44 +205,8 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   @override
   void dispose() { timer?.cancel(); super.dispose(); }
 
-  List<int> fromBase32(String source) {
-    const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    final cleaned = source.toUpperCase().replaceAll(RegExp(r'[\s=\-]'), '');
-    final output = <int>[];
-    var buffer = 0, bits = 0;
-    for (final char in cleaned.split('')) {
-      final next = abc.indexOf(char);
-      if (next < 0) { throw const FormatException('Neispravan Base32 ključ.'); }
-      buffer = (buffer << 5) | next;
-      bits += 5;
-      if (bits >= 8) {
-        bits -= 8;
-        output.add((buffer >> bits) & 255);
-        buffer &= (1 << bits) - 1;
-      }
-    }
-    if (output.isEmpty) { throw const FormatException('Prazan ključ.'); }
-    return output;
-  }
-
-  Future<String> code(String source, int epoch) async {
-    final key = fromBase32(source);
-    var counter = epoch ~/ 30;
-    final data = List<int>.filled(8, 0);
-    for (var i = 7; i >= 0; i--) {
-      data[i] = counter & 255;
-      counter >>= 8;
-    }
-    final hmac = await Hmac.sha1().calculateMac(data,
-      secretKey: SecretKey(key));
-    final bytes = hmac.bytes;
-    final offset = bytes.last & 0x0f;
-    final value = ((bytes[offset] & 0x7f) << 24) |
-      ((bytes[offset + 1] & 0xff) << 16) |
-      ((bytes[offset + 2] & 0xff) << 8) |
-      (bytes[offset + 3] & 0xff);
-    return (value % 1000000).toString().padLeft(6, '0');
-  }
+  Future<String> code(String source, int epoch) =>
+      Totp.generate(source, epoch);
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +214,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     return ListView(padding: const EdgeInsets.all(16), children: [
       const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
         'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
-        'QR skeniranje još nije dostupno.')),
+        'Koristite vlastiti Base32 tajni ključ.')),
       const SizedBox(height: 15),
       for (final item in widget.items)
         Padding(padding: const EdgeInsets.only(bottom: 10),
@@ -297,12 +261,13 @@ class _BackupPageState extends State<BackupPage> {
     setState(() => busy = true);
     try {
       final data = Uint8List.fromList(await widget.store.encryptedBackup());
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Spremi šifrirani trezor',
-        fileName: 'Veldigo-backup.veldigo',
-        type: FileType.custom,
-        allowedExtensions: ['veldigo'],
-        bytes: data,
+      final path = await widget.store.withExternalFilePicker(
+        () => FilePicker.saveFile(
+          dialogTitle: 'Spremi šifrirani trezor',
+          fileName: 'Veldigo-backup.veldigo',
+          bytes: data,
+          mimeType: 'application/octet-stream',
+        ),
       );
       if (path != null) { widget.onMessage('Šifrirana kopija je spremljena.'); }
     } catch (_) {
@@ -316,16 +281,19 @@ class _BackupPageState extends State<BackupPage> {
     if (busy) { return; }
     setState(() => busy = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['veldigo'], withData: true);
-      if (result == null || result.files.isEmpty || !mounted) { return; }
-      final file = result.files.single;
-      final bytes = file.bytes ??
-        (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null) { throw const FormatException('Nečitljiva datoteka.'); }
+      final chosen = await widget.store.withExternalFilePicker(
+        () => FilePicker.pickFile(
+          type: FileType.custom,
+          allowedExtensions: ['veldigo']),
+      );
+      if (chosen == null || !mounted) { return; }
+      final bytes = await EncryptedBackupInput.read(
+        chosen.readAsByteStream(),
+        reportedSize: chosen.lengthSync() ?? await chosen.length(),
+      );
       if (!mounted) { return; }
       final controller = TextEditingController();
+      try {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -350,7 +318,9 @@ class _BackupPageState extends State<BackupPage> {
         await widget.store.restore(bytes, controller.text);
         widget.onMessage('Trezor je uspješno vraćen.');
       }
-      controller.dispose();
+      } finally {
+        controller.dispose();
+      }
     } catch (_) {
       widget.onMessage('Kopija nije učitana. Provjerite datoteku i lozinku.');
     } finally {
@@ -447,7 +417,7 @@ class SettingsPage extends StatelessWidget {
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),
         title: Text('Automatsko zaključavanje'),
-        subtitle: Text('Nakon 2 minute u pozadini')),
+        subtitle: Text('Odmah nakon prelaska aplikacije u pozadinu')),
       const Divider(color: VColors.border),
       ListTile(
         leading: const Icon(Icons.lock_outline, color: VColors.accent),
@@ -462,11 +432,6 @@ class SettingsPage extends StatelessWidget {
         subtitle: const Text('Zaštitite trezor novom glavnom lozinkom'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => changePassword(context)),
-      const Divider(color: VColors.border),
-      const ListTile(
-        leading: Icon(Icons.fingerprint, color: VColors.muted),
-        title: Text('Biometrijsko otključavanje'),
-        subtitle: Text('U planu — nije aktivno u ovoj verziji')),
     ])),
     const SizedBox(height: 16),
     VPanel(child: Column(children: [
@@ -480,17 +445,12 @@ class SettingsPage extends StatelessWidget {
             appBar: AppBar(title: const Text('Sigurnosna kopija')),
             body: BackupPage(store: store, onMessage: onMessage)))),
       ),
-      const Divider(color: VColors.border),
-      const ListTile(
-        leading: Icon(Icons.cloud_off_outlined, color: VColors.muted),
-        title: Text('Sinkronizacija u oblaku'),
-        subtitle: Text('Nije uključena. Podaci se čuvaju lokalno.')),
     ])),
     const SizedBox(height: 16),
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
-        title: Text('Veldigo 0.2.2'),
+        title: Text('Veldigo'),
         subtitle: Text('Android i Windows • Brendigo')),
       ListTile(
         leading: Icon(Icons.shield_outlined, color: VColors.accent),

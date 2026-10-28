@@ -1,0 +1,8 @@
+Veldigo v0.2.4-preview.4
+Release the updated Android APK/AAB and Windows portable/setup with
+26 unique screenshot captures at exact user reference pixel dimensions,
+full-screen live Android details, privacy lock route cleanup, a responsive
+splash/welcome, screenshot parity audit, no developer placeholders, and
+all prior encrypted backup/session-security fixes.
+Only publish if Flutter analyze, unit/widget tests, native Android and Windows
+builds and packaging all succeed. Use distinct Android versionCode 9.

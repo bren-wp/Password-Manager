@@ -63,9 +63,9 @@ void main() {
     await Future.wait([first.initialize(), second.initialize()]);
     final outcome = await Future.wait([
       first.create('first master password unique').then((_) => true,
-        onError: (Object _, StackTrace __) => false),
+        onError: (Object _, StackTrace _) => false),
       second.create('second master password unique').then((_) => true,
-        onError: (Object _, StackTrace __) => false),
+        onError: (Object _, StackTrace _) => false),
     ]);
     expect(outcome.where((success) => success).length, 1);
     first.lock();

@@ -28,8 +28,8 @@ class WelcomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(24, 36, 24, 24),
                     child: Column(children: [
                       SizedBox(height: bounds.maxHeight < 610 ? 10 : 80),
-                      const VeldigoLogo(size: 130, showName: false),
-                      const SizedBox(height: 55),
+                      const VeldigoLogo(size: 96, showName: false),
+                      const SizedBox(height: 82),
                       const Text('Sve vaše lozinke.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 29,
@@ -60,7 +60,8 @@ class WelcomeScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SizedBox(height: bounds.maxHeight < 680 ? 35 : 90),
+                      SizedBox(height: bounds.maxHeight < 680
+                          ? 35 : bounds.maxHeight * .19),
                       const Row(mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.fiber_manual_record,

@@ -251,13 +251,79 @@ class _VaultShellState extends State<VaultShell> {
   void selectItem(VaultItem item, bool desktop) {
     setState(() => selectedId = item.id);
     if (!desktop) {
-      showDialog<void>(context: context, builder: (ctx) => Dialog(
-        backgroundColor: VColors.background,
-        child: ConstrainedBox(constraints: const BoxConstraints(
-          maxWidth: 450, maxHeight: 720),
-          child: SingleChildScrollView(child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: detail(item))))));
+      // The Android design uses an entire account-details screen, not a
+      // small centered modal. Listen to the live vault so edits immediately
+      // refresh this view and permanently erased records cannot leak back
+      // onto the screen from a stale captured VaultItem.
+      showDialog<void>(context: context, builder: (dialogContext) =>
+        Dialog.fullscreen(child: AnimatedBuilder(
+          animation: widget.store,
+          builder: (ctx, _) {
+            if (!widget.store.isUnlocked) {
+              // Modal routes sit above MaterialApp's home. An authentication
+              // lock must dismiss *all* old detail/editor routes, otherwise
+              // stale account content could remain over the unlock screen.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext, rootNavigator: true)
+                      .popUntil((route) => route.isFirst);
+                }
+              });
+              return const ColoredBox(color: VColors.background);
+            }
+            final live = widget.store.items
+                .where((record) => record.id == item.id).firstOrNull;
+            if (live == null) {
+              return Scaffold(
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: 'Natrag',
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                  ),
+                ),
+                body: const Center(
+                  child: Text('Zapis više nije dostupan.')),
+              );
+            }
+            final heading = switch (live.kind) {
+              ItemKind.note => 'Detalji bilješke',
+              ItemKind.card => 'Detalji kartice',
+              ItemKind.totp => 'Detalji autentifikatora',
+              _ => 'Detalji lozinke',
+            };
+            return Scaffold(
+              backgroundColor: VColors.background,
+              appBar: AppBar(
+                backgroundColor: VColors.background,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Natrag',
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+                title: const VeldigoLogo(size: 29),
+                actions: [
+                  if (!live.trashed)
+                    IconButton(
+                      tooltip: 'Uredi zapis',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => edit(original: live),
+                    ),
+                ],
+              ),
+              body: SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  children: [
+                    Text(heading, style: Theme.of(ctx).textTheme.headlineMedium),
+                    const SizedBox(height: 18),
+                    detail(live),
+                  ],
+                ),
+              ),
+            );
+          },
+        )));
     }
   }
 
@@ -417,7 +483,8 @@ class _VaultShellState extends State<VaultShell> {
         if (item.kind == ItemKind.card && item.expiry.isNotEmpty)
           _info('Vrijedi do', item.expiry),
         if (item.kind == ItemKind.card && item.cvv.isNotEmpty)
-          _SecretDetails(secret: item.cvv,
+          _SecretDetails(key: ValueKey('cvv-${item.id}'),
+            recordId: item.id, secret: item.cvv,
             label: 'CVV', copy: copySecret),
         if (item.website.isNotEmpty)
           _info('Web-adresa', item.website, onCopy: () => copySecret(item.website)),
@@ -469,6 +536,7 @@ class _VaultShellState extends State<VaultShell> {
         ])));
 
   Widget _secretField(VaultItem item) => _SecretDetails(
+    key: ValueKey('secret-${item.id}'), recordId: item.id,
     secret: item.secret, label: item.kind == ItemKind.card
       ? 'Broj kartice' : item.kind == ItemKind.totp
       ? 'TOTP ključ' : 'Lozinka', copy: copySecret);
@@ -641,17 +709,29 @@ class _VaultShellState extends State<VaultShell> {
 }
 
 class _SecretDetails extends StatefulWidget {
+  final String recordId;
   final String secret;
   final String label;
   final Future<void> Function(String) copy;
-  const _SecretDetails({required this.secret, required this.label,
-    required this.copy});
+  const _SecretDetails({super.key, required this.recordId,
+    required this.secret, required this.label, required this.copy});
   @override
   State<_SecretDetails> createState() => _SecretDetailsState();
 }
 
 class _SecretDetailsState extends State<_SecretDetails> {
   bool visible = false;
+
+  @override
+  void didUpdateWidget(covariant _SecretDetails oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.recordId != widget.recordId ||
+        oldWidget.secret != widget.secret ||
+        oldWidget.label != widget.label) {
+      visible = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 10),

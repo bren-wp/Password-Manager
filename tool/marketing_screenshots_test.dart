@@ -17,6 +17,41 @@ import 'package:veldigo/ui/welcome_screen.dart';
 
 const captureKey = ValueKey('actual-app-screenshot');
 
+// Target physical pixel dimensions measured from the user's supplied PNG
+// references. A matching screenshot size is necessary, but not sufficient,
+// for pixel-perfect parity. Flutter still requires design-by-design review.
+const androidReferencePixels = <String, Size>{
+  '01_Glavni_trezor': Size(843, 1866),
+  '02_Postavljanje_glavne_lozinke': Size(887, 1774),
+  '03_Otkljucavanje': Size(887, 1774),
+  '04_Dodavanje_lozinke': Size(864, 1821),
+  '05_Detalji_lozinke': Size(862, 1824),
+  '06_Generator_lozinki': Size(887, 1774),
+  '07_Sigurnosni_centar': Size(841, 1870),
+  '08_Sigurne_biljeske': Size(887, 1774),
+  '09_Autentifikator_TOTP': Size(862, 1825),
+  '10_Postavke': Size(863, 1823),
+  '11_Kategorije': Size(832, 1856),
+  '12_Sigurnosna_kopija': Size(832, 1856),
+  '13_Kartice': Size(832, 1856),
+  '14_Uvodni_ekran': Size(832, 1856),
+  '15_Dobrodoslica': Size(832, 1856),
+};
+
+const windowsReferencePixels = <String, Size>{
+  '01_Glavni_trezor': Size(1586, 992),
+  '02_Otkljucavanje': Size(1586, 992),
+  '03_Dodavanje_lozinke': Size(1586, 992),
+  '04_Generator_lozinki': Size(1586, 992),
+  '05_Sigurnosni_centar': Size(1536, 1024),
+  '06_Sigurne_biljeske': Size(1536, 1024),
+  '07_Postavke': Size(1536, 1024),
+  '08_Sigurnosna_kopija': Size(1536, 1024),
+  '09_Autentifikator': Size(1536, 1024),
+  '10_Kategorije': Size(1536, 1024),
+  '11_Prvo_postavljanje': Size(1536, 1024),
+};
+
 Future<({Directory dir, VaultStore store})> createDemoVault() async {
   final dir = await Directory.systemTemp.createTemp('veldigo-screenshot-');
   final store = VaultStore(vaultFileOverride: File('${dir.path}/vault'));
@@ -61,16 +96,42 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> snap(WidgetTester tester, String platform, String file,
-      Widget screen, Size size) async {
+      Widget screen, Size size, {double pixelRatio = 1}) async {
+    // Golden screenshots use logical pixels even when view DPR > 1.
+    // Capture a real full-size PNG using a constrained logical app viewport,
+    // then let Flutter paint that viewport into the physical reference size.
+    // This keeps mobile navigation/layout while preserving actual PNG pixels.
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
     await tester.pumpWidget(RepaintBoundary(
       key: captureKey,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: veldigoTheme(),
-        home: KeyedSubtree(key: ValueKey(file), child: screen),
-      ),
+      child: LayoutBuilder(builder: (context, bounds) => FittedBox(
+        fit: BoxFit.fill,
+        child: SizedBox(
+          width: bounds.maxWidth / pixelRatio,
+          height: bounds.maxHeight / pixelRatio,
+          child: MaterialApp(
+            // Navigator's initial home route is not replaced merely because
+            // a different home widget is passed on the next pumpWidget.
+            // A new application key isolates every screenshot's navigator.
+            key: ValueKey('capture-$platform-$file'),
+            debugShowCheckedModeBanner: false,
+            theme: veldigoTheme(),
+            // WidgetsApp derives its default MediaQuery from the physical
+            // test view. Override it for every route (including dialogs)
+            // so responsive widgets see the *logical* mobile viewport.
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                size: Size(bounds.maxWidth / pixelRatio,
+                    bounds.maxHeight / pixelRatio),
+                devicePixelRatio: pixelRatio,
+              ),
+              child: child!,
+            ),
+            home: KeyedSubtree(key: ValueKey(file), child: screen),
+          ),
+        ),
+      )),
     ));
     await tester.pump(const Duration(milliseconds: 350));
     await expectLater(find.byKey(captureKey),
@@ -87,20 +148,31 @@ void main() {
       demo.store.lock();
       if (await demo.dir.exists()) await demo.dir.delete(recursive: true);
     });
-    const size = Size(393, 852);
     Future<void> shot(String filename, Widget screen) =>
-      snap(tester, 'android', filename, screen, size);
+      snap(tester, 'android', filename, screen,
+        androidReferencePixels[filename]!, pixelRatio: 2);
+
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
     // Details are opened exactly as in the running Android UI.
     await tester.tap(find.text('GitHub').first);
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('Korisničko ime'), findsOneWidget);
+    expect(find.text('Uredi'), findsWidgets);
+    // This screen uses its own reference size, not the home screen's.
+    tester.view.physicalSize =
+        androidReferencePixels['05_Detalji_lozinke']!;
+    await tester.pumpAndSettle();
     await expectLater(find.byKey(captureKey),
       matchesGoldenFile('goldens/marketing/android/05_Detalji_lozinke.png'));
 
+
     await shot('02_Postavljanje_glavne_lozinke',
       AuthScreen(store: demo.store, create: true));
+    expect(find.text('Stvorite sigurni trezor'), findsOneWidget);
     await shot('03_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));
+    expect(find.text('Dobro došli natrag'), findsOneWidget);
     await shot('04_Dodavanje_lozinke',
       const Scaffold(body: Center(child:
         EntryEditor(kind: ItemKind.password))));
@@ -134,9 +206,9 @@ void main() {
       demo.store.lock();
       if (await demo.dir.exists()) await demo.dir.delete(recursive: true);
     });
-    const size = Size(1200, 800);
     Future<void> shot(String filename, Widget screen) =>
-      snap(tester, 'windows', filename, screen, size);
+      snap(tester, 'windows', filename, screen,
+        windowsReferencePixels[filename]!);
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
     await shot('02_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));

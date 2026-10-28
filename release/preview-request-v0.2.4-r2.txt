@@ -1,0 +1,7 @@
+Veldigo v0.2.4-preview.2
+
+Security follow-up: immutable per-transaction cryptographic verification,
+session generation cancellation after manual lock, bounded encrypted vault
+and backup reads, authenticated quarantine recovery and Windows focus lock.
+Ship APK + AAB + portable.exe + setup.exe + Windows ZIP + checksums.
+Gate publishing on successful analyze/tests and native builds.

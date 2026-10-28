@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/vault_store.dart';
 import 'brand.dart';
+import 'encrypted_backup_input.dart';
 
 class AuthScreen extends StatefulWidget {
   final VaultStore store;
@@ -34,13 +33,13 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() { busy = true; error = null; });
     final passphrase = TextEditingController();
     try {
-      final chosen = await FilePicker.platform.pickFiles(
-        type: FileType.custom, allowedExtensions: ['veldigo'], withData: true);
-      if (chosen == null || chosen.files.isEmpty || !mounted) return;
-      final file = chosen.files.single;
-      final bytes = file.bytes ??
-          (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null) throw const FormatException('Nečitljiva datoteka.');
+      final chosen = await FilePicker.pickFile(
+        type: FileType.custom, allowedExtensions: ['veldigo']);
+      if (chosen == null || !mounted) return;
+      final bytes = await EncryptedBackupInput.read(
+        chosen.readAsByteStream(),
+        reportedSize: chosen.lengthSync() ?? await chosen.length(),
+      );
       if (!mounted) return;
       final accepted = await showDialog<bool>(context: context,
         builder: (ctx) => AlertDialog(

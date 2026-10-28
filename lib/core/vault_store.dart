@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
@@ -38,10 +39,89 @@ class VaultStore extends ChangeNotifier {
   List<VaultItem> _items = [];
   bool _exists = false;
   Future<void> _pending = Future<void>.value();
+  // Every user-initiated lock invalidates every asynchronous operation started
+  // in the previous unlocked session, including imports and master-key changes.
+  int _sessionEpoch = 0;
+  bool _disposed = false;
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // The operating system can close a window while encryption is awaiting
+    // KDF or disk IO. Dispose must invalidate callbacks without notifying
+    // listeners that are already being unmounted.
+    _disposed = true;
+    _sessionEpoch++;
+    _externalPickerTimeout?.cancel();
+    _externalPickerTimeout = null;
+    _key = null;
+    _salt = null;
+    _items = [];
+    _committedHash = null;
+    super.dispose();
+  }
+
+
+  void _assertNotCancelled(int epoch) {
+    if (_disposed || epoch != _sessionEpoch) {
+      throw const VaultSessionCancelledException();
+    }
+  }
+
+  void _assertUnlockedSession(int epoch) {
+    _assertNotCancelled(epoch);
+    if (!isUnlocked) throw const VaultSessionCancelledException();
+  }
+  static const externalPickerGrace = Duration(minutes: 2);
+  int _externalPickerDepth = 0;
+  DateTime? _externalPickerStarted;
+  Timer? _externalPickerTimeout;
+
+  /// The system file picker uses another Android activity and can temporarily
+  /// pause the Flutter app. Only this explicitly initiated operation can
+  /// defer background locking, for at most two minutes.
+  bool get externalPickerGraceActive =>
+      isUnlocked && _externalPickerDepth > 0 &&
+      _externalPickerStarted != null &&
+      DateTime.now().difference(_externalPickerStarted!) < externalPickerGrace;
+
+  bool get externalPickerExpired => _externalPickerDepth > 0 &&
+      _externalPickerStarted != null &&
+      DateTime.now().difference(_externalPickerStarted!) >= externalPickerGrace;
+
+  Future<T> withExternalFilePicker<T>(Future<T> Function() action) async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    if (_externalPickerDepth++ == 0) {
+      _externalPickerStarted = DateTime.now();
+      _externalPickerTimeout = Timer(externalPickerGrace, () {
+        if (_externalPickerDepth > 0 && isUnlocked) lock();
+      });
+    }
+    try {
+      return await action();
+    } finally {
+      _externalPickerDepth--;
+      if (_externalPickerDepth == 0) {
+        _externalPickerTimeout?.cancel();
+        _externalPickerTimeout = null;
+        _externalPickerStarted = null;
+      }
+    }
+  }
+
   String? _committedHash;
 
   Future<String> _hash(List<int> bytes) async =>
       base64Encode((await Sha256().hash(bytes)).bytes);
+
+  Future<void> _commitDigest(List<int> bytes, int session) async {
+    final digest = await _hash(bytes);
+    _assertNotCancelled(session);
+    _committedHash = digest;
+  }
 
   /// Prevent stale application instances from silently overwriting records.
   Future<void> _checkLatestOnDisk() async {
@@ -90,7 +170,7 @@ class VaultStore extends ChangeNotifier {
     // Check for interrupted replacements, but never delete/move ciphertext
     // without the master password. Recovery happens after authentication.
     _exists = await _files!.hasAny;
-    notifyListeners();
+    _notify();
   }
 
   List<int> _random(int count) {
@@ -103,7 +183,10 @@ class VaultStore extends ChangeNotifier {
     return _kdf.deriveKeyFromPassword(password: password, nonce: salt);
   }
 
-  Future<void> create(String password) => _serial(() async {
+  Future<void> create(String password) {
+    final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     if (_files == null) throw StateError('Trezor nije inicijaliziran.');
     if (_exists || await _files!.hasAny) {
       throw StateError('Trezor već postoji i neće biti prepisan.');
@@ -111,18 +194,23 @@ class VaultStore extends ChangeNotifier {
     if (password.runes.length < 12) {
       throw ArgumentError('Glavna lozinka treba najmanje 12 znakova.');
     }
-    _salt = _random(16);
-    _key = await _derive(password, _salt!);
+    final newSalt = _random(16);
+    final newKey = await _derive(password, newSalt);
+    _assertNotCancelled(session);
+    _salt = newSalt;
+    _key = newKey;
     try {
       await _persist(const <VaultItem>[]);
+      _assertUnlockedSession(session);
       _items = [];
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
       lock();
       rethrow;
     }
-  });
+    });
+  }
 
   Future<({SecretKey key, List<int> salt, List<VaultItem> items})>
       _decode(String source, String password) async {
@@ -168,11 +256,10 @@ class VaultStore extends ChangeNotifier {
     return result;
   }
 
-  Future<bool> _canDecrypt(List<int> bytes) async {
-    final key = _key;
-    if (key == null || bytes.isEmpty || bytes.length > _maxVaultBytes) {
-      return false;
-    }
+  /// Each write verifies ciphertext against the key that started it.
+  /// User-initiated locking must not corrupt an in-progress disk rotation.
+  Future<bool> _canDecryptUsingKey(List<int> bytes, SecretKey key) async {
+    if (bytes.isEmpty || bytes.length > _maxVaultBytes) return false;
     try {
       await _decodeWithKey(utf8.decode(bytes), key);
       return true;
@@ -181,59 +268,118 @@ class VaultStore extends ChangeNotifier {
     }
   }
 
+  Future<bool> _canDecrypt(List<int> bytes) async {
+    final key = _key;
+    return key != null && await _canDecryptUsingKey(bytes, key);
+  }
+
   Future<List<int>> _readFile(File source) async {
     if (!await source.exists() || await source.length() > _maxVaultBytes) {
       throw const FormatException('Datoteka trezora nije dostupna.');
     }
-    return source.readAsBytes();
+    // Do not trust file metadata alone: a corrupted or concurrently enlarged
+    // vault must never trigger an unbounded allocation in a password manager.
+    final output = BytesBuilder(copy: false);
+    await for (final chunk in source.openRead(0, _maxVaultBytes + 1)) {
+      if (output.length + chunk.length > _maxVaultBytes) {
+        throw const FormatException('Datoteka trezora je prevelika.');
+      }
+      output.add(chunk);
+    }
+    if (output.length == 0) {
+      throw const FormatException('Datoteka trezora je prazna.');
+    }
+    return output.takeBytes();
   }
 
-  Future<void> unlock(String password) => _serial(() async {
+  Future<void> unlock(String password) {
+    final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final file = _file;
     final files = _files;
     if (file == null || files == null || !_exists) {
       throw StateError('Trezor ne postoji.');
     }
+
+    // Serialize recovery with writers in other processes. Otherwise a
+    // verified backup and the re-created primary may refer to different
+    // generations of the vault.
+    final guard = await File('${file.path}.write-lock')
+        .open(mode: FileMode.append);
     try {
+      await guard.lock(FileLock.exclusive);
       if (await file.exists()) {
-        final restored = await _decode(
-          utf8.decode(await _readFile(file)), password);
-        _key = restored.key;
-        _salt = restored.salt;
-        _items = restored.items;
-        _committedHash = await _hash(await _readFile(file));
+        final bytes = await _readFile(file);
+        final opened = await _decode(utf8.decode(bytes), password);
+        _assertNotCancelled(session);
+        _key = opened.key;
+        _salt = opened.salt;
+        _items = opened.items;
+        await _commitDigest(bytes, session);
       } else {
-        // The app may have been terminated between rename operations.
-        // Authenticate candidates before restoring any missing primary.
-        bool recovered = false;
-        for (final source in [files.swap, files.previous, files.older,
-            files.pending]) {
-          if (!await source.exists()) continue;
+        bool restored = false;
+        for (final candidate in [
+          files.recoveryStage, files.swap, files.previous, files.older,
+          files.previousRetired, files.olderRetired,
+          files.quarantine, files.pending,
+        ]) {
+          if (!await candidate.exists()) continue;
           try {
-            final bytes = await _readFile(source);
-            final restored = await _decode(utf8.decode(bytes), password);
-            _key = restored.key;
-            _salt = restored.salt;
-            await files.recoverInterruptedReplacement();
-            if (!await file.exists()) continue;
-            _items = restored.items;
-            _committedHash = await _hash(await _readFile(file));
-            recovered = true;
+            final bytes = await _readFile(candidate);
+            final opened = await _decode(utf8.decode(bytes), password);
+            _assertNotCancelled(session);
+            _key = opened.key;
+            _salt = opened.salt;
+            // Must install precisely this authenticated ciphertext.
+            await VaultFiles(file,
+                verify: (candidate) => _canDecryptUsingKey(candidate, opened.key))
+                .restoreExactWhenMissing(bytes);
+            _assertNotCancelled(session);
+            final committed = await _readFile(file);
+            if (!listEquals(committed, bytes)) {
+              throw const FileSystemException(
+                'Sadržaj trezora promijenio se tijekom oporavka.');
+            }
+            _items = opened.items;
+            await _commitDigest(committed, session);
+            restored = true;
             break;
-          } catch (_) { /* Try an older authenticated recovery copy. */ }
+          } on VaultSessionCancelledException {
+            rethrow;
+          } on FileSystemException {
+            // Abort instead of silently choosing a different generation.
+            rethrow;
+          } catch (_) {
+            // A corrupted checkpoint or a snapshot from a previous master
+            // password is not proof that the remaining backups are invalid.
+            _key = null;
+            _salt = null;
+          }
         }
-        if (!recovered) throw const VaultAuthenticationException();
+        if (!restored) throw const VaultAuthenticationException();
       }
-      notifyListeners();
+      _assertNotCancelled(session);
+      _notify();
+    } on VaultSessionCancelledException {
+      lock();
+      rethrow;
     } catch (_) {
       lock();
       throw const VaultAuthenticationException();
+    } finally {
+      await guard.unlock();
+      await guard.close();
     }
-  });
+    });
+  }
 
   /// Deliberately separate from unlock: never silently replace an existing
   /// primary with an older version when the user typed an old password.
-  Future<void> recoverFromLocalBackup(String password) => _serial(() async {
+  Future<void> recoverFromLocalBackup(String password) {
+    final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final files = _files;
     final primary = _file;
     if (files == null || primary == null || !_exists) {
@@ -242,12 +388,15 @@ class VaultStore extends ChangeNotifier {
     final initialPrimary = await primary.exists()
         ? await _hash(await _readFile(primary)) : null;
     for (final candidate in [
-      files.swap, files.previous, files.older, files.pending,
+      files.swap, files.previous, files.older,
+      files.previousRetired, files.olderRetired,
+      files.quarantine, files.pending,
     ]) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readFile(candidate);
         final decoded = await _decode(utf8.decode(bytes), password);
+        _assertNotCancelled(session);
         // This is a user-approved rollback. It is not a license to erase
         // changes made concurrently by a different running instance.
         final guard = await File('${primary.path}.write-lock')
@@ -259,28 +408,37 @@ class VaultStore extends ChangeNotifier {
           if (current != initialPrimary) {
             throw const VaultConflictException();
           }
+          _assertNotCancelled(session);
           final previousKey = _key;
           final previousSalt = _salt;
           _key = decoded.key;
           _salt = decoded.salt;
           try {
-            await files.install(bytes);
-            _committedHash = await _hash(bytes);
+            await VaultFiles(primary,
+              verify: (candidate) => _canDecryptUsingKey(candidate, decoded.key))
+                .install(bytes);
+            _assertNotCancelled(session);
+            await _commitDigest(bytes, session);
           } catch (_) {
-            _key = previousKey;
-            _salt = previousSalt;
+            if (_sessionEpoch == session) {
+              _key = previousKey;
+              _salt = previousSalt;
+            }
             rethrow;
           }
         } finally {
           await guard.unlock();
           await guard.close();
         }
+        _assertNotCancelled(session);
         _items = decoded.items;
         _exists = true;
-        notifyListeners();
+        _notify();
         return;
       } on VaultConflictException {
         lock();
+        rethrow;
+      } on VaultSessionCancelledException {
         rethrow;
       } catch (_) {
         // Only try an older candidate on authentication / IO failure.
@@ -288,17 +446,22 @@ class VaultStore extends ChangeNotifier {
     }
     lock();
     throw const VaultAuthenticationException();
-  });
+    });
+  }
 
   void lock() {
+    _sessionEpoch++;
+    _externalPickerTimeout?.cancel();
+    _externalPickerTimeout = null;
     _key = null;
     _salt = null;
     _items = [];
     _committedHash = null;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> _persist(List<VaultItem> entries) async {
+    final session = _sessionEpoch;
     final key = _key;
     final salt = _salt;
     final files = _files;
@@ -324,8 +487,11 @@ class VaultStore extends ChangeNotifier {
     try {
       await guard.lock(FileLock.exclusive);
       await _checkLatestOnDisk();
-      await files.install(bytes);
-      _committedHash = await _hash(bytes);
+      _assertUnlockedSession(session);
+      await VaultFiles(_file!,
+        verify: (candidate) => _canDecryptUsingKey(candidate, key))
+          .install(bytes);
+      await _commitDigest(bytes, session);
     } finally {
       await guard.unlock();
       await guard.close();
@@ -335,7 +501,7 @@ class VaultStore extends ChangeNotifier {
   Future<void> save() => _serial(() async {
     await _persist(List<VaultItem>.of(_items));
     _exists = true;
-    notifyListeners();
+    _notify();
   });
 
   Future<void> put(VaultItem item) => _serial(() async {
@@ -349,7 +515,7 @@ class VaultStore extends ChangeNotifier {
     }
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   /// Delete is reversible: encrypted contents stay in the local trash.
@@ -363,7 +529,7 @@ class VaultStore extends ChangeNotifier {
       trashed: true, updatedAt: DateTime.now().toUtc());
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   Future<void> restoreTrashed(String id) => _serial(() async {
@@ -377,7 +543,7 @@ class VaultStore extends ChangeNotifier {
       trashed: false, updatedAt: DateTime.now().toUtc());
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   /// Irreversible in the active vault, but encrypted historic copies may
@@ -391,7 +557,7 @@ class VaultStore extends ChangeNotifier {
     final next = _items.where((record) => record.id != id).toList();
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   Future<List<int>> encryptedBackup() => _serial(() async {
@@ -409,7 +575,10 @@ class VaultStore extends ChangeNotifier {
   /// archive without first generating a second (empty) vault.
   /// No existing ciphertext is ever replaced by this operation.
   Future<void> importFirstVault(
-      List<int> bytes, String masterPassword) => _serial(() async {
+      List<int> bytes, String masterPassword) {
+    final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final files = _files;
     final target = _file;
     if (files == null || target == null) {
@@ -422,6 +591,7 @@ class VaultStore extends ChangeNotifier {
       throw const FormatException('Datoteka sigurnosne kopije nije valjana.');
     }
     final imported = await _decode(utf8.decode(bytes), masterPassword);
+    _assertNotCancelled(session);
     _key = imported.key;
     _salt = imported.salt;
     try {
@@ -432,20 +602,25 @@ class VaultStore extends ChangeNotifier {
         if (await files.hasAny) {
           throw const VaultConflictException();
         }
-        await files.install(bytes);
-        _committedHash = await _hash(bytes);
+        _assertUnlockedSession(session);
+        await VaultFiles(target,
+            verify: (candidate) => _canDecryptUsingKey(candidate, imported.key))
+              .install(bytes);
+        await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
         await guard.close();
       }
+      _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
       lock();
       rethrow;
     }
-  });
+    });
+  }
 
   /// Preserve and verify the existing ciphertext before destructive imports
   /// or master-key rotation. Backup remains encrypted under the old key.
@@ -466,6 +641,7 @@ class VaultStore extends ChangeNotifier {
 
   Future<void> changeMasterPassword(
       String currentPassword, String newPassword) => _serial(() async {
+    final session = _sessionEpoch;
     final file = _file;
     if (!isUnlocked || file == null) {
       throw StateError('Trezor je zaključan.');
@@ -480,18 +656,23 @@ class VaultStore extends ChangeNotifier {
       throw StateError('Trezor je izmijenjen izvan aplikacije.');
     }
     await _preserveVerifiedSnapshot(file, 'before-password-change');
+    _assertUnlockedSession(session);
     final oldKey = _key;
     final oldSalt = _salt;
     final newSalt = _random(16);
     final newKey = await _derive(newPassword, newSalt);
+    _assertUnlockedSession(session);
     _key = newKey;
     _salt = newSalt;
     try {
       await _persist(List<VaultItem>.of(_items));
-      notifyListeners();
+      _assertUnlockedSession(session);
+      _notify();
     } catch (_) {
-      _key = oldKey;
-      _salt = oldSalt;
+      if (_sessionEpoch == session) {
+        _key = oldKey;
+        _salt = oldSalt;
+      }
       rethrow;
     }
   });
@@ -500,6 +681,7 @@ class VaultStore extends ChangeNotifier {
   /// separately to protect against an accidentally imported older backup.
   Future<void> restore(List<int> bytes, String backupPassword) =>
       _serial(() async {
+    final session = _sessionEpoch;
     final files = _files;
     final target = _file;
     if (files == null || target == null || !isUnlocked) {
@@ -509,9 +691,11 @@ class VaultStore extends ChangeNotifier {
       throw const FormatException('Sigurnosna kopija je prevelika.');
     }
     final imported = await _decode(utf8.decode(bytes), backupPassword);
+    _assertUnlockedSession(session);
     if (await target.exists()) {
       await _preserveVerifiedSnapshot(target, 'before-import');
     }
+    _assertUnlockedSession(session);
     final oldKey = _key;
     final oldSalt = _salt;
     _key = imported.key;
@@ -524,21 +708,33 @@ class VaultStore extends ChangeNotifier {
       try {
         await guard.lock(FileLock.exclusive);
         await _checkLatestOnDisk();
-        await files.install(bytes);
-        _committedHash = await _hash(bytes);
+        _assertUnlockedSession(session);
+        await VaultFiles(target,
+          verify: (candidate) => _canDecryptUsingKey(candidate, imported.key))
+            .install(bytes);
+        await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
         await guard.close();
       }
+      _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
-      _key = oldKey;
-      _salt = oldSalt;
+      if (_sessionEpoch == session) {
+        _key = oldKey;
+        _salt = oldSalt;
+      }
       rethrow;
     }
   });
+}
+
+class VaultSessionCancelledException implements Exception {
+  const VaultSessionCancelledException();
+  @override
+  String toString() => 'Trezor je zaključan. Otključajte ga za nastavak.';
 }
 
 class VaultConflictException implements Exception {

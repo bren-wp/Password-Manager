@@ -13,6 +13,13 @@
 - A .veldigo backup contains the existing encrypted vault; restoring validates it first.
 - Clipboard copies from record detail are cleared after 30 seconds if unchanged.
 - Files are written via temporary encrypted files and local rollback handling.
+- Missing-primary recovery now authenticates and installs the **same** ciphertext
+  under an exclusive cross-process lock, using a verified same-directory rename.
+- A pre-existing valid recovery stage is not silently replaced by older data.
+- Android and Windows vaults lock when the application is paused, hidden or detached. Windows also locks when focus is lost.
+- In-flight cryptographic operations are bound to a cancellable session generation; a late completion cannot restore credentials after user lock.
+- Snapshot checks during disk writes use the transaction's own authenticated key, independent of subsequent UI locks.
+- Local vault and recovery file reads are bounded to 64 MiB, including quarantine and retired generations.
 
 ## Known limitations — do not use for important credentials yet
 
@@ -29,6 +36,23 @@
 8. Password strength checks are a local heuristic; they do not check breach databases.
 9. Backup restoration replaces the existing vault; make a copy before restoring.
 10. The password KDF can be slow on low-end phones; parameters need benchmarking.
+11. Windows does not yet have native prevention of screenshots, screen recording,
+    hostile clipboard capture or memory inspection by software in the user session.
+12. OS-level crash-consistency and hardware failure guarantees need independent
+    power-loss testing; filesystems and storage controllers differ by platform.
+
+## External dependency advisory
+
+The previous `file_picker 10.3.10` is listed in
+[CVE-2026-38093 / GHSA-r2rg-pm28-j8gw](https://github.com/advisories/GHSA-r2rg-pm28-j8gw)
+(2026 Android path traversal through an untrusted ContentProvider name).
+The active development PR migrates to `file_picker 13.3.0` and its federated
+Android plugin. **The advisory does not designate a fixed version.**
+Validate native behavior and rerun dependency scanning before release.
+
+Revealed secret fields are keyed to individual account records and reset
+on selection changes. Cached portable Windows files are SHA-256 verified
+against an embedded per-file manifest before execution.
 
 Please report security bugs privately to the project maintainer rather than sharing secrets
 in a public issue. Never commit real passwords, recovery material, signing keys or vaults.
