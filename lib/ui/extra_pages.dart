@@ -214,7 +214,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     return ListView(padding: const EdgeInsets.all(16), children: [
       const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
         'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
-        'Koristite vlastiti Base32 tajni ključ.'))),
+        'Koristite vlastiti Base32 tajni ključ.')),
       const SizedBox(height: 15),
       for (final item in widget.items)
         Padding(padding: const EdgeInsets.only(bottom: 10),
