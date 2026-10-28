@@ -21,6 +21,22 @@ application.set(f"{{{namespace}}}label", "Veldigo")
 application.set(f"{{{namespace}}}allowBackup", "false")
 application.set(f"{{{namespace}}}fullBackupContent", "false")
 application.set(f"{{{namespace}}}usesCleartextTraffic", "false")
+# Android 12+ device-to-device transfer may ignore allowBackup=false on
+# some vendor builds. Explicitly exclude application files on both channels.
+application.set(f"{{{namespace}}}dataExtractionRules",
+                "@xml/veldigo_data_extraction_rules")
+resource = root / "android/app/src/main/res/xml/veldigo_data_extraction_rules.xml"
+resource.parent.mkdir(parents=True, exist_ok=True)
+resource.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="root" path="." />
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="root" path="." />
+  </device-transfer>
+</data-extraction-rules>
+""", encoding="utf-8")
 doc.write(manifest, encoding="utf-8", xml_declaration=True)
 
 source = gradle.read_text(encoding="utf-8")
