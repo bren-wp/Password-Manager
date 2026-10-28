@@ -1,36 +1,40 @@
-# Veldigo v0.2.0 — Preview 1
+# Veldigo v0.2.1 — Preview 1
 
-Android and Windows preview build of the Veldigo local password manager.
+**Android + Windows · Jedan siguran prostor za vaše digitalne podatke**
 
-## Packages
-- `Veldigo-Android.apk` — Android preview APK
-- `Veldigo-Android.aab` — Android preview app bundle
-- `Veldigo-portable.exe` — standalone self-extracting Windows launcher
-- `Veldigo-Setup.exe` — Windows per-user installer
-- `Veldigo-Windows-portable.zip` — portable Windows app folder
-- `Android-SHA256.txt`, `Windows-SHA256.txt` — binary checksums
+## Novo u Veldigu
 
-## Main features
-Offline encrypted vault, password record editing, categories, favorites,
-generator, secure notes, cards, manual TOTP, security overview and encrypted
-backup/restore. Android window capture is blocked. Windows opens in a
-resizable window, not full-screen.
+- Ugodniji početni ekran, osvježeni mobilni trezor i tirkizna akcijska tipka
+- Više pojedinosti za spremanje kartica i mogućnost izrade vlastitih kategorija
+- Uvoz postojećeg šifriranog trezora tijekom prvog pokretanja na novom uređaju
+- Naprednija lokalna zaštita od nenamjernog prepisivanja podataka
+- Oporavak valjanih privremenih i prethodnih šifriranih datoteka
+- Dodatne provjere očuvanja zapisa, promjene glavne lozinke i prijenosa između uređaja
 
-## Important precautions
-This is a **preview**, not a completed security audit or pixel-perfect signoff.
-Please do not store irreplaceable production credentials in it.
+## Preuzimanja
 
-**Android preview packages use temporary build signing** unless dedicated
-upload-signing secrets are configured. Do not upload the AAB to Google Play
-as a long-term production release or replace an app signed with another key.
+| Android | Windows |
+|---|---|
+| `Veldigo-Android.apk` | `Veldigo-portable.exe` |
+| `Veldigo-Android.aab` | `Veldigo-Setup.exe` |
+| | `Veldigo-Windows-portable.zip` |
 
-**Windows builds are not Authenticode-signed.** Windows SmartScreen may
-warn on first launch. The portable launcher extracts the bundled Windows
-Flutter executable and DLLs to a versioned local cache, without a setup wizard.
-The vault itself remains in the application's OS-managed storage.
+Kontrolni SHA-256 zbrojevi nalaze se uz pakete.
 
-Local backup snapshots reduce risk but cannot protect against every hardware
-failure. Export .veldigo backups and retain an independent copy and its
-associated master password. A forgotten master password is not remotely resettable.
+## O zaštiti podataka
 
-© Brendigo · Veldigo
+Podaci se čuvaju u lokalnom šifriranom trezoru. Prijenos između uređaja
+obavlja se putem šifrirane datoteke. Sigurnosnu kopiju čuvajte na zasebnom
+uređaju, a glavnu lozinku na sigurnome mjestu.
+
+**Ovo je predizdanje.** Nije završena neovisna sigurnosna revizija niti
+potvrđena potpuna vizualna usklađenost svih 26 referentnih ekrana. Ne
+preporučuje se pohrana nezamjenjivih računa ili produkcijskih tajni prije
+završetka revizije.
+
+Android paketi koriste testno potpisivanje ako se ne konfigurira namjenski
+ključ; nemojte taj AAB koristiti kao produkcijsko Google Play izdanje.
+Windows izvršne datoteke nisu Authenticode potpisane i mogu prikazati
+SmartScreen upozorenje.
+
+© Brendigo
