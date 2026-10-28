@@ -14,6 +14,8 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 
 | Priority | Finding | Fix / status |
 |---|---|---|
+| High | Commands already queued before a user lock could start after that lock, and their old unlock request could unexpectedly reopen the vault | **Fixed:** capture session epoch at API invocation, before entering the serialized queue; cancel queued unlock/create/first-import/recovery requests from older sessions; targeted queued-unlock test |
+| Medium | Closing a window while Argon2/disk IO was pending could notify a disposed `ChangeNotifier` and revive previous session state | **Fixed:** `dispose()` invalidates the session, wipes application-level references and guards every UI notification; disposal race regression test |
 | High | User locking the vault while unlock, backup import, key rotation or recovery was asynchronously awaiting disk/KDF operations could re-establish keys or plaintext in memory | **Fixed:** session-epoch cancellation, guarded state transitions, and per-transaction authenticated keys for disk verification; regression tests for interrupted unlock/import/key changes/writes |
 | Medium | Local main vault and crash-recovery files could grow after file metadata checks and trigger unbounded memory allocations | **Fixed:** streaming reads capped at 64 MiB, including rotating and quarantined snapshots; overlarge candidates skipped without deleting other recovery versions |
 | Medium | Valid encrypted data quarantined after failed authentication or key rotation could be inaccessible when the primary vault was missing | **Fixed:** authenticated quarantine included as a last-resort recovery source; tests ensure corrupt quarantined bytes cannot create a vault |
@@ -44,7 +46,7 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 
 1. **High:** Android artifacts still need the developer's own securely managed Google Play upload keystore; Windows binaries need Authenticode signing. No release authenticity guarantee until signing/provenance validation is implemented.
 2. **High:** No independent penetration test, cryptographic audit, native device crash/ANR testing or filesystem power-failure testing. A passed unit test cannot guarantee zero credential loss.
-3. **Medium:** Secret strings and keys may remain in Dart-managed memory; zeroization is not guaranteed. Endpoint malware can inspect process memory, simulate input or read clipboard contents.
+3. **Medium:** Secret strings and keys may remain in Dart-managed memory or in-flight cryptographic closures even after app-level locking; zeroization is not guaranteed. Endpoint malware can inspect process memory, simulate input or read clipboard contents.
 4. **Medium:** Windows lacks a native analogue to Android `FLAG_SECURE`. Screenshots, remote-screen capture and accessibility tools may expose secrets while unlocked.
 5. **Medium:** Cached encrypted snapshots and archives under *old* master passwords remain recoverable; password changes cannot revoke prior independently exported archives. Define an explicit safe backup-retention policy before enterprise use.
 6. **Medium:** Provider-specific file-picking behavior, clipboard clearing and UI lock transitions need hardware testing on supported Android API levels and Windows editions.
@@ -53,6 +55,8 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 9. **Low:** Password-strength scoring is a local heuristic, not a compromised-password or 2FA-status lookup. Keep that limitation clear to users.
 
 ## Further checks for concurrency
+
+Queued operations are bound to the session present when the user invoked them, not the session when they eventually reach the asynchronous queue. Disposed stores do not notify Flutter widgets after their lifetime.
 
 All in-flight operations started in a prior user session must fail closed when the lock epoch changes. Durable ciphertext may still reflect a write that was already in progress before locking; the critical invariant is that no obsolete asynchronous callback can restore a key or plaintext into the active UI. Test the same behavior under real Android activity switches, Windows focus changes and application shutdown.
 
