@@ -11,6 +11,7 @@ import '../core/totp.dart';
 import '../core/vault_item.dart';
 import '../core/vault_store.dart';
 import 'brand.dart';
+import 'encrypted_backup_input.dart';
 
 class GeneratorPage extends StatefulWidget {
   const GeneratorPage({super.key});
@@ -288,18 +289,7 @@ class _BackupPageState extends State<BackupPage> {
           allowedExtensions: ['veldigo'], withData: false),
       );
       if (result == null || result.files.isEmpty || !mounted) { return; }
-      final file = result.files.single;
-      const maxBackupBytes = 64 * 1024 * 1024;
-      if (file.size > maxBackupBytes) {
-        throw const FormatException('Sigurnosna kopija je prevelika.');
-      }
-      final filePath = file.path;
-      final bytes = filePath == null
-          ? file.bytes
-          : await File(filePath).readAsBytes();
-      if (bytes == null || bytes.length > maxBackupBytes) {
-        throw const FormatException('Neispravna datoteka sigurnosne kopije.');
-      }
+      final bytes = await EncryptedBackupInput.read(result.files.single);
       if (!mounted) { return; }
       final controller = TextEditingController();
       try {
