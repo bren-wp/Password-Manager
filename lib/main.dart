@@ -69,6 +69,10 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
       if (store.isUnlocked && !store.externalPickerGraceActive) {
         store.lock();
       }
+    } else if (state == AppLifecycleState.resumed &&
+        store.externalPickerExpired && store.isUnlocked) {
+      // Timers may be suspended while Android's file picker is in front.
+      store.lock();
     }
   }
 
