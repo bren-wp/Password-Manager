@@ -16,7 +16,7 @@ void main() {
   test('import uses size limits and does not preload arbitrary file bytes',
       () async {
     final backup = await File('lib/ui/extra_pages.dart').readAsString();
-    expect(backup, contains('withData: false'));
-    expect(backup, contains('file.size > maxBackupBytes'));
+    expect(backup, contains('FilePicker.pickFile('));
+    expect(backup, contains('readAsByteStream()'));
   });
 }

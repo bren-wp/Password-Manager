@@ -262,12 +262,11 @@ class _BackupPageState extends State<BackupPage> {
     try {
       final data = Uint8List.fromList(await widget.store.encryptedBackup());
       final path = await widget.store.withExternalFilePicker(
-        () => FilePicker.platform.saveFile(
+        () => FilePicker.saveFile(
           dialogTitle: 'Spremi šifrirani trezor',
           fileName: 'Veldigo-backup.veldigo',
-          type: FileType.custom,
-          allowedExtensions: ['veldigo'],
           bytes: data,
+          mimeType: 'application/octet-stream',
         ),
       );
       if (path != null) { widget.onMessage('Šifrirana kopija je spremljena.'); }
@@ -282,13 +281,16 @@ class _BackupPageState extends State<BackupPage> {
     if (busy) { return; }
     setState(() => busy = true);
     try {
-      final result = await widget.store.withExternalFilePicker(
-        () => FilePicker.platform.pickFiles(
+      final chosen = await widget.store.withExternalFilePicker(
+        () => FilePicker.pickFile(
           type: FileType.custom,
-          allowedExtensions: ['veldigo'], withData: false),
+          allowedExtensions: ['veldigo']),
       );
-      if (result == null || result.files.isEmpty || !mounted) { return; }
-      final bytes = await EncryptedBackupInput.read(result.files.single);
+      if (chosen == null || !mounted) { return; }
+      final bytes = await EncryptedBackupInput.read(
+        chosen.readAsByteStream(),
+        reportedSize: chosen.lengthSync() ?? await chosen.length(),
+      );
       if (!mounted) { return; }
       final controller = TextEditingController();
       try {

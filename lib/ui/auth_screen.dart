@@ -33,10 +33,13 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() { busy = true; error = null; });
     final passphrase = TextEditingController();
     try {
-      final chosen = await FilePicker.platform.pickFiles(
-        type: FileType.custom, allowedExtensions: ['veldigo'], withData: false);
-      if (chosen == null || chosen.files.isEmpty || !mounted) return;
-      final bytes = await EncryptedBackupInput.read(chosen.files.single);
+      final chosen = await FilePicker.pickFile(
+        type: FileType.custom, allowedExtensions: ['veldigo']);
+      if (chosen == null || !mounted) return;
+      final bytes = await EncryptedBackupInput.read(
+        chosen.readAsByteStream(),
+        reportedSize: chosen.lengthSync() ?? await chosen.length(),
+      );
       if (!mounted) return;
       final accepted = await showDialog<bool>(context: context,
         builder: (ctx) => AlertDialog(
