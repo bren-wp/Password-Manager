@@ -26,6 +26,10 @@
 - `pubspec.lock`: intentional dependency-version reproducibility. Do not delete.
 - Historical release notes/requests: historical traceability; old requests do not trigger the current release workflow.
 
+## User-visible development text controls
+
+`test/public_ui_safety_test.dart` now checks all shipped Flutter screens for forbidden development/roadmap labels, embedded demo credentials and debug placeholders. Test fixtures and README-only render inputs remain deliberately separate from public application code. The capture publication process rejects identical screenshots and incorrect reference PNG resolutions rather than silently presenting old mockups.
+
 ## Static audit and remaining verification
 
 - `flutter analyze` checks unresolved imports and unused local symbols. The project CI also runs `flutter test` and native builds.
