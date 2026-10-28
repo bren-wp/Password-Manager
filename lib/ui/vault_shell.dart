@@ -235,8 +235,16 @@ class _VaultShellState extends State<VaultShell> {
           style: const TextStyle(color: VColors.muted, fontSize: 13)),
       ])),
       if (desktop && (page == 'Trezor' || page == 'Sve lozinke'))
-        VPrimaryButton(label: desktop ? 'Nova lozinka' : 'Dodaj',
+        VPrimaryButton(label: 'Nova lozinka',
           icon: Icons.add, onPressed: () => edit()),
+      if (desktop) ...[
+        const SizedBox(width: 12),
+        IconButton(
+          tooltip: 'Zaključaj trezor',
+          icon: const Icon(Icons.lock_outline, color: VColors.accent),
+          onPressed: widget.store.lock,
+        ),
+      ],
     ]),
   );
 
@@ -586,7 +594,14 @@ class _VaultShellState extends State<VaultShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
-        title: const VeldigoLogo(size: 31)),
+        title: const VeldigoLogo(size: 31),
+        actions: [
+          IconButton(
+            tooltip: 'Zaključaj trezor',
+            icon: const Icon(Icons.lock_outline, color: VColors.accent),
+            onPressed: widget.store.lock,
+          ),
+        ]),
       drawer: Drawer(backgroundColor: VColors.surface,
         child: SafeArea(child: navMenu(drawer: true))),
       body: Column(children: [
