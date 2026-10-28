@@ -46,6 +46,9 @@ jobs:
           git commit -m "docs: publish 26 actual Veldigo Flutter UI captures in README"
           # Security and UI commits may land while screenshot tests execute.
           # Replay this documentation-only commit on the current PR head.
+          # flutter pub get/test may modify tracked local metadata and create
+          # untracked goldens. These are not part of the screenshot commit.
+          git stash push --include-untracked -m "temporary-screenshot-build-files"
           git fetch origin feat/veldigo-security-and-real-screenshots-v0.2.2
           git rebase origin/feat/veldigo-security-and-real-screenshots-v0.2.2
           git push origin HEAD:feat/veldigo-security-and-real-screenshots-v0.2.2
