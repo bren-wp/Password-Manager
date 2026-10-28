@@ -164,13 +164,19 @@ class _VaultShellState extends State<VaultShell> {
     padding: EdgeInsets.fromLTRB(desktop ? 28 : 14, 23, 22, 14),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(page == 'Trezor' ? 'Moj trezor' : page,
+        Text(page == 'Trezor' && !desktop
+            ? 'Dobrodošao u Veldigo'
+            : (page == 'Trezor' ? 'Moj trezor' : page),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 4),
-        const Text('Vaši podaci, sigurno na jednom mjestu.',
-          style: TextStyle(color: VColors.muted, fontSize: 13)),
+        Text(page == 'Trezor' && !desktop
+            ? 'Tvoj siguran trezor za sve lozinke i važne podatke.'
+            : 'Vaši podaci, sigurno na jednom mjestu.',
+          style: const TextStyle(color: VColors.muted, fontSize: 13)),
       ])),
-      if (page == 'Trezor' || page == 'Sve lozinke')
+      if (desktop && (page == 'Trezor' || page == 'Sve lozinke'))
         VPrimaryButton(label: desktop ? 'Nova lozinka' : 'Dodaj',
           icon: Icons.add, onPressed: () => edit()),
     ]),
@@ -193,10 +199,31 @@ class _VaultShellState extends State<VaultShell> {
     final items = filtered(kind: kind, favorites: favorites);
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 840;
-      final selected = items.where((e) => e.id == selectedId).firstOrNull;
+      final selected = items.where((e) => e.id == selectedId).firstOrNull ??
+          (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(children: [
+          if (!desktop && constraints.maxHeight > 460 &&
+              page == 'Trezor' && !favorites && kind == null) ...[
+            VPanel(child: Row(children: [
+              const Icon(Icons.verified_user_outlined,
+                size: 38, color: VColors.accent),
+              const SizedBox(width: 14),
+              const Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Trezor je zaštićen za druge',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                  SizedBox(height: 3),
+                  Text('Tvoji podaci su sigurno šifrirani.',
+                    style: TextStyle(color: VColors.muted, fontSize: 12)),
+                ],
+              )),
+              const Icon(Icons.chevron_right, color: VColors.muted),
+            ])),
+            const SizedBox(height: 12),
+          ],
           if (kind != ItemKind.totp) TextField(
             controller: search,
             onChanged: (value) => setState(() => query = value),
@@ -215,11 +242,18 @@ class _VaultShellState extends State<VaultShell> {
                 (e) => e.kind == ItemKind.note).length,
                 Icons.description_outlined),
               const SizedBox(width: 10),
-              _stat('Ukupno', widget.store.items.length,
-                Icons.shield_outlined),
+              _stat('Upozorenja', widget.store.items.where((e) =>
+                e.kind == ItemKind.password && e.secret.length < 12).length,
+                Icons.notifications_active_outlined),
             ]),
-          if (kind == null && !favorites && page == 'Trezor')
+          if (kind == null && !favorites && page == 'Trezor') ...[
             const SizedBox(height: 14),
+            if (constraints.maxHeight > 550 && !desktop)
+              const Align(alignment: Alignment.centerLeft,
+                child: Padding(padding: EdgeInsets.only(bottom: 10),
+                  child: Text('Moje lozinke', style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)))),
+          ],
           Expanded(child: Row(children: [
             Expanded(child: VPanel(
               padding: EdgeInsets.zero,
@@ -277,15 +311,15 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget _stat(String label, int value, IconData icon) =>
-    Expanded(child: VPanel(padding: const EdgeInsets.all(12),
-      child: Row(children: [
-        Icon(icon, color: VColors.accent),
-        const SizedBox(width: 8),
-        Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text('$value', style: const TextStyle(
-            fontWeight: FontWeight.bold, fontSize: 20)),
-            Text(label, style: const TextStyle(
-              color: VColors.muted, fontSize: 11))])),
+    Expanded(child: VPanel(padding: const EdgeInsets.symmetric(
+      horizontal: 4, vertical: 12),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: VColors.accent, size: 23),
+        const SizedBox(height: 3),
+        Text('$value', style: const TextStyle(
+          fontWeight: FontWeight.bold, fontSize: 19)),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: VColors.muted, fontSize: 11)),
       ])));
 
   Widget detail(VaultItem item) => VPanel(
@@ -426,6 +460,14 @@ class _VaultShellState extends State<VaultShell> {
             child: extraButton()),
         Expanded(child: content()),
       ]),
+      floatingActionButton: (page == 'Trezor' || page == 'Sve lozinke')
+          ? FloatingActionButton(
+              tooltip: 'Dodaj novu lozinku',
+              backgroundColor: VColors.accent,
+              foregroundColor: VColors.background,
+              onPressed: () => edit(),
+              child: const Icon(Icons.add, size: 30))
+          : null,
       bottomNavigationBar: NavigationBar(
         backgroundColor: VColors.surface,
         selectedIndex: switch (page) {
