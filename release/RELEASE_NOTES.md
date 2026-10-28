@@ -1,6 +1,15 @@
-# Veldigo v0.2.4 Preview 3 — sigurnost i stabilnost
+# Veldigo v0.2.4 Preview 4 — sigurnost i stabilnost
 
 **Pouzdanije spremanje. Provjera integriteta. Bolja privatnost.**
+
+## Android i Windows pixel-parity nadogradnje
+
+- Svih 26 aktualnih Flutter snimki sada se automatski snima u izvornim fizičkim rezolucijama referentnih Android i Windows PNG predložaka.
+- CI blokira duplicirane snimke, prikaz pogrešnog zaslona i neodgovarajuće dimenzije slike.
+- Android zaslon detalja otvara se na cijelom zaslonu; pri uređivanju se prikazuje aktualni zapis, nakon trajnog brisanja podaci se više ne prikazuju, a zaključavanje odmah zatvara detalje.
+- Uvodni zaslon, dobrodošlica, položaj logotipa i njegov tirkizni sjaj dodatno su usklađeni s referentnim prikazima.
+- Automatski testovi provjeravaju javne zaslone na razvojne poruke i demonstracijske vjerodajnice.
+- `docs/PIXEL_PARITY_AUDIT.md` i `tools/visual_parity_audit.py` dokumentiraju postupak precizne usporedbe s referentnim slikama. **Vizualna 1:1 podudarnost svih piksela još nije potvrđena.**
 
 ## Najnovije ispravke
 
