@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -32,6 +33,8 @@ internal static class Program
             return false;
         var root = Path.GetFullPath(installation)
             .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var expectedPaths = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase);
         foreach (var entry in entries)
         {
             if (string.IsNullOrWhiteSpace(entry.Path) ||
@@ -40,11 +43,19 @@ internal static class Program
             var destination = Path.GetFullPath(Path.Combine(
                 installation, entry.Path.Replace('/', Path.DirectorySeparatorChar)));
             if (!destination.StartsWith(root, StringComparison.OrdinalIgnoreCase) ||
-                !File.Exists(destination))
+                !File.Exists(destination) || !expectedPaths.Add(destination))
                 return false;
             using var stream = File.OpenRead(destination);
             var hash = Convert.ToHexString(SHA256.HashData(stream));
             if (!hash.Equals(entry.Sha256, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+        // Reject unexpected plugin/DLL payloads that were not part of the
+        // embedded release bundle, including file drops beside veldigo.exe.
+        foreach (var file in Directory.EnumerateFiles(
+            installation, "*", SearchOption.AllDirectories))
+        {
+            if (!expectedPaths.Contains(Path.GetFullPath(file)))
                 return false;
         }
         return true;

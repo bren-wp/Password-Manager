@@ -18,6 +18,8 @@ void main() {
     expect(() => Totp.decodeBase32('A'.padRight(4097, 'A')), throwsFormatException);
     expect(() => Totp.decodeBase32('MZ'), throwsFormatException);
     expect(Totp.decodeBase32('MZXW6==='), [102, 111, 111]);
+    expect(Totp.decodeBase32('JBSW Y3DP-EHPK3PXP'),
+        Totp.decodeBase32('JBSWY3DPEHPK3PXP'));
     expect(() => Totp.decodeBase32(''), throwsFormatException);
     expect(() => Totp.decodeBase32('A'), throwsFormatException);
   });
