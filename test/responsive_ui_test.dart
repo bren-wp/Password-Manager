@@ -6,6 +6,7 @@ import 'package:veldigo/core/vault_item.dart';
 import 'package:veldigo/core/vault_store.dart';
 import 'package:veldigo/ui/brand.dart';
 import 'package:veldigo/ui/vault_shell.dart';
+import 'package:veldigo/ui/splash_screen.dart';
 import 'package:veldigo/ui/welcome_screen.dart';
 
 void main() {
@@ -28,6 +29,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Jedan siguran trezor.'), findsOneWidget);
       expect(find.text('Započni'), findsOneWidget);
+    }
+  });
+
+  testWidgets('branded splash stays legible at reference and small sizes',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    for (final size in <Size>[
+      const Size(320, 640),
+      const Size(393, 852),
+      const Size(416, 928),
+      const Size(1200, 800),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(MaterialApp(
+        theme: veldigoTheme(),
+        home: const SplashScreen(),
+      ));
+      await tester.pump();
+      expect(find.text('VELDIGO'), findsOneWidget);
+      expect(find.text('PASSWORD MANAGER'), findsOneWidget);
+      expect(find.text('Uvijek sigurne.'), findsOneWidget);
+      expect(find.text('VAŠ DIGITALNI TREZOR'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     }
   });
 
