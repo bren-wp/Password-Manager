@@ -26,14 +26,16 @@ const _navigation = <(String, IconData)>[
 
 class VaultShell extends StatefulWidget {
   final VaultStore store;
-  const VaultShell({super.key, required this.store});
+  final String initialPage;
+  const VaultShell({super.key, required this.store,
+    this.initialPage = 'Trezor'});
 
   @override
   State<VaultShell> createState() => _VaultShellState();
 }
 
 class _VaultShellState extends State<VaultShell> {
-  String page = 'Trezor';
+  late String page = widget.initialPage;
   String query = '';
   String? selectedId;
   String? categoryFilter;
