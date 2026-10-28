@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -6,15 +7,21 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'vault_files.dart';
 import 'vault_item.dart';
 
-/// All credential data stays encrypted at rest. Nothing is sent to a server.
-/// Version 1 format: Argon2id(19 MiB, t=2, p=1) + AES-256-GCM.
+/// Encrypted, offline-first vault. File mutations are serialized and memory
+/// state changes only *after* ciphertext was durably written and verified.
+/// Always keep an independent exported encrypted backup as well.
 class VaultStore extends ChangeNotifier {
   static const _memoryKiB = 19456;
   static const _iterations = 2;
   static const _parallelism = 1;
   static const _version = 1;
+  static const _maxVaultBytes = 64 * 1024 * 1024;
+
+  final File? vaultFileOverride;
+  VaultStore({this.vaultFileOverride});
 
   final _cipher = AesGcm.with256bits();
   final _kdf = Argon2id(
@@ -25,61 +32,88 @@ class VaultStore extends ChangeNotifier {
   );
 
   File? _file;
+  VaultFiles? _files;
   SecretKey? _key;
   List<int>? _salt;
   List<VaultItem> _items = [];
   bool _exists = false;
+  Future<void> _pending = Future<void>.value();
 
   bool get hasVault => _exists;
   bool get isUnlocked => _key != null;
   List<VaultItem> get items => List.unmodifiable(_items);
 
-  Future<void> initialize() async {
-    final dir = await getApplicationSupportDirectory();
-    await dir.create(recursive: true);
-    _file = File('${dir.path}${Platform.pathSeparator}veldigo.vault');
-    // Restore interrupted atomic replacement only if the main file is absent.
-    final backup = File('${_file!.path}.bak');
-    if (!await _file!.exists() && await backup.exists()) {
-      await backup.rename(_file!.path);
+  Future<T> _serial<T>(Future<T> Function() operation) async {
+    final waiting = _pending;
+    final finished = Completer<void>();
+    _pending = finished.future;
+    await waiting;
+    try {
+      return await operation();
+    } finally {
+      finished.complete();
     }
-    _exists = await _file!.exists();
+  }
+
+  Future<void> initialize() async {
+    final File target;
+    if (vaultFileOverride != null) {
+      target = vaultFileOverride!;
+    } else {
+      final directory = await getApplicationSupportDirectory();
+      target = File('${directory.path}${Platform.pathSeparator}veldigo.vault');
+    }
+    await target.parent.create(recursive: true);
+    _file = target;
+    _files = VaultFiles(target, verify: _canDecrypt);
+    // Check for interrupted replacements, but never delete/move ciphertext
+    // without the master password. Recovery happens after authentication.
+    _exists = await _files!.hasAny;
     notifyListeners();
   }
 
   List<int> _random(int count) {
-    final rand = Random.secure();
-    return List<int>.generate(count, (_) => rand.nextInt(256));
+    final random = Random.secure();
+    return List<int>.generate(count, (_) => random.nextInt(256));
   }
 
-  Future<SecretKey> _derive(String password, List<int> salt) async {
+  Future<SecretKey> _derive(String password, List<int> salt) {
     if (password.isEmpty) throw ArgumentError('Glavna lozinka je obavezna.');
     return _kdf.deriveKeyFromPassword(password: password, nonce: salt);
   }
 
-  Future<void> create(String password) async {
-    if (_file == null) throw StateError('Trezor nije inicijaliziran.');
-    if (_exists) throw StateError('Trezor već postoji.');
+  Future<void> create(String password) => _serial(() async {
+    if (_files == null) throw StateError('Trezor nije inicijaliziran.');
+    if (_exists || await _files!.hasAny) {
+      throw StateError('Trezor već postoji i neće biti prepisan.');
+    }
     if (password.runes.length < 12) {
       throw ArgumentError('Glavna lozinka treba najmanje 12 znakova.');
     }
-    final salt = _random(16);
-    final key = await _derive(password, salt);
-    _salt = salt;
-    _key = key;
-    _items = [];
+    _salt = _random(16);
+    _key = await _derive(password, _salt!);
     try {
-      await save();
+      await _persist(const <VaultItem>[]);
+      _items = [];
       _exists = true;
       notifyListeners();
     } catch (_) {
       lock();
       rethrow;
     }
-  }
+  });
 
   Future<({SecretKey key, List<int> salt, List<VaultItem> items})>
       _decode(String source, String password) async {
+    final envelope = jsonDecode(source) as Map<String, dynamic>;
+    final salt = base64Decode(envelope['salt'] as String);
+    if (salt.length != 16) throw const FormatException('Neispravan salt.');
+    final key = await _derive(password, salt);
+    final items = await _decodeWithKey(source, key);
+    return (key: key, salt: salt, items: items);
+  }
+
+  Future<List<VaultItem>> _decodeWithKey(String source, SecretKey key) async {
     final envelope = jsonDecode(source) as Map<String, dynamic>;
     if (envelope['version'] != _version ||
         envelope['kdf'] != 'argon2id-19456-2-1' ||
@@ -91,43 +125,118 @@ class VaultStore extends ChangeNotifier {
     final mac = base64Decode(envelope['mac'] as String);
     final cipherText = base64Decode(envelope['cipherText'] as String);
     if (salt.length != 16 || nonce.length != 12 || mac.length != 16 ||
-        cipherText.length > 64 * 1024 * 1024) {
+        cipherText.length > _maxVaultBytes) {
       throw const FormatException('Neispravna datoteka trezora.');
     }
-    final key = await _derive(password, salt);
-    final plain = await _cipher.decrypt(
+    final plaintext = await _cipher.decrypt(
       SecretBox(cipherText, nonce: nonce, mac: Mac(mac)),
-      secretKey: key,
-      aad: utf8.encode('veldigo-v1'),
+      secretKey: key, aad: utf8.encode('veldigo-v1'),
     );
-    final parsed = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
-    final entries = parsed['items'] as List<dynamic>;
-    if (entries.length > 100000) throw const FormatException('Previše unosa.');
-    return (
-      key: key,
-      salt: salt,
-      items: entries
-          .map((item) => VaultItem.fromJson(item as Map<String, dynamic>))
-          .toList()
-    );
+    final parsed = jsonDecode(utf8.decode(plaintext)) as Map<String, dynamic>;
+    final records = parsed['items'] as List<dynamic>;
+    if (records.length > 100000) {
+      throw const FormatException('Previše unosa.');
+    }
+    final result = records
+        .map((record) => VaultItem.fromJson(record as Map<String, dynamic>))
+        .toList();
+    // A duplicate ID is ambiguous and could hide records in the UI.
+    if (result.map((item) => item.id).toSet().length != result.length) {
+      throw const FormatException('Duplicirani identifikatori unosa.');
+    }
+    return result;
   }
 
-  Future<void> unlock(String password) async {
-    if (_file == null || !_exists) throw StateError('Trezor ne postoji.');
+  Future<bool> _canDecrypt(List<int> bytes) async {
+    final key = _key;
+    if (key == null || bytes.isEmpty || bytes.length > _maxVaultBytes) {
+      return false;
+    }
     try {
-      final result = await _decode(await _file!.readAsString(), password);
-      _key = result.key;
-      _salt = result.salt;
-      _items = result.items;
-      notifyListeners();
-    } on SecretBoxAuthenticationError {
-      throw const VaultAuthenticationException();
-    } on FormatException {
-      throw const VaultAuthenticationException();
-    } on TypeError {
-      throw const VaultAuthenticationException();
+      await _decodeWithKey(utf8.decode(bytes), key);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
+
+  Future<List<int>> _readFile(File source) async {
+    if (!await source.exists() || await source.length() > _maxVaultBytes) {
+      throw const FormatException('Datoteka trezora nije dostupna.');
+    }
+    return source.readAsBytes();
+  }
+
+  Future<void> unlock(String password) => _serial(() async {
+    final file = _file;
+    final files = _files;
+    if (file == null || files == null || !_exists) {
+      throw StateError('Trezor ne postoji.');
+    }
+    try {
+      if (await file.exists()) {
+        final restored = await _decode(
+          utf8.decode(await _readFile(file)), password);
+        _key = restored.key;
+        _salt = restored.salt;
+        _items = restored.items;
+      } else {
+        // The app may have been terminated between rename operations.
+        // Authenticate candidates before restoring any missing primary.
+        bool recovered = false;
+        for (final source in [files.swap, files.previous, files.older]) {
+          if (!await source.exists()) continue;
+          try {
+            final bytes = await _readFile(source);
+            final restored = await _decode(utf8.decode(bytes), password);
+            _key = restored.key;
+            _salt = restored.salt;
+            await files.recoverInterruptedReplacement();
+            if (!await file.exists()) continue;
+            _items = restored.items;
+            recovered = true;
+            break;
+          } catch (_) { /* Try an older authenticated recovery copy. */ }
+        }
+        if (!recovered) throw const VaultAuthenticationException();
+      }
+      notifyListeners();
+    } catch (_) {
+      lock();
+      throw const VaultAuthenticationException();
+    }
+  });
+
+  /// Deliberately separate from unlock: never silently replace an existing
+  /// primary with an older version when the user typed an old password.
+  Future<void> recoverFromLocalBackup(String password) => _serial(() async {
+    final files = _files;
+    if (files == null || !_exists) throw StateError('Trezor ne postoji.');
+    for (final candidate in [files.swap, files.previous, files.older]) {
+      if (!await candidate.exists()) continue;
+      try {
+        final bytes = await _readFile(candidate);
+        final decoded = await _decode(utf8.decode(bytes), password);
+        final previousKey = _key;
+        final previousSalt = _salt;
+        _key = decoded.key;
+        _salt = decoded.salt;
+        try {
+          await files.install(bytes);
+        } catch (_) {
+          _key = previousKey;
+          _salt = previousSalt;
+          rethrow;
+        }
+        _items = decoded.items;
+        _exists = true;
+        notifyListeners();
+        return;
+      } catch (_) { /* Move to the next recovery generation. */ }
+    }
+    lock();
+    throw const VaultAuthenticationException();
+  });
 
   void lock() {
     _key = null;
@@ -136,19 +245,19 @@ class VaultStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> save() async {
+  Future<void> _persist(List<VaultItem> entries) async {
     final key = _key;
     final salt = _salt;
-    final target = _file;
-    if (key == null || salt == null || target == null) {
+    final files = _files;
+    if (key == null || salt == null || files == null) {
       throw StateError('Trezor je zaključan.');
     }
     final box = await _cipher.encrypt(
-      utf8.encode(VaultItem.encodeAll(_items)),
+      utf8.encode(VaultItem.encodeAll(entries)),
       secretKey: key,
       aad: utf8.encode('veldigo-v1'),
     );
-    final document = jsonEncode({
+    final bytes = utf8.encode(jsonEncode({
       'version': _version,
       'kdf': 'argon2id-19456-2-1',
       'cipher': 'aes-256-gcm',
@@ -156,96 +265,87 @@ class VaultStore extends ChangeNotifier {
       'nonce': base64Encode(box.nonce),
       'mac': base64Encode(box.mac.bytes),
       'cipherText': base64Encode(box.cipherText),
-    });
-    final temp = File('${target.path}.tmp');
-    final backup = File('${target.path}.bak');
-    await temp.writeAsString(document, flush: true);
-    if (await backup.exists()) await backup.delete();
-    if (await target.exists()) await target.rename(backup.path);
-    try {
-      await temp.rename(target.path);
-    } catch (_) {
-      if (!await target.exists() && await backup.exists()) {
-        await backup.rename(target.path);
-      }
-      rethrow;
-    }
-    if (await backup.exists()) await backup.delete();
+    }));
+    await files.install(bytes);
+  }
+
+  Future<void> save() => _serial(() async {
+    await _persist(List<VaultItem>.of(_items));
     _exists = true;
     notifyListeners();
-  }
+  });
 
-  Future<void> put(VaultItem item) async {
+  Future<void> put(VaultItem item) => _serial(() async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
-    final old = List<VaultItem>.from(_items);
-    final index = _items.indexWhere((e) => e.id == item.id);
-    if (index == -1) {
-      _items.add(item);
+    final next = List<VaultItem>.of(_items);
+    final at = next.indexWhere((record) => record.id == item.id);
+    if (at < 0) {
+      next.add(item);
     } else {
-      _items[index] = item;
+      next[at] = item;
     }
-    try {
-      await save();
-    } catch (_) {
-      _items = old;
-      notifyListeners();
-      rethrow;
-    }
-  }
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
 
-  Future<void> remove(String id) async {
+  Future<void> remove(String id) => _serial(() async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
-    final old = List<VaultItem>.from(_items);
-    _items.removeWhere((e) => e.id == id);
-    try {
-      await save();
-    } catch (_) {
-      _items = old;
-      notifyListeners();
-      rethrow;
-    }
-  }
+    final next = _items.where((record) => record.id != id).toList();
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
 
-  Future<List<int>> encryptedBackup() async {
+  Future<List<int>> encryptedBackup() => _serial(() async {
     if (!isUnlocked || _file == null) {
       throw StateError('Otključajte trezor prije izvoza.');
     }
-    return _file!.readAsBytes();
-  }
+    final bytes = await _readFile(_file!);
+    if (!await _canDecrypt(bytes)) {
+      throw const FormatException('Trezor nije valjan — izvoz prekinut.');
+    }
+    return bytes;
+  });
 
-  /// A backup is authenticated BEFORE it replaces the current file.
-  /// User must explicitly confirm replacement in the UI.
-  Future<void> restore(List<int> bytes, String backupPassword) async {
-    if (_file == null) throw StateError('Trezor nije inicijaliziran.');
-    if (bytes.length > 64 * 1024 * 1024) {
+  /// User confirmation happens in the UI. Original primary is also saved
+  /// separately to protect against an accidentally imported older backup.
+  Future<void> restore(List<int> bytes, String backupPassword) =>
+      _serial(() async {
+    final files = _files;
+    final target = _file;
+    if (files == null || target == null || !isUnlocked) {
+      throw StateError('Najprije otključajte trezor.');
+    }
+    if (bytes.length > _maxVaultBytes) {
       throw const FormatException('Sigurnosna kopija je prevelika.');
     }
-    final content = utf8.decode(bytes);
-    final decrypted = await _decode(content, backupPassword);
-    final temp = File('${_file!.path}.tmp');
-    final backup = File('${_file!.path}.bak');
-    await temp.writeAsString(content, flush: true);
-    if (await backup.exists()) await backup.delete();
-    if (await _file!.exists()) await _file!.rename(backup.path);
+    final imported = await _decode(utf8.decode(bytes), backupPassword);
+    if (await target.exists()) {
+      final copy = File('${target.path}.before-import-'
+        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+      await target.copy(copy.path); // Encrypted original stays recoverable.
+    }
+    final oldKey = _key;
+    final oldSalt = _salt;
+    _key = imported.key;
+    _salt = imported.salt;
     try {
-      await temp.rename(_file!.path);
+      await files.install(bytes);
+      _items = imported.items;
+      _exists = true;
+      notifyListeners();
     } catch (_) {
-      if (!await _file!.exists() && await backup.exists()) {
-        await backup.rename(_file!.path);
-      }
+      _key = oldKey;
+      _salt = oldSalt;
       rethrow;
     }
-    if (await backup.exists()) await backup.delete();
-    _key = decrypted.key;
-    _salt = decrypted.salt;
-    _items = decrypted.items;
-    _exists = true;
-    notifyListeners();
-  }
+  });
 }
 
 class VaultAuthenticationException implements Exception {
   const VaultAuthenticationException();
   @override
-  String toString() => 'Neispravna glavna lozinka ili oštećen trezor.';
+  String toString() =>
+      'Neispravna lozinka ili oštećen trezor. Provjerite sigurnosnu kopiju.';
 }
