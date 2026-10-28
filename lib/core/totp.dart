@@ -6,7 +6,7 @@ class Totp {
 
   static List<int> decodeBase32(String source) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    final input = source.toUpperCase().replaceAll(RegExp(r'[\\s=\\-]'), '');
+    final input = source.toUpperCase().replaceAll(RegExp(r'[\s=\-]'), '');
     if (input.isEmpty || input.length > 4096) {
       throw const FormatException('Neispravan TOTP tajni ključ.');
     }
