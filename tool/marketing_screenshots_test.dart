@@ -97,15 +97,26 @@ void main() {
 
   Future<void> snap(WidgetTester tester, String platform, String file,
       Widget screen, Size size, {double pixelRatio = 1}) async {
-    tester.view.devicePixelRatio = pixelRatio;
+    // Golden screenshots use logical pixels even when view DPR > 1.
+    // Capture a real full-size PNG using a constrained logical app viewport,
+    // then let Flutter paint that viewport into the physical reference size.
+    // This keeps mobile navigation/layout while preserving actual PNG pixels.
+    tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
     await tester.pumpWidget(RepaintBoundary(
       key: captureKey,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: veldigoTheme(),
-        home: KeyedSubtree(key: ValueKey(file), child: screen),
-      ),
+      child: LayoutBuilder(builder: (context, bounds) => FittedBox(
+        fit: BoxFit.fill,
+        child: SizedBox(
+          width: bounds.maxWidth / pixelRatio,
+          height: bounds.maxHeight / pixelRatio,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: veldigoTheme(),
+            home: KeyedSubtree(key: ValueKey(file), child: screen),
+          ),
+        ),
+      )),
     ));
     await tester.pump(const Duration(milliseconds: 350));
     await expectLater(find.byKey(captureKey),
