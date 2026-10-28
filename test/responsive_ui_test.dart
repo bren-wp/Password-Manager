@@ -33,23 +33,33 @@ void main() {
 
   testWidgets('vault adapts across Android and Windows width ranges',
       (tester) async {
-    final temp = await Directory.systemTemp.createTemp('veldigo-ui-');
+    // Filesystem and Argon2 computations need real async time; Flutter
+    // widget tests otherwise run in FakeAsync and may never complete.
+    final prepared = await tester.runAsync(() async {
+      final temp = await Directory.systemTemp.createTemp('veldigo-ui-');
+      final store = VaultStore(vaultFileOverride: File('${temp.path}/vault'));
+      await store.initialize();
+      await store.create('a very long test-only master phrase');
+      await store.put(VaultItem(
+        id: 'test-account',
+        kind: ItemKind.password,
+        title: 'GitHub',
+        username: 'tester@example.test',
+        secret: 'test-only-secret',
+        updatedAt: DateTime.utc(2026, 10, 28),
+      ));
+      return (temp: temp, store: store);
+    });
+    if (prepared == null) {
+      throw StateError('Trezor za test nije inicijaliziran.');
+    }
+    final temp = prepared.temp;
+    final store = prepared.store;
     addTearDown(() async {
       if (await temp.exists()) await temp.delete(recursive: true);
     });
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final store = VaultStore(vaultFileOverride: File('${temp.path}/vault'));
-    await store.initialize();
-    await store.create('a very long test-only master phrase');
-    await store.put(VaultItem(
-      id: 'test-account',
-      kind: ItemKind.password,
-      title: 'GitHub',
-      username: 'tester@example.test',
-      secret: 'test-only-secret',
-      updatedAt: DateTime.utc(2026, 10, 28),
-    ));
     tester.view.devicePixelRatio = 1;
     for (final size in <Size>[
       const Size(320, 640),
