@@ -5,6 +5,7 @@ The images are rendered by Flutter's test engine using demo-only records;
 the script never substitutes illustrations, mockups, or user secrets.
 """
 from pathlib import Path
+import hashlib
 import shutil
 
 root = Path(__file__).resolve().parents[1]
@@ -52,6 +53,22 @@ missing = [
 if missing:
     raise SystemExit("Not all 26 real UI screenshots were captured:\n" +
                      "\n".join(missing))
+
+# Every separately named screen must be genuinely different.
+# In particular, vault-home and account-detail had previously been committed
+# as byte-identical screenshots, hiding a failed detail capture.
+for platform, names in [("android", android), ("windows", windows)]:
+    seen = {}
+    for name in names:
+        source = origin / platform / (name + ".png")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        if digest in seen:
+            raise SystemExit(
+                f"Duplicate {platform} screenshot: {seen[digest]} and {name}. "
+                "Fix the Flutter capture/navigation instead of publishing "
+                "the same image for two screens."
+            )
+        seen[digest] = name
 
 for platform, names in [("android", android), ("windows", windows)]:
     folder = destination / platform
