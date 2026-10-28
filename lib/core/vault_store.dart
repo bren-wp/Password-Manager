@@ -66,7 +66,7 @@ class VaultStore extends ChangeNotifier {
 
 
   void _assertNotCancelled(int epoch) {
-    if (epoch != _sessionEpoch) {
+    if (_disposed || epoch != _sessionEpoch) {
       throw const VaultSessionCancelledException();
     }
   }
