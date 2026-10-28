@@ -47,10 +47,14 @@ class VaultStore extends ChangeNotifier {
   Future<void> _checkLatestOnDisk() async {
     final head = _committedHash;
     final file = _file;
-    if (head == null || file == null || !await file.exists()) {
-      if (head != null) throw const VaultConflictException();
+    if (file == null) throw const VaultConflictException();
+    if (head == null) {
+      // A second process may have created a vault after our initial check.
+      // Never allow it to be replaced by a stale first-run instance.
+      if (await _files!.hasAny) throw const VaultConflictException();
       return;
     }
+    if (!await file.exists()) throw const VaultConflictException();
     if (await _hash(await _readFile(file)) != head) {
       throw const VaultConflictException();
     }
