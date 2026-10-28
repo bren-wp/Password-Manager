@@ -38,6 +38,39 @@ class VaultStore extends ChangeNotifier {
   List<VaultItem> _items = [];
   bool _exists = false;
   Future<void> _pending = Future<void>.value();
+  static const externalPickerGrace = Duration(minutes: 2);
+  int _externalPickerDepth = 0;
+  DateTime? _externalPickerStarted;
+  Timer? _externalPickerTimeout;
+
+  /// The system file picker uses another Android activity and can temporarily
+  /// pause the Flutter app. Only this explicitly initiated operation can
+  /// defer background locking, for at most two minutes.
+  bool get externalPickerGraceActive =>
+      isUnlocked && _externalPickerDepth > 0 &&
+      _externalPickerStarted != null &&
+      DateTime.now().difference(_externalPickerStarted!) < externalPickerGrace;
+
+  Future<T> withExternalFilePicker<T>(Future<T> Function() action) async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    if (_externalPickerDepth++ == 0) {
+      _externalPickerStarted = DateTime.now();
+      _externalPickerTimeout = Timer(externalPickerGrace, () {
+        if (_externalPickerDepth > 0 && isUnlocked) lock();
+      });
+    }
+    try {
+      return await action();
+    } finally {
+      _externalPickerDepth--;
+      if (_externalPickerDepth == 0) {
+        _externalPickerTimeout?.cancel();
+        _externalPickerTimeout = null;
+        _externalPickerStarted = null;
+      }
+    }
+  }
+
   String? _committedHash;
 
   Future<String> _hash(List<int> bytes) async =>
@@ -314,6 +347,8 @@ class VaultStore extends ChangeNotifier {
   });
 
   void lock() {
+    _externalPickerTimeout?.cancel();
+    _externalPickerTimeout = null;
     _key = null;
     _salt = null;
     _items = [];
