@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -55,10 +57,19 @@ class _VaultShellState extends State<VaultShell> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  List<String> get availableCategories => <String>{
+    'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo',
+    ...widget.store.items.where((item) => item.kind == ItemKind.category)
+      .map((item) => item.title),
+    ...widget.store.items.where((item) => item.kind != ItemKind.category)
+      .map((item) => item.category),
+  }.toList();
+
   Future<void> edit({ItemKind kind = ItemKind.password, VaultItem? original}) async {
     final item = await showDialog<VaultItem>(
       context: context, barrierDismissible: false,
-      builder: (_) => EntryEditor(kind: original?.kind ?? kind, original: original));
+      builder: (_) => EntryEditor(kind: original?.kind ?? kind,
+        original: original, availableCategories: availableCategories));
     if (item == null) return;
     try {
       await widget.store.put(item);
@@ -106,6 +117,7 @@ class _VaultShellState extends State<VaultShell> {
   List<VaultItem> filtered({ItemKind? kind, bool favorites = false}) {
     final q = query.toLowerCase().trim();
     return widget.store.items.where((item) =>
+        item.kind != ItemKind.category &&
         (kind == null || item.kind == kind) &&
         (!favorites || item.favorite) &&
         (categoryFilter == null || item.category == categoryFilter) &&
@@ -340,6 +352,11 @@ class _VaultShellState extends State<VaultShell> {
           _info('Korisničko ime', item.username,
             onCopy: () => copySecret(item.username)),
         if (item.secret.isNotEmpty) _secretField(item),
+        if (item.kind == ItemKind.card && item.expiry.isNotEmpty)
+          _info('Vrijedi do', item.expiry),
+        if (item.kind == ItemKind.card && item.cvv.isNotEmpty)
+          _SecretDetails(secret: item.cvv,
+            label: 'CVV', copy: copySecret),
         if (item.website.isNotEmpty)
           _info('Web-adresa', item.website, onCopy: () => copySecret(item.website)),
         if (item.notes.isNotEmpty)
@@ -381,20 +398,69 @@ class _VaultShellState extends State<VaultShell> {
       ? 'Broj kartice' : item.kind == ItemKind.totp
       ? 'TOTP ključ' : 'Lozinka', copy: copySecret);
 
+  Future<void> addCategory() async {
+    final controller = TextEditingController();
+    try {
+      final accepted = await showDialog<bool>(context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nova kategorija'),
+          content: TextField(controller: controller,
+            maxLength: 48, autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Naziv kategorije')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Odustani')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Spremi')),
+          ],
+        ));
+      if (accepted != true) return;
+      final name = controller.text.trim();
+      if (name.isEmpty || availableCategories.any(
+          (old) => old.toLowerCase() == name.toLowerCase())) {
+        notifyUser('Unesite jedinstveni naziv kategorije.');
+        return;
+      }
+      await widget.store.put(VaultItem(
+        id: 'category-${DateTime.now().microsecondsSinceEpoch}-'
+          '${Random.secure().nextInt(1 << 32)}',
+        kind: ItemKind.category,
+        title: name,
+        updatedAt: DateTime.now().toUtc(),
+      ));
+      notifyUser('Kategorija je spremljena.');
+    } catch (_) {
+      notifyUser('Spremanje kategorije nije uspjelo.');
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Widget categoriesPage() {
-    const categories = ['Osobno', 'Posao', 'Zabava',
-      'Financije', 'Tehnologija', 'Ostalo'];
+    final categories = availableCategories;
     return ListView(padding: const EdgeInsets.all(16), children: [
+      Row(children: [
+        const Expanded(child: Text('Organizirajte svoje podatke',
+          style: TextStyle(color: VColors.muted))),
+        VPrimaryButton(label: 'Nova kategorija',
+          icon: Icons.add, onPressed: addCategory),
+      ]),
+      const SizedBox(height: 18),
       Wrap(spacing: 12, runSpacing: 12, children: [
         for (final category in categories)
           SizedBox(width: 245, child: InkWell(
-            onTap: () => setState(() {categoryFilter = category; page = 'Trezor';}),
+            onTap: () => setState(() {
+              categoryFilter = category;
+              page = 'Trezor';
+            }),
             child: VPanel(child: Row(children: [
               const Icon(Icons.folder_outlined, color: VColors.accent),
               const SizedBox(width: 12),
               Expanded(child: Text(category)),
-              Text('${widget.store.items.where((e) =>
-                e.category == category).length}',
+              Text('${widget.store.items.where((item) =>
+                item.kind != ItemKind.category &&
+                item.category == category).length}',
                 style: const TextStyle(color: VColors.muted)),
             ])),
           )),
