@@ -1,4 +1,4 @@
-#define VeldigoVersion "0.2.0-preview.1"
+#define VeldigoVersion "0.2.1-preview.1"
 #define VeldigoBuild GetEnv("VELDIGO_BUILD_DIR")
 #define VeldigoOut GetEnv("VELDIGO_OUTPUT_DIR")
 [Setup]
