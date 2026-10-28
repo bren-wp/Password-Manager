@@ -308,6 +308,40 @@ class VaultStore extends ChangeNotifier {
     return bytes;
   });
 
+  Future<void> changeMasterPassword(
+      String currentPassword, String newPassword) => _serial(() async {
+    final file = _file;
+    if (!isUnlocked || file == null) {
+      throw StateError('Trezor je zaključan.');
+    }
+    if (newPassword.runes.length < 12) {
+      throw ArgumentError('Nova glavna lozinka mora imati barem 12 znakova.');
+    }
+    // Authentication is required even while the current vault is unlocked.
+    final current = await _decode(
+      utf8.decode(await _readFile(file)), currentPassword);
+    if (current.items.length != _items.length) {
+      throw StateError('Trezor je izmijenjen izvan aplikacije.');
+    }
+    final preserved = File('${file.path}.before-password-change-'
+        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+    await file.copy(preserved.path);
+    final oldKey = _key;
+    final oldSalt = _salt;
+    final newSalt = _random(16);
+    final newKey = await _derive(newPassword, newSalt);
+    _key = newKey;
+    _salt = newSalt;
+    try {
+      await _persist(List<VaultItem>.of(_items));
+      notifyListeners();
+    } catch (_) {
+      _key = oldKey;
+      _salt = oldSalt;
+      rethrow;
+    }
+  });
+
   /// User confirmation happens in the UI. Original primary is also saved
   /// separately to protect against an accidentally imported older backup.
   Future<void> restore(List<int> bytes, String backupPassword) =>
