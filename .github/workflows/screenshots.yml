@@ -2,7 +2,7 @@ name: Capture real Veldigo screen gallery
 
 on:
   push:
-    branches: [feat/veldigo-security-and-real-screenshots-v0.2.2]
+    branches: [fix/veldigo-recovery-consistency-v0.2.3]
     paths:
       - tool/marketing_screenshots_test.dart
       - tools/publish_real_screenshots.py
@@ -49,6 +49,6 @@ jobs:
           # flutter pub get/test may modify tracked local metadata and create
           # untracked goldens. These are not part of the screenshot commit.
           git stash push --include-untracked -m "temporary-screenshot-build-files"
-          git fetch origin feat/veldigo-security-and-real-screenshots-v0.2.2
-          git rebase origin/feat/veldigo-security-and-real-screenshots-v0.2.2
-          git push origin HEAD:feat/veldigo-security-and-real-screenshots-v0.2.2
+          git fetch origin fix/veldigo-recovery-consistency-v0.2.3
+          git rebase origin/fix/veldigo-recovery-consistency-v0.2.3
+          git push origin HEAD:fix/veldigo-recovery-consistency-v0.2.3
