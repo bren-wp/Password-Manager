@@ -97,8 +97,8 @@ class _VaultShellState extends State<VaultShell> {
     Future<void>.delayed(const Duration(seconds: 30), () async {
       try {
         final current = await Clipboard.getData(Clipboard.kTextPlain);
-        if (current?.text == text) await Clipboard.setData(
-          const ClipboardData(text: ''));
+        if (current?.text == text) { await Clipboard.setData(
+          const ClipboardData(text: '')); }
       } catch (_) { /* Clipboard is unavailable while suspended. */ }
     });
   }
@@ -147,7 +147,7 @@ class _VaultShellState extends State<VaultShell> {
                   leading: Icon(icon, size: 20),
                   title: Text(label),
                   onTap: () {
-                    if (drawer) Navigator.of(context).pop();
+                    if (drawer) { Navigator.of(context).pop(); }
                     navigate(label);
                   },
                 )),
@@ -231,7 +231,7 @@ class _VaultShellState extends State<VaultShell> {
                       style: const TextStyle(color: VColors.muted))))
                 : ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, _) =>
+                    separatorBuilder: (_, index) =>
                       const Divider(height: 1, color: VColors.border),
                     itemBuilder: (_, i) {
                       final item = items[i];
@@ -399,7 +399,7 @@ class _VaultShellState extends State<VaultShell> {
   @override
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 860;
-    if (desktop) return Scaffold(
+    if (desktop) { return Scaffold(
       body: Row(children: [
         navMenu(),
         Expanded(child: Column(children: [
@@ -412,6 +412,7 @@ class _VaultShellState extends State<VaultShell> {
         ])),
       ]),
     );
+    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
