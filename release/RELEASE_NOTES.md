@@ -7,6 +7,7 @@
 - Ugodniji početni ekran, osvježeni mobilni trezor i tirkizna akcijska tipka
 - Više pojedinosti za spremanje kartica i mogućnost izrade vlastitih kategorija
 - Uvoz postojećeg šifriranog trezora tijekom prvog pokretanja na novom uređaju
+- **Šifrirani Koš** s povratom slučajno uklonjenih računa i zasebnom potvrdom trajnog brisanja
 - Naprednija lokalna zaštita od nenamjernog prepisivanja podataka
 - Oporavak valjanih privremenih i prethodnih šifriranih datoteka
 - Dodatne provjere očuvanja zapisa, promjene glavne lozinke i prijenosa između uređaja
