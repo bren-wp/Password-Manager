@@ -21,11 +21,138 @@ samo nekoliko dodira.
 
 <div align="center">
 
-<img src="assets/showcase/android.svg" alt="Veldigo Android trezor — vizualni prikaz" width="300" />
+<img src="assets/screenshots/android/01_Glavni_trezor.png" alt="Veldigo Android: stvarni Flutter prikaz trezora" width="300" />
 
-<img src="assets/showcase/windows.svg" alt="Veldigo Windows trezor — vizualni prikaz" width="650" />
+<img src="assets/screenshots/windows/01_Glavni_trezor.png" alt="Veldigo: stvarni Flutter prikaz Windows rasporeda" width="650" />
 
 </div>
+
+<!-- ACTUAL_SCREENSHOTS_START -->
+## Svi zasloni aplikacije
+
+Ovo su **stvarne snimke renderiranog Veldigo Flutter sučelja**,
+automatski dobivene iz funkcionalnih aplikacijskih widgeta uz
+**isključivo demonstracijske podatke**. Windows snimke prikazuju
+desktop raspored Flutter aplikacije u testnom okruženju, a ne
+fotografije zaslona Windows operacijskog sustava. Snimke nisu
+dizajnerske makete i ne predstavljaju dokaz 1:1 podudaranja s
+referentnim PNG predlošcima.
+
+<details>
+<summary><strong>Android — 15 zaslona</strong></summary>
+
+**Glavni trezor**
+
+<img src="assets/screenshots/android/01_Glavni_trezor.png" alt="Veldigo android: Glavni trezor" width="300" />
+
+**Postavljanje glavne lozinke**
+
+<img src="assets/screenshots/android/02_Postavljanje_glavne_lozinke.png" alt="Veldigo android: Postavljanje glavne lozinke" width="300" />
+
+**Otkljucavanje**
+
+<img src="assets/screenshots/android/03_Otkljucavanje.png" alt="Veldigo android: Otkljucavanje" width="300" />
+
+**Dodavanje lozinke**
+
+<img src="assets/screenshots/android/04_Dodavanje_lozinke.png" alt="Veldigo android: Dodavanje lozinke" width="300" />
+
+**Detalji lozinke**
+
+<img src="assets/screenshots/android/05_Detalji_lozinke.png" alt="Veldigo android: Detalji lozinke" width="300" />
+
+**Generator lozinki**
+
+<img src="assets/screenshots/android/06_Generator_lozinki.png" alt="Veldigo android: Generator lozinki" width="300" />
+
+**Sigurnosni centar**
+
+<img src="assets/screenshots/android/07_Sigurnosni_centar.png" alt="Veldigo android: Sigurnosni centar" width="300" />
+
+**Sigurne biljeske**
+
+<img src="assets/screenshots/android/08_Sigurne_biljeske.png" alt="Veldigo android: Sigurne biljeske" width="300" />
+
+**Autentifikator TOTP**
+
+<img src="assets/screenshots/android/09_Autentifikator_TOTP.png" alt="Veldigo android: Autentifikator TOTP" width="300" />
+
+**Postavke**
+
+<img src="assets/screenshots/android/10_Postavke.png" alt="Veldigo android: Postavke" width="300" />
+
+**Kategorije**
+
+<img src="assets/screenshots/android/11_Kategorije.png" alt="Veldigo android: Kategorije" width="300" />
+
+**Sigurnosna kopija**
+
+<img src="assets/screenshots/android/12_Sigurnosna_kopija.png" alt="Veldigo android: Sigurnosna kopija" width="300" />
+
+**Kartice**
+
+<img src="assets/screenshots/android/13_Kartice.png" alt="Veldigo android: Kartice" width="300" />
+
+**Uvodni ekran**
+
+<img src="assets/screenshots/android/14_Uvodni_ekran.png" alt="Veldigo android: Uvodni ekran" width="300" />
+
+**Dobrodoslica**
+
+<img src="assets/screenshots/android/15_Dobrodoslica.png" alt="Veldigo android: Dobrodoslica" width="300" />
+
+</details>
+
+<details>
+<summary><strong>Windows — 11 zaslona</strong></summary>
+
+**Glavni trezor**
+
+<img src="assets/screenshots/windows/01_Glavni_trezor.png" alt="Veldigo windows: Glavni trezor" width="680" />
+
+**Otkljucavanje**
+
+<img src="assets/screenshots/windows/02_Otkljucavanje.png" alt="Veldigo windows: Otkljucavanje" width="680" />
+
+**Dodavanje lozinke**
+
+<img src="assets/screenshots/windows/03_Dodavanje_lozinke.png" alt="Veldigo windows: Dodavanje lozinke" width="680" />
+
+**Generator lozinki**
+
+<img src="assets/screenshots/windows/04_Generator_lozinki.png" alt="Veldigo windows: Generator lozinki" width="680" />
+
+**Sigurnosni centar**
+
+<img src="assets/screenshots/windows/05_Sigurnosni_centar.png" alt="Veldigo windows: Sigurnosni centar" width="680" />
+
+**Sigurne biljeske**
+
+<img src="assets/screenshots/windows/06_Sigurne_biljeske.png" alt="Veldigo windows: Sigurne biljeske" width="680" />
+
+**Postavke**
+
+<img src="assets/screenshots/windows/07_Postavke.png" alt="Veldigo windows: Postavke" width="680" />
+
+**Sigurnosna kopija**
+
+<img src="assets/screenshots/windows/08_Sigurnosna_kopija.png" alt="Veldigo windows: Sigurnosna kopija" width="680" />
+
+**Autentifikator**
+
+<img src="assets/screenshots/windows/09_Autentifikator.png" alt="Veldigo windows: Autentifikator" width="680" />
+
+**Kategorije**
+
+<img src="assets/screenshots/windows/10_Kategorije.png" alt="Veldigo windows: Kategorije" width="680" />
+
+**Prvo postavljanje**
+
+<img src="assets/screenshots/windows/11_Prvo_postavljanje.png" alt="Veldigo windows: Prvo postavljanje" width="680" />
+
+</details>
+
+<!-- ACTUAL_SCREENSHOTS_END -->
 
 ## Sve važno na jednom mjestu
 
