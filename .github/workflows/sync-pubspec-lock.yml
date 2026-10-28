@@ -38,6 +38,8 @@ jobs:
             exit 0
           fi
           git commit -m 'build: lock file_picker 13 and updated Flutter dependencies'
+          # Flutter pub get can modify tracked analysis metadata.
+          git reset --hard HEAD
           git fetch origin fix/veldigo-recovery-consistency-v0.2.3
           git rebase origin/fix/veldigo-recovery-consistency-v0.2.3
           git push origin HEAD:fix/veldigo-recovery-consistency-v0.2.3
