@@ -47,10 +47,14 @@ class VaultStore extends ChangeNotifier {
   Future<void> _checkLatestOnDisk() async {
     final head = _committedHash;
     final file = _file;
-    if (head == null || file == null || !await file.exists()) {
-      if (head != null) throw const VaultConflictException();
+    if (file == null) throw const VaultConflictException();
+    if (head == null) {
+      // A second process may have created a vault after our initial check.
+      // Never allow it to be replaced by a stale first-run instance.
+      if (await _files!.hasAny) throw const VaultConflictException();
       return;
     }
+    if (!await file.exists()) throw const VaultConflictException();
     if (await _hash(await _readFile(file)) != head) {
       throw const VaultConflictException();
     }
@@ -231,29 +235,56 @@ class VaultStore extends ChangeNotifier {
   /// primary with an older version when the user typed an old password.
   Future<void> recoverFromLocalBackup(String password) => _serial(() async {
     final files = _files;
-    if (files == null || !_exists) throw StateError('Trezor ne postoji.');
-    for (final candidate in [files.swap, files.previous, files.older]) {
+    final primary = _file;
+    if (files == null || primary == null || !_exists) {
+      throw StateError('Trezor ne postoji.');
+    }
+    final initialPrimary = await primary.exists()
+        ? await _hash(await _readFile(primary)) : null;
+    for (final candidate in [
+      files.swap, files.previous, files.older, files.pending,
+    ]) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readFile(candidate);
         final decoded = await _decode(utf8.decode(bytes), password);
-        final previousKey = _key;
-        final previousSalt = _salt;
-        _key = decoded.key;
-        _salt = decoded.salt;
+        // This is a user-approved rollback. It is not a license to erase
+        // changes made concurrently by a different running instance.
+        final guard = await File('${primary.path}.write-lock')
+            .open(mode: FileMode.append);
         try {
-          await files.install(bytes);
-        } catch (_) {
-          _key = previousKey;
-          _salt = previousSalt;
-          rethrow;
+          await guard.lock(FileLock.exclusive);
+          final current = await primary.exists()
+              ? await _hash(await _readFile(primary)) : null;
+          if (current != initialPrimary) {
+            throw const VaultConflictException();
+          }
+          final previousKey = _key;
+          final previousSalt = _salt;
+          _key = decoded.key;
+          _salt = decoded.salt;
+          try {
+            await files.install(bytes);
+            _committedHash = await _hash(bytes);
+          } catch (_) {
+            _key = previousKey;
+            _salt = previousSalt;
+            rethrow;
+          }
+        } finally {
+          await guard.unlock();
+          await guard.close();
         }
         _items = decoded.items;
-        _committedHash = await _hash(await _readFile(_file!));
         _exists = true;
         notifyListeners();
         return;
-      } catch (_) { /* Move to the next recovery generation. */ }
+      } on VaultConflictException {
+        lock();
+        rethrow;
+      } catch (_) {
+        // Only try an older candidate on authentication / IO failure.
+      }
     }
     lock();
     throw const VaultAuthenticationException();
@@ -416,6 +447,23 @@ class VaultStore extends ChangeNotifier {
     }
   });
 
+  /// Preserve and verify the existing ciphertext before destructive imports
+  /// or master-key rotation. Backup remains encrypted under the old key.
+  Future<void> _preserveVerifiedSnapshot(File source, String purpose) async {
+    final original = await _readFile(source);
+    if (!await _canDecrypt(original)) {
+      throw const FormatException(
+        'Aktualni trezor nije valjan. Spremanje nove verzije je prekinuto.');
+    }
+    final snapshot = File('${source.path}.$purpose-'
+        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+    await snapshot.writeAsBytes(original, flush: true);
+    if (!listEquals(original, await _readFile(snapshot))) {
+      throw const FileSystemException(
+        'Provjera zasebne šifrirane kopije nije uspjela.');
+    }
+  }
+
   Future<void> changeMasterPassword(
       String currentPassword, String newPassword) => _serial(() async {
     final file = _file;
@@ -431,9 +479,7 @@ class VaultStore extends ChangeNotifier {
     if (current.items.length != _items.length) {
       throw StateError('Trezor je izmijenjen izvan aplikacije.');
     }
-    final preserved = File('${file.path}.before-password-change-'
-        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
-    await file.copy(preserved.path);
+    await _preserveVerifiedSnapshot(file, 'before-password-change');
     final oldKey = _key;
     final oldSalt = _salt;
     final newSalt = _random(16);
@@ -464,9 +510,7 @@ class VaultStore extends ChangeNotifier {
     }
     final imported = await _decode(utf8.decode(bytes), backupPassword);
     if (await target.exists()) {
-      final copy = File('${target.path}.before-import-'
-        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
-      await target.copy(copy.path); // Encrypted original stays recoverable.
+      await _preserveVerifiedSnapshot(target, 'before-import');
     }
     final oldKey = _key;
     final oldSalt = _salt;

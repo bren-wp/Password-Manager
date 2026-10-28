@@ -8,6 +8,7 @@ import 'ui/auth_screen.dart';
 import 'ui/brand.dart';
 import 'ui/vault_shell.dart';
 import 'ui/welcome_screen.dart';
+import 'ui/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,8 +89,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
     home: AnimatedBuilder(
       animation: store,
       builder: (context, _) {
-        if (loading) { return const Scaffold(
-          body: Center(child: CircularProgressIndicator(color: VColors.accent))); }
+        if (loading) { return const SplashScreen(); }
         if (error != null) { return Scaffold(
           body: Center(child: Padding(
             padding: const EdgeInsets.all(24),

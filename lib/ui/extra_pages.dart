@@ -490,7 +490,7 @@ class SettingsPage extends StatelessWidget {
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
-        title: Text('Veldigo 0.2.1'),
+        title: Text('Veldigo 0.2.2'),
         subtitle: Text('Android i Windows • Brendigo')),
       ListTile(
         leading: Icon(Icons.shield_outlined, color: VColors.accent),

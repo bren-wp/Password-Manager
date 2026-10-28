@@ -1,0 +1,54 @@
+name: Capture real Veldigo screen gallery
+
+on:
+  push:
+    branches: [feat/veldigo-security-and-real-screenshots-v0.2.2]
+    paths:
+      - tool/marketing_screenshots_test.dart
+      - tools/publish_real_screenshots.py
+      - .github/workflows/screenshots.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veldigo-real-screenshots
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Prepare actual Veldigo Flutter application
+        run: flutter pub get
+      - name: Render actual Android and desktop widget screenshots
+        run: flutter test --update-goldens tool/marketing_screenshots_test.dart --reporter expanded
+      - name: Verify all 26 PNG files and update marketing README
+        run: python tools/publish_real_screenshots.py
+      - name: Commit real UI screenshots to PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md assets/screenshots
+          if git diff --cached --quiet; then
+            echo "No screenshot changes"
+            exit 0
+          fi
+          git commit -m "docs: publish 26 actual Veldigo Flutter UI captures in README"
+          # Security and UI commits may land while screenshot tests execute.
+          # Replay this documentation-only commit on the current PR head.
+          # flutter pub get/test may modify tracked local metadata and create
+          # untracked goldens. These are not part of the screenshot commit.
+          git stash push --include-untracked -m "temporary-screenshot-build-files"
+          git fetch origin feat/veldigo-security-and-real-screenshots-v0.2.2
+          git rebase origin/feat/veldigo-security-and-real-screenshots-v0.2.2
+          git push origin HEAD:feat/veldigo-security-and-real-screenshots-v0.2.2

@@ -26,14 +26,16 @@ const _navigation = <(String, IconData)>[
 
 class VaultShell extends StatefulWidget {
   final VaultStore store;
-  const VaultShell({super.key, required this.store});
+  final String initialPage;
+  const VaultShell({super.key, required this.store,
+    this.initialPage = 'Trezor'});
 
   @override
   State<VaultShell> createState() => _VaultShellState();
 }
 
 class _VaultShellState extends State<VaultShell> {
-  String page = 'Trezor';
+  late String page = widget.initialPage;
   String query = '';
   String? selectedId;
   String? categoryFilter;
@@ -67,21 +69,21 @@ class _VaultShellState extends State<VaultShell> {
   }.toList();
 
   Future<void> edit({ItemKind kind = ItemKind.password, VaultItem? original}) async {
+    // Save while the dialog is still visible. A failed encrypted write must
+    // not dispose the unsaved password the user just typed.
     final item = await showDialog<VaultItem>(
-      context: context, barrierDismissible: false,
-      builder: (_) => EntryEditor(kind: original?.kind ?? kind,
-        original: original, availableCategories: availableCategories));
-    if (item == null) return;
-    try {
-      await widget.store.put(item);
-      if (mounted) setState(() => selectedId = item.id);
-      notifyUser('Zapis je sigurno spremljen.');
-    } on VaultConflictException {
-      notifyUser('Trezor je izmijenjen u drugom prozoru. '
-        'Zaključajte ga i ponovno otključajte prije spremanja.');
-    } catch (_) {
-      notifyUser('Spremanje nije uspjelo.');
-    }
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => EntryEditor(
+        kind: original?.kind ?? kind,
+        original: original,
+        availableCategories: availableCategories,
+        onPersist: widget.store.put,
+      ),
+    );
+    if (item == null || !mounted) return;
+    setState(() => selectedId = item.id);
+    notifyUser('Zapis je sigurno spremljen.');
   }
 
   Future<void> remove(VaultItem item) async {
@@ -233,8 +235,16 @@ class _VaultShellState extends State<VaultShell> {
           style: const TextStyle(color: VColors.muted, fontSize: 13)),
       ])),
       if (desktop && (page == 'Trezor' || page == 'Sve lozinke'))
-        VPrimaryButton(label: desktop ? 'Nova lozinka' : 'Dodaj',
+        VPrimaryButton(label: 'Nova lozinka',
           icon: Icons.add, onPressed: () => edit()),
+      if (desktop) ...[
+        const SizedBox(width: 12),
+        IconButton(
+          tooltip: 'Zaključaj trezor',
+          icon: const Icon(Icons.lock_outline, color: VColors.accent),
+          onPressed: widget.store.lock,
+        ),
+      ],
     ]),
   );
 
@@ -584,7 +594,14 @@ class _VaultShellState extends State<VaultShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
-        title: const VeldigoLogo(size: 31)),
+        title: const VeldigoLogo(size: 31),
+        actions: [
+          IconButton(
+            tooltip: 'Zaključaj trezor',
+            icon: const Icon(Icons.lock_outline, color: VColors.accent),
+            onPressed: widget.store.lock,
+          ),
+        ]),
       drawer: Drawer(backgroundColor: VColors.surface,
         child: SafeArea(child: navMenu(drawer: true))),
       body: Column(children: [

@@ -1,0 +1,4 @@
+Veldigo v0.2.2-preview.1
+Produce Android APK and AAB, Windows portable.exe and setup.exe, Windows ZIP and SHA-256 checksums.
+Publish only if flutter analyze, all unit/widget regressions, both platform release builds, and asset verification succeed.
+This is a preview; it does not claim full pixel-perfect parity or a completed external security audit.
