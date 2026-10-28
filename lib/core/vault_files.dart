@@ -42,10 +42,18 @@ class VaultFiles {
     if (await recoveryStage.exists()) {
       final existing = await recoveryStage.readAsBytes();
       if (!listEquals(existing, encryptedBytes)) {
-        // An interrupted earlier recovery can hold a different, potentially
-        // newer vault. Never silently destroy that candidate.
-        throw const FileSystemException(
-          'Pronađena je druga nepotvrđena oporavna datoteka.');
+        if (await verify(existing)) {
+          // An interrupted earlier recovery may be newer. The caller must
+          // authenticate that exact checkpoint rather than overwrite it.
+          throw const FileSystemException(
+            'Pronađena je druga valjana oporavna datoteka.');
+        }
+        // Preserve malformed bytes for manual investigation and allow
+        // recovery from a different valid checkpoint to continue.
+        final preserved = File('${primary.path}.recovery-corrupt-'
+            '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+        await recoveryStage.rename(preserved.path);
+        await recoveryStage.writeAsBytes(encryptedBytes, flush: true);
       }
     } else {
       await recoveryStage.writeAsBytes(encryptedBytes, flush: true);
@@ -68,7 +76,7 @@ class VaultFiles {
   /// The live vault calls restoreExactWhenMissing under a file lock instead.
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
-    for (final candidate in [swap, previous, older, pending, recoveryStage]) {
+    for (final candidate in [recoveryStage, swap, previous, older, pending]) {
       if (!await candidate.exists()) continue;
       final bytes = await candidate.readAsBytes();
       if (!await verify(bytes)) continue;
