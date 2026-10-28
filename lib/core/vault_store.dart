@@ -38,6 +38,20 @@ class VaultStore extends ChangeNotifier {
   List<VaultItem> _items = [];
   bool _exists = false;
   Future<void> _pending = Future<void>.value();
+  // Every user-initiated lock invalidates every asynchronous operation started
+  // in the previous unlocked session, including imports and master-key changes.
+  int _sessionEpoch = 0;
+
+  void _assertNotCancelled(int epoch) {
+    if (epoch != _sessionEpoch) {
+      throw const VaultSessionCancelledException();
+    }
+  }
+
+  void _assertUnlockedSession(int epoch) {
+    _assertNotCancelled(epoch);
+    if (!isUnlocked) throw const VaultSessionCancelledException();
+  }
   static const externalPickerGrace = Duration(minutes: 2);
   int _externalPickerDepth = 0;
   DateTime? _externalPickerStarted;
@@ -226,6 +240,7 @@ class VaultStore extends ChangeNotifier {
   }
 
   Future<void> unlock(String password) => _serial(() async {
+    final session = _sessionEpoch;
     final file = _file;
     final files = _files;
     if (file == null || files == null || !_exists) {
@@ -242,6 +257,7 @@ class VaultStore extends ChangeNotifier {
       if (await file.exists()) {
         final bytes = await _readFile(file);
         final opened = await _decode(utf8.decode(bytes), password);
+        _assertNotCancelled(session);
         _key = opened.key;
         _salt = opened.salt;
         _items = opened.items;
@@ -250,16 +266,18 @@ class VaultStore extends ChangeNotifier {
         bool restored = false;
         for (final candidate in [
           files.recoveryStage, files.swap, files.previous, files.older,
-          files.pending,
+          files.previousRetired, files.olderRetired, files.pending,
         ]) {
           if (!await candidate.exists()) continue;
           try {
             final bytes = await _readFile(candidate);
             final opened = await _decode(utf8.decode(bytes), password);
+            _assertNotCancelled(session);
             _key = opened.key;
             _salt = opened.salt;
             // Must install precisely this authenticated ciphertext.
             await files.restoreExactWhenMissing(bytes);
+            _assertNotCancelled(session);
             final committed = await _readFile(file);
             if (!listEquals(committed, bytes)) {
               throw const FileSystemException(
@@ -269,6 +287,8 @@ class VaultStore extends ChangeNotifier {
             _committedHash = await _hash(committed);
             restored = true;
             break;
+          } on VaultSessionCancelledException {
+            rethrow;
           } on FileSystemException {
             // Abort instead of silently choosing a different generation.
             rethrow;
@@ -281,7 +301,11 @@ class VaultStore extends ChangeNotifier {
         }
         if (!restored) throw const VaultAuthenticationException();
       }
+      _assertNotCancelled(session);
       notifyListeners();
+    } on VaultSessionCancelledException {
+      lock();
+      rethrow;
     } catch (_) {
       lock();
       throw const VaultAuthenticationException();
@@ -294,6 +318,7 @@ class VaultStore extends ChangeNotifier {
   /// Deliberately separate from unlock: never silently replace an existing
   /// primary with an older version when the user typed an old password.
   Future<void> recoverFromLocalBackup(String password) => _serial(() async {
+    final session = _sessionEpoch;
     final files = _files;
     final primary = _file;
     if (files == null || primary == null || !_exists) {
@@ -302,12 +327,14 @@ class VaultStore extends ChangeNotifier {
     final initialPrimary = await primary.exists()
         ? await _hash(await _readFile(primary)) : null;
     for (final candidate in [
-      files.swap, files.previous, files.older, files.pending,
+      files.swap, files.previous, files.older,
+      files.previousRetired, files.olderRetired, files.pending,
     ]) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readFile(candidate);
         final decoded = await _decode(utf8.decode(bytes), password);
+        _assertNotCancelled(session);
         // This is a user-approved rollback. It is not a license to erase
         // changes made concurrently by a different running instance.
         final guard = await File('${primary.path}.write-lock')
@@ -319,28 +346,35 @@ class VaultStore extends ChangeNotifier {
           if (current != initialPrimary) {
             throw const VaultConflictException();
           }
+          _assertNotCancelled(session);
           final previousKey = _key;
           final previousSalt = _salt;
           _key = decoded.key;
           _salt = decoded.salt;
           try {
             await files.install(bytes);
+            _assertNotCancelled(session);
             _committedHash = await _hash(bytes);
           } catch (_) {
-            _key = previousKey;
-            _salt = previousSalt;
+            if (_sessionEpoch == session) {
+              _key = previousKey;
+              _salt = previousSalt;
+            }
             rethrow;
           }
         } finally {
           await guard.unlock();
           await guard.close();
         }
+        _assertNotCancelled(session);
         _items = decoded.items;
         _exists = true;
         notifyListeners();
         return;
       } on VaultConflictException {
         lock();
+        rethrow;
+      } on VaultSessionCancelledException {
         rethrow;
       } catch (_) {
         // Only try an older candidate on authentication / IO failure.
@@ -351,6 +385,7 @@ class VaultStore extends ChangeNotifier {
   });
 
   void lock() {
+    _sessionEpoch++;
     _externalPickerTimeout?.cancel();
     _externalPickerTimeout = null;
     _key = null;
@@ -361,6 +396,7 @@ class VaultStore extends ChangeNotifier {
   }
 
   Future<void> _persist(List<VaultItem> entries) async {
+    final session = _sessionEpoch;
     final key = _key;
     final salt = _salt;
     final files = _files;
@@ -386,6 +422,7 @@ class VaultStore extends ChangeNotifier {
     try {
       await guard.lock(FileLock.exclusive);
       await _checkLatestOnDisk();
+      _assertUnlockedSession(session);
       await files.install(bytes);
       _committedHash = await _hash(bytes);
     } finally {
@@ -528,6 +565,7 @@ class VaultStore extends ChangeNotifier {
 
   Future<void> changeMasterPassword(
       String currentPassword, String newPassword) => _serial(() async {
+    final session = _sessionEpoch;
     final file = _file;
     if (!isUnlocked || file == null) {
       throw StateError('Trezor je zaključan.');
@@ -542,18 +580,23 @@ class VaultStore extends ChangeNotifier {
       throw StateError('Trezor je izmijenjen izvan aplikacije.');
     }
     await _preserveVerifiedSnapshot(file, 'before-password-change');
+    _assertUnlockedSession(session);
     final oldKey = _key;
     final oldSalt = _salt;
     final newSalt = _random(16);
     final newKey = await _derive(newPassword, newSalt);
+    _assertUnlockedSession(session);
     _key = newKey;
     _salt = newSalt;
     try {
       await _persist(List<VaultItem>.of(_items));
+      _assertUnlockedSession(session);
       notifyListeners();
     } catch (_) {
-      _key = oldKey;
-      _salt = oldSalt;
+      if (_sessionEpoch == session) {
+        _key = oldKey;
+        _salt = oldSalt;
+      }
       rethrow;
     }
   });
@@ -562,6 +605,7 @@ class VaultStore extends ChangeNotifier {
   /// separately to protect against an accidentally imported older backup.
   Future<void> restore(List<int> bytes, String backupPassword) =>
       _serial(() async {
+    final session = _sessionEpoch;
     final files = _files;
     final target = _file;
     if (files == null || target == null || !isUnlocked) {
@@ -571,9 +615,11 @@ class VaultStore extends ChangeNotifier {
       throw const FormatException('Sigurnosna kopija je prevelika.');
     }
     final imported = await _decode(utf8.decode(bytes), backupPassword);
+    _assertUnlockedSession(session);
     if (await target.exists()) {
       await _preserveVerifiedSnapshot(target, 'before-import');
     }
+    _assertUnlockedSession(session);
     final oldKey = _key;
     final oldSalt = _salt;
     _key = imported.key;
@@ -586,21 +632,31 @@ class VaultStore extends ChangeNotifier {
       try {
         await guard.lock(FileLock.exclusive);
         await _checkLatestOnDisk();
+        _assertUnlockedSession(session);
         await files.install(bytes);
         _committedHash = await _hash(bytes);
       } finally {
         await guard.unlock();
         await guard.close();
       }
+      _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
       notifyListeners();
     } catch (_) {
-      _key = oldKey;
-      _salt = oldSalt;
+      if (_sessionEpoch == session) {
+        _key = oldKey;
+        _salt = oldSalt;
+      }
       rethrow;
     }
   });
+}
+
+class VaultSessionCancelledException implements Exception {
+  const VaultSessionCancelledException();
+  @override
+  String toString() => 'Trezor je zaključan. Otključajte ga za nastavak.';
 }
 
 class VaultConflictException implements Exception {
