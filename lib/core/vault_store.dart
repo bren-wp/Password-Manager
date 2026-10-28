@@ -231,17 +231,21 @@ class VaultStore extends ChangeNotifier {
     return result;
   }
 
-  Future<bool> _canDecrypt(List<int> bytes) async {
-    final key = _key;
-    if (key == null || bytes.isEmpty || bytes.length > _maxVaultBytes) {
-      return false;
-    }
+  /// Each write verifies ciphertext against the key that started it.
+  /// User-initiated locking must not corrupt an in-progress disk rotation.
+  Future<bool> _canDecryptUsingKey(List<int> bytes, SecretKey key) async {
+    if (bytes.isEmpty || bytes.length > _maxVaultBytes) return false;
     try {
       await _decodeWithKey(utf8.decode(bytes), key);
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  Future<bool> _canDecrypt(List<int> bytes) async {
+    final key = _key;
+    return key != null && await _canDecryptUsingKey(bytes, key);
   }
 
   Future<List<int>> _readFile(File source) async {
@@ -301,7 +305,9 @@ class VaultStore extends ChangeNotifier {
             _key = opened.key;
             _salt = opened.salt;
             // Must install precisely this authenticated ciphertext.
-            await files.restoreExactWhenMissing(bytes);
+            await VaultFiles(file,
+                verify: (candidate) => _canDecryptUsingKey(candidate, opened.key))
+                .restoreExactWhenMissing(bytes);
             _assertNotCancelled(session);
             final committed = await _readFile(file);
             if (!listEquals(committed, bytes)) {
@@ -378,7 +384,9 @@ class VaultStore extends ChangeNotifier {
           _key = decoded.key;
           _salt = decoded.salt;
           try {
-            await files.install(bytes);
+            await VaultFiles(primary,
+              verify: (candidate) => _canDecryptUsingKey(candidate, decoded.key))
+                .install(bytes);
             _assertNotCancelled(session);
             await _commitDigest(bytes, session);
           } catch (_) {
@@ -449,7 +457,9 @@ class VaultStore extends ChangeNotifier {
       await guard.lock(FileLock.exclusive);
       await _checkLatestOnDisk();
       _assertUnlockedSession(session);
-      await files.install(bytes);
+      await VaultFiles(_file!,
+        verify: (candidate) => _canDecryptUsingKey(candidate, key))
+          .install(bytes);
       await _commitDigest(bytes, session);
     } finally {
       await guard.unlock();
@@ -560,7 +570,9 @@ class VaultStore extends ChangeNotifier {
           throw const VaultConflictException();
         }
         _assertUnlockedSession(session);
-        await files.install(bytes);
+        await VaultFiles(target,
+            verify: (candidate) => _canDecryptUsingKey(candidate, imported.key))
+              .install(bytes);
         await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
@@ -663,7 +675,9 @@ class VaultStore extends ChangeNotifier {
         await guard.lock(FileLock.exclusive);
         await _checkLatestOnDisk();
         _assertUnlockedSession(session);
-        await files.install(bytes);
+        await VaultFiles(target,
+          verify: (candidate) => _canDecryptUsingKey(candidate, imported.key))
+            .install(bytes);
         await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
