@@ -19,8 +19,8 @@
 1. The cryptography code has not completed external security review, cross-platform
    fault-injection tests, device security testing or penetration testing.
 2. Dart-managed memory cannot guarantee immediate zeroization of secrets.
-3. Android FLAG_SECURE, device-bound biometric unlock, Windows Hello and keychain
-   integration are not implemented yet.
+3. Android FLAG_SECURE is applied by platform bootstrap. Device-bound biometrics,
+   Windows Hello and keychain integration are not implemented yet.
 4. Clipboard clearing cannot protect against other applications observing clipboard.
 5. TOTP supports manual Base32 seed input but not QR scanning.
 6. Vault portability is via manual encrypted .veldigo export/import, not background sync.
