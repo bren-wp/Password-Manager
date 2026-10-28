@@ -20,6 +20,7 @@ const _navigation = <(String, IconData)>[
   ('Generator', Icons.auto_awesome_outlined),
   ('Sigurnost', Icons.shield_outlined),
   ('Sigurnosna kopija', Icons.cloud_upload_outlined),
+  ('Koš', Icons.delete_outline),
   ('Postavke', Icons.settings_outlined),
 ];
 
@@ -87,23 +88,58 @@ class _VaultShellState extends State<VaultShell> {
     final yes = await showDialog<bool>(context: context, builder: (ctx) =>
       AlertDialog(
         title: const Text('Obrisati zapis?'),
-        content: Text('Zapis „${item.title}” bit će trajno uklonjen.'),
+        content: Text('Zapis „${item.title}” premjestit će se u Koš. '
+          'Možete ga kasnije vratiti.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Odustani')),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Obriši',
+            child: const Text('Premjesti u Koš',
               style: TextStyle(color: VColors.red))),
         ]));
     if (yes != true) return;
     try {
       await widget.store.remove(item.id);
       if (mounted) setState(() => selectedId = null);
-      notifyUser('Zapis je obrisan.');
+      notifyUser('Zapis je premješten u Koš.');
     } on VaultConflictException {
       notifyUser('Trezor je izmijenjen u drugom prozoru. '
         'Ponovno ga otključajte.');
     } catch (_) { notifyUser('Brisanje nije uspjelo.'); }
+  }
+
+  Future<void> recoverItem(VaultItem item) async {
+    try {
+      await widget.store.restoreTrashed(item.id);
+      if (mounted) setState(() => selectedId = null);
+      notifyUser('Zapis je vraćen iz Koša.');
+    } catch (_) {
+      notifyUser('Zapis nije vraćen.');
+    }
+  }
+
+  Future<void> eraseItem(VaultItem item) async {
+    final approved = await showDialog<bool>(context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Trajno ukloniti zapis?'),
+        content: Text('Zapis „${item.title}” više neće biti dostupan u '
+          'aktivnom trezoru. Starije šifrirane kopije mogu još '
+          'sadržavati ovaj zapis.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Odustani')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Trajno ukloni',
+              style: TextStyle(color: VColors.red))),
+        ]));
+    if (approved != true) return;
+    try {
+      await widget.store.permanentlyRemove(item.id);
+      if (mounted) setState(() => selectedId = null);
+      notifyUser('Zapis je uklonjen iz aktivnog trezora.');
+    } catch (_) {
+      notifyUser('Trajno brisanje nije uspjelo.');
+    }
   }
 
   Future<void> copySecret(String text) async {
@@ -120,10 +156,11 @@ class _VaultShellState extends State<VaultShell> {
     });
   }
 
-  List<VaultItem> filtered({ItemKind? kind, bool favorites = false}) {
+  List<VaultItem> filtered({ItemKind? kind,
+      bool favorites = false, bool trash = false}) {
     final q = query.toLowerCase().trim();
     return widget.store.items.where((item) =>
-        item.kind != ItemKind.category &&
+        item.kind != ItemKind.category && item.trashed == trash &&
         (kind == null || item.kind == kind) &&
         (!favorites || item.favorite) &&
         (categoryFilter == null || item.category == categoryFilter) &&
@@ -213,8 +250,9 @@ class _VaultShellState extends State<VaultShell> {
     }
   }
 
-  Widget listPage({ItemKind? kind, bool favorites = false}) {
-    final items = filtered(kind: kind, favorites: favorites);
+  Widget listPage({ItemKind? kind, bool favorites = false,
+      bool trash = false}) {
+    final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 840;
       final selected = items.where((e) => e.id == selectedId).firstOrNull ??
@@ -253,15 +291,15 @@ class _VaultShellState extends State<VaultShell> {
           if (kind == null && !favorites && page == 'Trezor')
             Row(children: [
               _stat('Lozinke', widget.store.items.where(
-                (e) => e.kind == ItemKind.password).length,
+                (e) => !e.trashed && e.kind == ItemKind.password).length,
                 Icons.key_outlined),
               const SizedBox(width: 10),
               _stat('Bilješke', widget.store.items.where(
-                (e) => e.kind == ItemKind.note).length,
+                (e) => !e.trashed && e.kind == ItemKind.note).length,
                 Icons.description_outlined),
               const SizedBox(width: 10),
               _stat('Upozorenja', widget.store.items.where((e) =>
-                e.kind == ItemKind.password && e.secret.length < 12).length,
+                !e.trashed && e.kind == ItemKind.password && e.secret.length < 12).length,
                 Icons.notifications_active_outlined),
             ]),
           if (kind == null && !favorites && page == 'Trezor') ...[
@@ -380,13 +418,26 @@ class _VaultShellState extends State<VaultShell> {
           '${item.updatedAt.toLocal().year}.',
           style: const TextStyle(color: VColors.muted, fontSize: 11)),
         const SizedBox(height: 22),
-        VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
-          onPressed: () => edit(original: item)),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => remove(item),
-          icon: const Icon(Icons.delete_outline, color: VColors.red),
-          label: const Text('Obriši', style: TextStyle(color: VColors.red))),
+        if (item.trashed) ...[
+          VPrimaryButton(label: 'Vrati iz Koša',
+            icon: Icons.restore,
+            onPressed: () => recoverItem(item)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => eraseItem(item),
+            icon: const Icon(Icons.delete_forever, color: VColors.red),
+            label: const Text('Trajno ukloni',
+              style: TextStyle(color: VColors.red))),
+        ] else ...[
+          VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
+            onPressed: () => edit(original: item)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => remove(item),
+            icon: const Icon(Icons.delete_outline, color: VColors.red),
+            label: const Text('Premjesti u Koš',
+              style: TextStyle(color: VColors.red))),
+        ],
       ],
     )),
   );
@@ -473,7 +524,7 @@ class _VaultShellState extends State<VaultShell> {
               const SizedBox(width: 12),
               Expanded(child: Text(category)),
               Text('${widget.store.items.where((item) =>
-                item.kind != ItemKind.category &&
+                !item.trashed && item.kind != ItemKind.category &&
                 item.category == category).length}',
                 style: const TextStyle(color: VColors.muted)),
             ])),
@@ -492,7 +543,9 @@ class _VaultShellState extends State<VaultShell> {
       items: filtered(kind: ItemKind.totp),
       onAdd: () => edit(kind: ItemKind.totp)),
     'Generator' => const GeneratorPage(),
-    'Sigurnost' => SecurityPage(items: widget.store.items),
+    'Sigurnost' => SecurityPage(items: widget.store.items
+      .where((item) => !item.trashed).toList()),
+    'Koš' => listPage(trash: true),
     'Sigurnosna kopija' => BackupPage(store: widget.store,
       onMessage: notifyUser),
     'Postavke' => SettingsPage(store: widget.store,
