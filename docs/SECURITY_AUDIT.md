@@ -22,6 +22,8 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 | Medium | Android import/export could be interrupted by automatic background locking | **Changed in earlier PR #4 commits:** two-minute scoped file-picker grace, expiry enforcement on resume |
 | Medium | Inactive biometric/cloud/QR roadmap labels appeared in app screens | **Changed:** removed inactive controls and roadmap copy. Do not present unavailable features as usable |
 | Medium | Android privacy rules were applied only by preparation scripts on certain builds | **Changed in earlier PR #4 commits:** version-controlled manifest and backup exclusion XML, with regression tests |
+| Medium | Published unreviewed advisory [CVE-2026-38093](https://github.com/advisories/GHSA-r2rg-pm28-j8gw) describes an Android path traversal issue affecting `file_picker` through 10.3.10 | **Changed:** migrated to `file_picker` 13.3.0 and a federated Android implementation, with bounded streaming imports. The advisory does not designate a fixed version; independently verify the Android native path handling before signoff |
+| High | Revealed password UI state could be reused when a different account was selected | **Changed:** record-specific keyed secret widgets reset visibility on account or secret change; added regression test |
 | Low | Error path in backup-restore dialog retained a text controller longer than necessary | **Changed:** controller disposed using `finally` even on failed restore |
 | Low | Unused generated Windows symlinks, local Android SDK path, old branding mockups and obsolete scaffold automation were checked in | **Changed:** remove from branch and ignore disposable files |
 
@@ -42,7 +44,7 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 4. **Medium:** Windows lacks a native analogue to Android `FLAG_SECURE`. Screenshots, remote-screen capture and accessibility tools may expose secrets while unlocked.
 5. **Medium:** Cached encrypted snapshots and archives under *old* master passwords remain recoverable; password changes cannot revoke prior independently exported archives. Define an explicit safe backup-retention policy before enterprise use.
 6. **Medium:** Provider-specific file-picking behavior, clipboard clearing and UI lock transitions need hardware testing on supported Android API levels and Windows editions.
-7. **Medium:** External vulnerability database/SCA, license compliance and supply-chain attestation have **not** been independently completed; `flutter stable`, Inno Setup fallback and CI actions may change without build pinning.
+7. **Medium:** Targeted advisory review identified the previous `file_picker` vulnerability. Complete transitive SCA, license compliance and supply-chain attestation have **not** been independently completed; `flutter stable`, Inno Setup fallback and CI actions may change without build pinning.
 8. **Medium:** Card/CVV storage is not a PCI DSS compliance claim. Evaluate data-retention requirements and product scope before production distribution.
 9. **Low:** Password-strength scoring is a local heuristic, not a compromised-password or 2FA-status lookup. Keep that limitation clear to users.
 

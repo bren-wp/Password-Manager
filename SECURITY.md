@@ -38,5 +38,18 @@
 12. OS-level crash-consistency and hardware failure guarantees need independent
     power-loss testing; filesystems and storage controllers differ by platform.
 
+## External dependency advisory
+
+The previous `file_picker 10.3.10` is listed in
+[CVE-2026-38093 / GHSA-r2rg-pm28-j8gw](https://github.com/advisories/GHSA-r2rg-pm28-j8gw)
+(2026 Android path traversal through an untrusted ContentProvider name).
+The active development PR migrates to `file_picker 13.3.0` and its federated
+Android plugin. **The advisory does not designate a fixed version.**
+Validate native behavior and rerun dependency scanning before release.
+
+Revealed secret fields are keyed to individual account records and reset
+on selection changes. Cached portable Windows files are SHA-256 verified
+against an embedded per-file manifest before execution.
+
 Please report security bugs privately to the project maintainer rather than sharing secrets
 in a public issue. Never commit real passwords, recovery material, signing keys or vaults.

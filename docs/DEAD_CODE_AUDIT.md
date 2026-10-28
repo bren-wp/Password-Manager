@@ -13,6 +13,7 @@
 | `.github/workflows/scaffold.yml` | One-time platform generator bound to an already-merged obsolete branch |
 | Inactive biometric/cloud settings and QR roadmap text | No working user action; avoid misleading or developer-style UI placeholders |
 | Duplicated inline TOTP decoding/generation | Consolidated in `lib/core/totp.dart`, with strict seed tests |
+| Obsolete file-picker v10 APIs | Migrated to v13 federated API; removed legacy picker results, eager data reads and duplicated path handling |
 | Duplicated backup reads | Consolidated in one bounded file reader and used by both import flows |
 | File-system import no longer referenced by backup UI | Removed to keep analyzer output clean |
 
