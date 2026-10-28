@@ -75,6 +75,9 @@ class _VaultShellState extends State<VaultShell> {
       await widget.store.put(item);
       if (mounted) setState(() => selectedId = item.id);
       notifyUser('Zapis je sigurno spremljen.');
+    } on VaultConflictException {
+      notifyUser('Trezor je izmijenjen u drugom prozoru. '
+        'Zaključajte ga i ponovno otključajte prije spremanja.');
     } catch (_) {
       notifyUser('Spremanje nije uspjelo.');
     }
@@ -97,6 +100,9 @@ class _VaultShellState extends State<VaultShell> {
       await widget.store.remove(item.id);
       if (mounted) setState(() => selectedId = null);
       notifyUser('Zapis je obrisan.');
+    } on VaultConflictException {
+      notifyUser('Trezor je izmijenjen u drugom prozoru. '
+        'Ponovno ga otključajte.');
     } catch (_) { notifyUser('Brisanje nije uspjelo.'); }
   }
 
@@ -298,9 +304,16 @@ class _VaultShellState extends State<VaultShell> {
                           icon: Icon(item.favorite ? Icons.star : Icons.star_border,
                             color: item.favorite ? Colors.amber : VColors.muted),
                           onPressed: () async {
-                            await widget.store.put(item.copyWith(
-                              favorite: !item.favorite,
-                              updatedAt: DateTime.now().toUtc()));
+                            try {
+                              await widget.store.put(item.copyWith(
+                                favorite: !item.favorite,
+                                updatedAt: DateTime.now().toUtc()));
+                            } on VaultConflictException {
+                              notifyUser('Promjene u drugom prozoru su novije. '
+                                'Ponovno otključajte trezor.');
+                            } catch (_) {
+                              notifyUser('Favorit nije spremljen.');
+                            }
                           }),
                         onTap: () => selectItem(item, desktop),
                       );
