@@ -48,6 +48,33 @@ void main() {
     expect(reader.items, isEmpty);
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('an unlock queued before the user locks cannot execute afterwards',
+      () async {
+    const password = 'an intentionally long queued unlock test password';
+    final file = File('${temp.path}/queued-unlock.vault');
+    final store = VaultStore(vaultFileOverride: file);
+    await store.initialize();
+    await store.create(password);
+    await store.put(entry('safe'));
+    store.lock();
+
+    final first = store.unlock(password);
+    final queued = store.unlock(password);
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    store.lock();
+    for (final operation in [first, queued]) {
+      try {
+        await operation;
+      } on VaultSessionCancelledException {
+        // Both commands were issued before the lock and must be invalidated.
+      } on VaultAuthenticationException {
+        // In-flight authenticated checks may also fail closed.
+      }
+    }
+    expect(store.isUnlocked, isFalse);
+    expect(store.items, isEmpty);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test('disposing while unlock is pending never revives a disposed vault',
       () async {
     const password = 'a very long stable disposal test password';
