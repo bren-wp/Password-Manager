@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 internal static class Program
 {
-    private const string Version = "0.2.0-preview.1";
+    private const string Version = "0.2.1-preview.1";
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBoxW(IntPtr hWnd, string text,
         string caption, uint type);
