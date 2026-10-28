@@ -94,6 +94,12 @@ class VaultStore extends ChangeNotifier {
   Future<String> _hash(List<int> bytes) async =>
       base64Encode((await Sha256().hash(bytes)).bytes);
 
+  Future<void> _commitDigest(List<int> bytes, int session) async {
+    final digest = await _hash(bytes);
+    _assertNotCancelled(session);
+    _committedHash = digest;
+  }
+
   /// Prevent stale application instances from silently overwriting records.
   Future<void> _checkLatestOnDisk() async {
     final head = _committedHash;
@@ -266,7 +272,7 @@ class VaultStore extends ChangeNotifier {
         _key = opened.key;
         _salt = opened.salt;
         _items = opened.items;
-        _committedHash = await _hash(bytes);
+        await _commitDigest(bytes, session);
       } else {
         bool restored = false;
         for (final candidate in [
@@ -289,7 +295,7 @@ class VaultStore extends ChangeNotifier {
                 'Sadržaj trezora promijenio se tijekom oporavka.');
             }
             _items = opened.items;
-            _committedHash = await _hash(committed);
+            await _commitDigest(committed, session);
             restored = true;
             break;
           } on VaultSessionCancelledException {
@@ -359,7 +365,7 @@ class VaultStore extends ChangeNotifier {
           try {
             await files.install(bytes);
             _assertNotCancelled(session);
-            _committedHash = await _hash(bytes);
+            await _commitDigest(bytes, session);
           } catch (_) {
             if (_sessionEpoch == session) {
               _key = previousKey;
@@ -429,7 +435,7 @@ class VaultStore extends ChangeNotifier {
       await _checkLatestOnDisk();
       _assertUnlockedSession(session);
       await files.install(bytes);
-      _committedHash = await _hash(bytes);
+      await _commitDigest(bytes, session);
     } finally {
       await guard.unlock();
       await guard.close();
@@ -540,7 +546,7 @@ class VaultStore extends ChangeNotifier {
         }
         _assertUnlockedSession(session);
         await files.install(bytes);
-        _committedHash = await _hash(bytes);
+        await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
         await guard.close();
@@ -643,7 +649,7 @@ class VaultStore extends ChangeNotifier {
         await _checkLatestOnDisk();
         _assertUnlockedSession(session);
         await files.install(bytes);
-        _committedHash = await _hash(bytes);
+        await _commitDigest(bytes, session);
       } finally {
         await guard.unlock();
         await guard.close();
