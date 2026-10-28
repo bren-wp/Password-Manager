@@ -51,6 +51,10 @@ class VaultStore extends ChangeNotifier {
       _externalPickerStarted != null &&
       DateTime.now().difference(_externalPickerStarted!) < externalPickerGrace;
 
+  bool get externalPickerExpired => _externalPickerDepth > 0 &&
+      _externalPickerStarted != null &&
+      DateTime.now().difference(_externalPickerStarted!) >= externalPickerGrace;
+
   Future<T> withExternalFilePicker<T>(Future<T> Function() action) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
     if (_externalPickerDepth++ == 0) {
