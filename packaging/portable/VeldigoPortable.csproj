@@ -3,4 +3,5 @@
 <RuntimeIdentifier>win-x64</RuntimeIdentifier><SelfContained>true</SelfContained><PublishSingleFile>true</PublishSingleFile>
 <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile><AssemblyName>VeldigoPortable</AssemblyName>
 <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
-<ItemGroup><EmbeddedResource Include="payload.zip" LogicalName="Veldigo.Payload" /></ItemGroup></Project>
+<ItemGroup><EmbeddedResource Include="payload.zip" LogicalName="Veldigo.Payload" />
+<EmbeddedResource Include="payload-manifest.json" LogicalName="Veldigo.PayloadManifest" /></ItemGroup></Project>
