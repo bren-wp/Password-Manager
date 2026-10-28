@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/password_generator.dart';
+import '../core/totp.dart';
 import '../core/vault_item.dart';
 import '../core/vault_store.dart';
 import 'brand.dart';
@@ -205,44 +205,8 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   @override
   void dispose() { timer?.cancel(); super.dispose(); }
 
-  List<int> fromBase32(String source) {
-    const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    final cleaned = source.toUpperCase().replaceAll(RegExp(r'[\s=\-]'), '');
-    final output = <int>[];
-    var buffer = 0, bits = 0;
-    for (final char in cleaned.split('')) {
-      final next = abc.indexOf(char);
-      if (next < 0) { throw const FormatException('Neispravan Base32 ključ.'); }
-      buffer = (buffer << 5) | next;
-      bits += 5;
-      if (bits >= 8) {
-        bits -= 8;
-        output.add((buffer >> bits) & 255);
-        buffer &= (1 << bits) - 1;
-      }
-    }
-    if (output.isEmpty) { throw const FormatException('Prazan ključ.'); }
-    return output;
-  }
-
-  Future<String> code(String source, int epoch) async {
-    final key = fromBase32(source);
-    var counter = epoch ~/ 30;
-    final data = List<int>.filled(8, 0);
-    for (var i = 7; i >= 0; i--) {
-      data[i] = counter & 255;
-      counter >>= 8;
-    }
-    final hmac = await Hmac.sha1().calculateMac(data,
-      secretKey: SecretKey(key));
-    final bytes = hmac.bytes;
-    final offset = bytes.last & 0x0f;
-    final value = ((bytes[offset] & 0x7f) << 24) |
-      ((bytes[offset + 1] & 0xff) << 16) |
-      ((bytes[offset + 2] & 0xff) << 8) |
-      (bytes[offset + 3] & 0xff);
-    return (value % 1000000).toString().padLeft(6, '0');
-  }
+  Future<String> code(String source, int epoch) =>
+      Totp.generate(source, epoch);
 
   @override
   Widget build(BuildContext context) {
@@ -321,15 +285,24 @@ class _BackupPageState extends State<BackupPage> {
       final result = await widget.store.withExternalFilePicker(
         () => FilePicker.platform.pickFiles(
           type: FileType.custom,
-          allowedExtensions: ['veldigo'], withData: true),
+          allowedExtensions: ['veldigo'], withData: false),
       );
       if (result == null || result.files.isEmpty || !mounted) { return; }
       final file = result.files.single;
-      final bytes = file.bytes ??
-        (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null) { throw const FormatException('Nečitljiva datoteka.'); }
+      const maxBackupBytes = 64 * 1024 * 1024;
+      if (file.size > maxBackupBytes) {
+        throw const FormatException('Sigurnosna kopija je prevelika.');
+      }
+      final filePath = file.path;
+      final bytes = filePath == null
+          ? file.bytes
+          : await File(filePath).readAsBytes();
+      if (bytes == null || bytes.length > maxBackupBytes) {
+        throw const FormatException('Neispravna datoteka sigurnosne kopije.');
+      }
       if (!mounted) { return; }
       final controller = TextEditingController();
+      try {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -354,7 +327,9 @@ class _BackupPageState extends State<BackupPage> {
         await widget.store.restore(bytes, controller.text);
         widget.onMessage('Trezor je uspješno vraćen.');
       }
-      controller.dispose();
+      } finally {
+        controller.dispose();
+      }
     } catch (_) {
       widget.onMessage('Kopija nije učitana. Provjerite datoteku i lozinku.');
     } finally {
