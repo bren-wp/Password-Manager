@@ -1,0 +1,7 @@
+Veldigo v0.2.4-preview.3 — all post-preview-2 security fixes.
+
+Run Flutter analyze and regression suite before producing Android APK/AAB and
+Windows portable.exe/setup.exe/ZIP. Includes async session cancellation,
+cancelled queued unlock, disposed-store guards, stable transaction-key
+verification, bounded vault/archive reads and quarantine recovery.
+Use distinct release tag, Android versionCode 8 and SHA-256 checksums.

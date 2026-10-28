@@ -1,6 +1,14 @@
-# Veldigo v0.2.4 Preview 2 — sigurnosne ispravke
+# Veldigo v0.2.4 Preview 3 — sigurnost i stabilnost
 
 **Pouzdanije spremanje. Provjera integriteta. Bolja privatnost.**
+
+## Najnovije ispravke
+
+- Zatvaranje aplikacije tijekom otključavanja, uvoza ili spremanja sada prekida rad prethodne sesije i sprječava pozivanje zatvorenih Flutter slušatelja.
+- Zahtjevi za otključavanje koji čekaju svoj red više ne mogu poništiti novije korisničko zaključavanje.
+- Lokalne šifrirane rezervne kopije i provjere diskovnih transakcija ograničene su na 64 MiB, uz zaštitu od naknadnog rasta datoteke.
+- Diskovni zapis provjerava se ključem iste transakcije, bez ovisnosti o promjenama stanja korisničkog sučelja.
+- Dodani regresijski testovi za zatvaranje prozora, čekanje zahtjeva, zaključavanje pri spremanju i oporavak.
 
 ## Novosti
 
