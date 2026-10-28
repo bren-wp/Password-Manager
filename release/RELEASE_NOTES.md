@@ -4,7 +4,8 @@
 
 ## Novo i poboljšano
 
-- Androidov sistemski odabir šifrirane kopije ima vremenski ograničenu iznimku od zaključavanja, a trezor se ponovno štiti po isteku i pri povratku aplikacije.\n- Trezor se zaključava pri prelasku aplikacije u pozadinu,
+- Androidov sistemski odabir šifrirane kopije ima vremenski ograničenu iznimku od zaključavanja, a trezor se ponovno štiti po isteku i pri povratku aplikacije.
+- Trezor se zaključava pri prelasku aplikacije u pozadinu,
   bez dvominutnog razdoblja u kojem ostaje otključan.
 - Oporavak nakon prekida zapisivanja vraća **točno istu**
   autentificiranu šifriranu datoteku koja je uspješno otključana.
