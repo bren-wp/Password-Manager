@@ -192,7 +192,8 @@ class _VaultShellState extends State<VaultShell> {
           children: [
             for (final (label, icon) in _navigation)
               Padding(padding: const EdgeInsets.symmetric(vertical: 2),
-                child: ListTile(
+                child: Material(color: Colors.transparent,
+                  child: ListTile(
                   dense: true,
                   selected: page == label,
                   selectedColor: VColors.accent,
@@ -205,7 +206,7 @@ class _VaultShellState extends State<VaultShell> {
                     if (drawer) { Navigator.of(context).pop(); }
                     navigate(label);
                   },
-                )),
+                ))),
           ],
         )),
         const Padding(padding: EdgeInsets.all(16),
