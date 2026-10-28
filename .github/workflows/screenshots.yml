@@ -44,4 +44,8 @@ jobs:
             exit 0
           fi
           git commit -m "docs: publish 26 actual Veldigo Flutter UI captures in README"
+          # Security and UI commits may land while screenshot tests execute.
+          # Replay this documentation-only commit on the current PR head.
+          git fetch origin feat/veldigo-security-and-real-screenshots-v0.2.2
+          git rebase origin/feat/veldigo-security-and-real-screenshots-v0.2.2
           git push origin HEAD:feat/veldigo-security-and-real-screenshots-v0.2.2
