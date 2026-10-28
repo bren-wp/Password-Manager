@@ -55,6 +55,28 @@ void main() {
     expect(files.any((e) => e.contains('before-password-change')), isTrue);
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('second open instance cannot overwrite accounts from first', () async {
+    final path = File('${temp.path}/parallel-instances.vault');
+    final first = VaultStore(vaultFileOverride: path);
+    await first.initialize();
+    await first.create('a sufficiently long master password');
+    await first.put(entry(10));
+
+    final second = VaultStore(vaultFileOverride: path);
+    await second.initialize();
+    await second.unlock('a sufficiently long master password');
+
+    await first.put(entry(11));
+    await expectLater(second.put(entry(12)),
+        throwsA(isA<VaultConflictException>()));
+
+    final reopened = VaultStore(vaultFileOverride: path);
+    await reopened.initialize();
+    await reopened.unlock('a sufficiently long master password');
+    expect(reopened.items.map((x) => x.id).toSet(),
+        {'item-10', 'item-11'});
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test('tampered encrypted import never destroys existing account', () async {
     final file = File('${temp.path}/vault.veldigo');
     final vault = VaultStore(vaultFileOverride: file);
