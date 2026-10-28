@@ -212,8 +212,8 @@ class VaultStore extends ChangeNotifier {
       } else {
         bool restored = false;
         for (final candidate in [
-          files.swap, files.previous, files.older, files.pending,
-          files.recoveryStage,
+          files.recoveryStage, files.swap, files.previous, files.older,
+          files.pending,
         ]) {
           if (!await candidate.exists()) continue;
           try {
