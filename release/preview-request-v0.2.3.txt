@@ -1,0 +1,8 @@
+Veldigo v0.2.3-preview.1
+
+Package release candidates for Android (APK, AAB) and Windows
+(portable.exe, setup.exe and portable ZIP).
+
+Publish only after Flutter analysis, widget/cryptographic regression tests,
+both platform builds, required assets and SHA-256 manifest generation succeed.
+This is a preview build; platform distribution keys are not provisioned.
