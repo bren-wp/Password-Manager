@@ -52,7 +52,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
     } catch (_) {
       error = 'Trezor se ne može otvoriti. Provjerite prostor i dopuštenja.';
     }
-    if (mounted) setState(() => loading = false);
+    if (mounted) { setState(() => loading = false); }
   }
 
   @override
@@ -86,16 +86,16 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
     home: AnimatedBuilder(
       animation: store,
       builder: (context, _) {
-        if (loading) return const Scaffold(
-          body: Center(child: CircularProgressIndicator(color: VColors.accent)));
-        if (error != null) return Scaffold(
+        if (loading) { return const Scaffold(
+          body: Center(child: CircularProgressIndicator(color: VColors.accent))); }
+        if (error != null) { return Scaffold(
           body: Center(child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(error!, textAlign: TextAlign.center))));
-        if (!store.hasVault) return AuthScreen(
-          key: const ValueKey('create'), store: store, create: true);
-        if (!store.isUnlocked) return AuthScreen(
-          key: const ValueKey('unlock'), store: store, create: false);
+            child: Text(error!, textAlign: TextAlign.center)))); }
+        if (!store.hasVault) { return AuthScreen(
+          key: const ValueKey('create'), store: store, create: true); }
+        if (!store.isUnlocked) { return AuthScreen(
+          key: const ValueKey('unlock'), store: store, create: false); }
         return VaultShell(store: store);
       },
     ),
