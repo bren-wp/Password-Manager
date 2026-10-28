@@ -1,0 +1,6 @@
+Veldigo v0.2.4-preview.1
+The current PR includes hardened encrypted recovery, Android file-picker
+dependency migration and bounded stream imports, RFC 6238 tests, Windows
+portable integrity checks, refreshed actual Flutter screenshots and the
+documented security/dead-code audits.
+Publish only when all Flutter analyses/tests and Android + Windows builds pass.
