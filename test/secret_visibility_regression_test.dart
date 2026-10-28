@@ -54,4 +54,53 @@ void main() {
     expect(find.byTooltip('Prikaži'), findsWidgets);
     prepared.store.lock();
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('mobile details are full-screen and clear deleted records',
+      (tester) async {
+    final fixture = await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('veldigo-detail-');
+      final store = VaultStore(vaultFileOverride: File('${dir.path}/vault'));
+      await store.initialize();
+      await store.create('a sufficiently strong temporary master password');
+      await store.put(VaultItem(
+        id: 'mobile-account',
+        kind: ItemKind.password,
+        title: 'Mobile Account',
+        secret: 'temporary-private-string',
+        updatedAt: DateTime.utc(2026, 10, 29),
+      ));
+      return (dir: dir, store: store);
+    });
+    if (fixture == null) throw StateError('Test trezor nije pripremljen.');
+    addTearDown(() async {
+      if (await fixture.dir.exists()) {
+        await fixture.dir.delete(recursive: true);
+      }
+    });
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(MaterialApp(
+      theme: veldigoTheme(),
+      home: VaultShell(store: fixture.store),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mobile Account').first);
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('Detalji lozinke'), findsOneWidget);
+    expect(find.byTooltip('Natrag'), findsOneWidget);
+    expect(find.text('temporary-private-string'), findsNothing);
+
+    await tester.runAsync(() async {
+      await fixture.store.remove('mobile-account');
+      await fixture.store.permanentlyRemove('mobile-account');
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('Zapis više nije dostupan.'), findsOneWidget);
+    expect(find.text('temporary-private-string'), findsNothing);
+    fixture.store.lock();
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }
