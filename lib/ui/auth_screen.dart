@@ -27,7 +27,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> submit() async {
-    if (!formKey.currentState!.validate() || busy) return;
+    if (!formKey.currentState!.validate() || busy) { return; }
     setState(() {busy = true; error = null;});
     try {
       if (widget.create) {
@@ -36,10 +36,10 @@ class _AuthScreenState extends State<AuthScreen> {
         await widget.store.unlock(password.text);
       }
     } catch (e) {
-      if (mounted) setState(() => error = e is VaultAuthenticationException
-          ? e.toString() : 'Radnja nije uspjela. Provjerite unesene podatke.');
+      if (mounted) { setState(() => error = e is VaultAuthenticationException
+          ? e.toString() : 'Radnja nije uspjela. Provjerite unesene podatke.'); }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) { setState(() => busy = false); }
       password.clear();
       confirmation.clear();
     }
@@ -78,7 +78,7 @@ class _AuthScreenState extends State<AuthScreen> {
               onPressed: () => setState(() => visible = !visible)),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) return 'Unesite glavnu lozinku.';
+            if (value == null || value.isEmpty) { return 'Unesite glavnu lozinku.'; }
             if (widget.create && value.runes.length < 12) {
               return 'Koristite najmanje 12 znakova.';
             }
