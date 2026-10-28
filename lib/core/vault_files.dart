@@ -18,13 +18,16 @@ class VaultFiles {
   File get previous => File('${primary.path}.bak');
   File get older => File('${primary.path}.bak2');
   File get quarantine => File('${primary.path}.corrupt');
+  File get previousRetired => File('${previous.path}.retired');
+  File get olderRetired => File('${older.path}.retired');
   File get recoveryStage => File('${primary.path}.recovery');
 
   Future<bool> get hasAny async =>
       await primary.exists() || await swap.exists() ||
       await previous.exists() || await older.exists() ||
       await pending.exists() || await quarantine.exists() ||
-      await recoveryStage.exists();
+      await recoveryStage.exists() || await previousRetired.exists() ||
+      await olderRetired.exists();
 
   /// Complete a *specific authenticated* recovery checkpoint, never a
   /// different candidate selected by a subsequent directory scan.
@@ -76,7 +79,8 @@ class VaultFiles {
   /// The live vault calls restoreExactWhenMissing under a file lock instead.
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
-    for (final candidate in [recoveryStage, swap, previous, older, pending]) {
+    for (final candidate in [recoveryStage, swap, previous, older,
+        previousRetired, olderRetired, pending]) {
       if (!await candidate.exists()) continue;
       final bytes = await candidate.readAsBytes();
       if (!await verify(bytes)) continue;
@@ -144,14 +148,42 @@ class VaultFiles {
     // Keep .swap as an additional recovery point until the next write.
   }
 
+  /// Rotate snapshots without deleting the only previous on-disk generation
+  /// before the new one has been committed. The retired file remains a
+  /// recoverable checkpoint if power is lost between renames.
   Future<void> _replace(File newFile, File destination) async {
-    if (await destination.exists()) await destination.delete();
-    await newFile.rename(destination.path);
+    final retired = File('${destination.path}.retired');
+    var moved = false;
+    if (await destination.exists()) {
+      if (await retired.exists()) {
+        // Refuse to discard an older generation if the current one is corrupt.
+        if (!await verify(await destination.readAsBytes())) {
+          throw const FileSystemException(
+            'Postojeća kopija nije valjana; prethodna je sačuvana.');
+        }
+        await retired.delete();
+      }
+      await destination.rename(retired.path);
+      moved = true;
+    }
+    try {
+      await newFile.rename(destination.path);
+      if (!await verify(await destination.readAsBytes())) {
+        throw const FormatException('Rezervna kopija nije valjana.');
+      }
+    } catch (_) {
+      if (moved && await retired.exists()) {
+        if (await destination.exists()) await destination.delete();
+        await retired.rename(destination.path);
+      }
+      rethrow;
+    }
   }
 
   Future<List<File>> verifiedRecoveryFiles() async {
     final found = <File>[];
-    for (final file in [swap, previous, older]) {
+    for (final file in [swap, previous, older,
+        previousRetired, olderRetired, recoveryStage, pending]) {
       if (await file.exists() && await verify(await file.readAsBytes())) {
         found.add(file);
       }

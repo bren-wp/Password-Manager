@@ -145,6 +145,7 @@ class _EntryEditorState extends State<EntryEditor> {
                   controller: secret,
                   obscureText: !showSecret,
                   enableSuggestions: false, autocorrect: false,
+                  autofillHints: const [],
                   decoration: InputDecoration(
                     labelText: isCard ? 'Broj kartice' :
                         isTotp ? 'TOTP tajni ključ (Base32)' : 'Lozinka',
@@ -175,6 +176,7 @@ class _EntryEditorState extends State<EntryEditor> {
                     prefixIcon: Icon(Icons.calendar_today_outlined))),
                 const SizedBox(height: 14),
                 TextFormField(controller: cvv, obscureText: true,
+                  autofillHints: const [],
                   keyboardType: TextInputType.number,
                   enableSuggestions: false, autocorrect: false,
                   decoration: const InputDecoration(

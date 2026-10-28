@@ -57,6 +57,33 @@ void main() {
     expect(await file.readAsString(), 'AUTH:pending');
   });
 
+  test('backup rotation retains verified retired generations', () async {
+    final file = File('${temp.path}/retire.vault');
+    final files = VaultFiles(file, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    for (final generation in ['one', 'two', 'three', 'four']) {
+      await files.install(utf8.encode('AUTH:$generation'));
+    }
+    expect(await file.readAsString(), 'AUTH:four');
+    expect(await files.previous.readAsString(), 'AUTH:three');
+    expect(await files.older.readAsString(), 'AUTH:two');
+    expect(await files.previousRetired.readAsString(), 'AUTH:two');
+    expect(await files.olderRetired.readAsString(), 'AUTH:one');
+    expect((await files.verifiedRecoveryFiles()).length, greaterThanOrEqualTo(4));
+  });
+
+  test('older retired valid snapshot remains discoverable for recovery', () async {
+    final file = File('${temp.path}/retired-only.vault');
+    final files = VaultFiles(file, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    await files.olderRetired.writeAsString('AUTH:older', flush: true);
+    expect(await files.hasAny, isTrue);
+    expect((await files.verifiedRecoveryFiles())
+        .map((f) => f.path), contains(files.olderRetired.path));
+    await files.recoverInterruptedReplacement();
+    expect(await file.readAsString(), 'AUTH:older');
+  });
+
   test('AES-GCM vault round trip, wrong password and recovery copy', () async {
     final file = File('${temp.path}/private.vault');
     final store = VaultStore(vaultFileOverride: file);

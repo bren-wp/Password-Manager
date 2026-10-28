@@ -7,7 +7,7 @@
 .pub/
 build/
 coverage/
-*.lock
+# Keep pubspec.lock tracked for reproducible builds
 # Keep .metadata and platform scaffolds after bootstrap
 .idea/
 .vscode/
@@ -23,3 +23,9 @@ coverage/
 vault.json
 vault.json.bak
 vault.json.tmp
+
+# Machine-specific and disposable generated files
+android/local.properties
+windows/flutter/ephemeral/
+*.vault
+*.vault.*

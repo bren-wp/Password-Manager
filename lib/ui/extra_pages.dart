@@ -250,7 +250,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     return ListView(padding: const EdgeInsets.all(16), children: [
       const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
         'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
-        'QR skeniranje još nije dostupno.')),
+        'Koristite vlastiti Base32 tajni ključ.'))),
       const SizedBox(height: 15),
       for (final item in widget.items)
         Padding(padding: const EdgeInsets.only(bottom: 10),
@@ -466,11 +466,6 @@ class SettingsPage extends StatelessWidget {
         subtitle: const Text('Zaštitite trezor novom glavnom lozinkom'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => changePassword(context)),
-      const Divider(color: VColors.border),
-      const ListTile(
-        leading: Icon(Icons.fingerprint, color: VColors.muted),
-        title: Text('Biometrijsko otključavanje'),
-        subtitle: Text('U planu — nije aktivno u ovoj verziji')),
     ])),
     const SizedBox(height: 16),
     VPanel(child: Column(children: [
@@ -484,17 +479,12 @@ class SettingsPage extends StatelessWidget {
             appBar: AppBar(title: const Text('Sigurnosna kopija')),
             body: BackupPage(store: store, onMessage: onMessage)))),
       ),
-      const Divider(color: VColors.border),
-      const ListTile(
-        leading: Icon(Icons.cloud_off_outlined, color: VColors.muted),
-        title: Text('Sinkronizacija u oblaku'),
-        subtitle: Text('Nije uključena. Podaci se čuvaju lokalno.')),
     ])),
     const SizedBox(height: 16),
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
-        title: Text('Veldigo 0.2.3'),
+        title: Text('Veldigo'),
         subtitle: Text('Android i Windows • Brendigo')),
       ListTile(
         leading: Icon(Icons.shield_outlined, color: VColors.accent),
