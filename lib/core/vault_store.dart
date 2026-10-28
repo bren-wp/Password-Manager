@@ -155,6 +155,7 @@ class VaultStore extends ChangeNotifier {
   }
 
   Future<void> create(String password) => _serial(() async {
+    final session = _sessionEpoch;
     if (_files == null) throw StateError('Trezor nije inicijaliziran.');
     if (_exists || await _files!.hasAny) {
       throw StateError('Trezor već postoji i neće biti prepisan.');
@@ -162,10 +163,14 @@ class VaultStore extends ChangeNotifier {
     if (password.runes.length < 12) {
       throw ArgumentError('Glavna lozinka treba najmanje 12 znakova.');
     }
-    _salt = _random(16);
-    _key = await _derive(password, _salt!);
+    final newSalt = _random(16);
+    final newKey = await _derive(password, newSalt);
+    _assertNotCancelled(session);
+    _salt = newSalt;
+    _key = newKey;
     try {
       await _persist(const <VaultItem>[]);
+      _assertUnlockedSession(session);
       _items = [];
       _exists = true;
       notifyListeners();
@@ -509,6 +514,7 @@ class VaultStore extends ChangeNotifier {
   /// No existing ciphertext is ever replaced by this operation.
   Future<void> importFirstVault(
       List<int> bytes, String masterPassword) => _serial(() async {
+    final session = _sessionEpoch;
     final files = _files;
     final target = _file;
     if (files == null || target == null) {
@@ -521,6 +527,7 @@ class VaultStore extends ChangeNotifier {
       throw const FormatException('Datoteka sigurnosne kopije nije valjana.');
     }
     final imported = await _decode(utf8.decode(bytes), masterPassword);
+    _assertNotCancelled(session);
     _key = imported.key;
     _salt = imported.salt;
     try {
@@ -531,12 +538,14 @@ class VaultStore extends ChangeNotifier {
         if (await files.hasAny) {
           throw const VaultConflictException();
         }
+        _assertUnlockedSession(session);
         await files.install(bytes);
         _committedHash = await _hash(bytes);
       } finally {
         await guard.unlock();
         await guard.close();
       }
+      _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
       notifyListeners();
