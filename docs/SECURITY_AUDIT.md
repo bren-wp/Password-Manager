@@ -1,6 +1,6 @@
 # Veldigo — security and privacy audit
 
-**Audit date:** 28 October 2026  
+**Audit date:** 29 October 2026  
 **Scope:** Android + Windows Flutter application, encryption/backup engine, user-facing secret flows, native launchers, packaging and CI.  
 **Method:** source-code inspection, control/data-flow review, threat analysis, and newly added regression tests. CI build results must be read separately. **Not** a third-party penetration test, device forensics review, formal cryptographic proof, or certification.
 
@@ -14,6 +14,10 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 
 | Priority | Finding | Fix / status |
 |---|---|---|
+| High | User locking the vault while unlock, backup import, key rotation or recovery was asynchronously awaiting disk/KDF operations could re-establish keys or plaintext in memory | **Fixed:** session-epoch cancellation, guarded state transitions, and per-transaction authenticated keys for disk verification; regression tests for interrupted unlock/import/key changes/writes |
+| Medium | Local main vault and crash-recovery files could grow after file metadata checks and trigger unbounded memory allocations | **Fixed:** streaming reads capped at 64 MiB, including rotating and quarantined snapshots; overlarge candidates skipped without deleting other recovery versions |
+| Medium | Valid encrypted data quarantined after failed authentication or key rotation could be inaccessible when the primary vault was missing | **Fixed:** authenticated quarantine included as a last-resort recovery source; tests ensure corrupt quarantined bytes cannot create a vault |
+| Medium | Windows vault remained unlocked on focus loss without a paused/hidden lifecycle transition | **Fixed:** Windows inactive/focus loss now locks except during a user-initiated, bounded native file picker |
 | High | Crash during backup generation replacement could delete an older valid checkpoint before the new one is promoted | **Changed:** backup destinations move to verified, recoverable `.retired` generations; failed promotion restores the predecessor. Added rotation/recovery regression tests |
 | High | Cached portable Windows files were executed if `veldigo.exe` merely existed | **Changed:** launcher validates every embedded-release file against an internal SHA-256 manifest, rejects additional files and extracts a fresh verified copy when cache integrity fails |
 | High | Android backup imports loaded arbitrary picker bytes into memory before enforcing vault size | **Changed:** both first-run import and recovery use one bounded 64 MiB reader that streams local selections, checks metadata and actual byte count |
@@ -30,7 +34,7 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 ## Controls reviewed
 
 - **Cryptography:** encrypted-at-rest vault; authenticated decryption; wrong password/integrity errors; cryptographically random salt and nonce; password generator uses system CSPRNG.
-- **Storage:** serializes same-instance mutations, uses a cross-process lock and committed digest to refuse stale writes. Keeps encrypted crash-recovery generations; separate independent backups remain necessary.
+- **Storage:** session invalidation prevents unlocking secrets after a user lock. Encrypted checkpoint validation is bound to the transaction's original key. Storage serializes same-instance mutations, uses a cross-process lock and committed digest to refuse stale writes. Keeps encrypted crash-recovery generations; separate independent backups remain necessary.
 - **Privacy:** Android `FLAG_SECURE`; OS automatic backup/device transfer exclusions; cleartext network disallowed; immediate background lock except a bounded native picker operation.
 - **Inputs:** account IDs checked for duplicates, backups limited, corrupted ciphertext rejected, TOTP seeds parsed locally.
 - **UI safety:** secret fields hidden by default; failed credential saves retain the editing form; destructive vault restore requires confirmation; deleting an entry moves it to encrypted Trash; permanent deletion has a second confirmation.
@@ -47,6 +51,10 @@ Vault file format: Argon2id (19 MiB, 2 iterations, p=1) derives a key from a per
 7. **Medium:** Targeted advisory review identified the previous `file_picker` vulnerability. Complete transitive SCA, license compliance and supply-chain attestation have **not** been independently completed; `flutter stable`, Inno Setup fallback and CI actions may change without build pinning.
 8. **Medium:** Card/CVV storage is not a PCI DSS compliance claim. Evaluate data-retention requirements and product scope before production distribution.
 9. **Low:** Password-strength scoring is a local heuristic, not a compromised-password or 2FA-status lookup. Keep that limitation clear to users.
+
+## Further checks for concurrency
+
+All in-flight operations started in a prior user session must fail closed when the lock epoch changes. Durable ciphertext may still reflect a write that was already in progress before locking; the critical invariant is that no obsolete asynchronous callback can restore a key or plaintext into the active UI. Test the same behavior under real Android activity switches, Windows focus changes and application shutdown.
 
 ## Validation gates
 

@@ -16,7 +16,10 @@
 - Missing-primary recovery now authenticates and installs the **same** ciphertext
   under an exclusive cross-process lock, using a verified same-directory rename.
 - A pre-existing valid recovery stage is not silently replaced by older data.
-- Android and Windows vaults lock when the application is paused, hidden or detached.
+- Android and Windows vaults lock when the application is paused, hidden or detached. Windows also locks when focus is lost.
+- In-flight cryptographic operations are bound to a cancellable session generation; a late completion cannot restore credentials after user lock.
+- Snapshot checks during disk writes use the transaction's own authenticated key, independent of subsequent UI locks.
+- Local vault and recovery file reads are bounded to 64 MiB, including quarantine and retired generations.
 
 ## Known limitations — do not use for important credentials yet
 
