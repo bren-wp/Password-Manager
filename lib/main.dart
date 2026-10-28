@@ -66,7 +66,9 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
-      if (store.isUnlocked) store.lock();
+      if (store.isUnlocked && !store.externalPickerGraceActive) {
+        store.lock();
+      }
     }
   }
 
