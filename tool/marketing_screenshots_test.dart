@@ -93,7 +93,10 @@ void main() {
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
     // Details are opened exactly as in the running Android UI.
     await tester.tap(find.text('GitHub').first);
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.text('Korisničko ime'), findsOneWidget);
+    expect(find.text('Uredi'), findsWidgets);
     await expectLater(find.byKey(captureKey),
       matchesGoldenFile('goldens/marketing/android/05_Detalji_lozinke.png'));
 
