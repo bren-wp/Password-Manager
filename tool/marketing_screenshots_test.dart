@@ -64,10 +64,13 @@ void main() {
       Widget screen, Size size) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
-    await tester.pumpWidget(MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: veldigoTheme(),
-      home: RepaintBoundary(key: captureKey, child: screen),
+    await tester.pumpWidget(RepaintBoundary(
+      key: captureKey,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: veldigoTheme(),
+        home: KeyedSubtree(key: ValueKey(file), child: screen),
+      ),
     ));
     await tester.pump(const Duration(milliseconds: 350));
     await expectLater(find.byKey(captureKey),
