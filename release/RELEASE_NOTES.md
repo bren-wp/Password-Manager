@@ -1,41 +1,44 @@
-# Veldigo v0.2.1 — Preview 1
+# Veldigo v0.2.2 — Preview 1
 
-**Android + Windows · Jedan siguran prostor za vaše digitalne podatke**
+**Privatnije. Sigurnije spremanje. Bolji Android i Windows doživljaj.**
 
-## Novo u Veldigu
+## Poboljšanja
 
-- Ugodniji početni ekran, osvježeni mobilni trezor i tirkizna akcijska tipka
-- Više pojedinosti za spremanje kartica i mogućnost izrade vlastitih kategorija
-- Uvoz postojećeg šifriranog trezora tijekom prvog pokretanja na novom uređaju
-- **Šifrirani Koš** s povratom slučajno uklonjenih računa i zasebnom potvrdom trajnog brisanja
-- Naprednija lokalna zaštita od nenamjernog prepisivanja podataka
-- Oporavak valjanih privremenih i prethodnih šifriranih datoteka
-- Dodatne provjere očuvanja zapisa, promjene glavne lozinke i prijenosa između uređaja
+- Prikaz svih 26 zaslona iz stvarnog renderiranog Flutter korisničkog
+  sučelja u GitHub README-u — 15 Android i 11 Windows rasporeda
+- Obrasci za račune sada ostaju otvoreni dok upis u šifrirani trezor
+  stvarno ne uspije; pri pogrešci uneseni podaci ostaju dostupni za ponovni pokušaj
+- Lokalna šifrirana kopija prije uvoza i promjene glavne lozinke
+  provjerava se nakon zapisivanja na disk
+- Zaštita protiv istodobnog stvaranja istog trezora u dvije instance
+- Oporavak kopija uz zaključavanje datoteke i otkrivanje konkurentnih promjena
+- Brzo ručno zaključavanje Android i Windows trezora
+- Dodatna Android ograničenja izvoza aplikacijskih podataka u
+  automatske cloud i device-transfer sigurnosne kopije
+- Dodani regresijski testovi za spremanje pri grešci, očuvanje kopija,
+  istodobno kreiranje i oporavak
 
-## Preuzimanja
+## Datoteke
 
-| Android | Windows |
-|---|---|
-| `Veldigo-Android.apk` | `Veldigo-portable.exe` |
-| `Veldigo-Android.aab` | `Veldigo-Setup.exe` |
-| | `Veldigo-Windows-portable.zip` |
+- `Veldigo-Android.apk` — instalacija na Android
+- `Veldigo-Android.aab` — Android App Bundle predizdanje
+- `Veldigo-portable.exe` — prijenosna Windows verzija
+- `Veldigo-Setup.exe` — Windows instalacijski program
+- `Veldigo-Windows-portable.zip` — Windows direktorij
+- `Android-SHA256.txt` i `Windows-SHA256.txt` — provjera integriteta preuzimanja
 
-Kontrolni SHA-256 zbrojevi nalaze se uz pakete.
+## Važno
 
-## O zaštiti podataka
+Ovo je **predizdanje**. Snimke potječu iz automatskog Flutter UI renderiranja,
+a ne s fizičkih uređaja. Potpuna 1:1 pixel-perfect usklađenost i neovisna
+revizija sigurnosti još nisu potvrđene.
 
-Podaci se čuvaju u lokalnom šifriranom trezoru. Prijenos između uređaja
-obavlja se putem šifrirane datoteke. Sigurnosnu kopiju čuvajte na zasebnom
-uređaju, a glavnu lozinku na sigurnome mjestu.
+Android predizdanje nije potpisano privatnim Google Play upload ključem,
+a Windows paketi nisu Authenticode potpisani. Nemojte ih koristiti kao
+produkcijski trezor za nezamjenjive zapise.
 
-**Ovo je predizdanje.** Nije završena neovisna sigurnosna revizija niti
-potvrđena potpuna vizualna usklađenost svih 26 referentnih ekrana. Ne
-preporučuje se pohrana nezamjenjivih računa ili produkcijskih tajni prije
-završetka revizije.
-
-Android paketi koriste testno potpisivanje ako se ne konfigurira namjenski
-ključ; nemojte taj AAB koristiti kao produkcijsko Google Play izdanje.
-Windows izvršne datoteke nisu Authenticode potpisane i mogu prikazati
-SmartScreen upozorenje.
+Zasebno čuvajte šifriranu kopiju trezora i glavnu lozinku. Nema
+daljinskog resetiranja lozinke, a zaštita od svih vrsta kvara hardvera
+ili gubitka uređaja ne može biti zajamčena.
 
 © Brendigo
