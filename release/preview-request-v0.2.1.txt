@@ -1,0 +1,3 @@
+Veldigo 0.2.1 Preview 1 — Windows and Android release request
+Expected: Veldigo-Android.apk; Veldigo-Android.aab; Veldigo-portable.exe; Veldigo-Setup.exe.
+Release only after Flutter analyze, automated tests, both platform builds and checksums pass.
