@@ -1,0 +1,113 @@
+name: Veldigo preview release
+
+on:
+  push:
+    branches: [feat/veldigo-flutter-android-windows]
+    paths:
+      - release/preview-request.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veldigo-preview-release
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Configure Android
+        run: |
+          python tools/configure_android.py
+          python tools/generate_brand_icons.py
+          flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Build preview APK
+        run: flutter build apk --release
+      - name: Build preview AAB
+        run: flutter build appbundle --release
+      - name: Stage Android binaries
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/Veldigo-Android.apk
+          cp build/app/outputs/bundle/release/app-release.aab dist/Veldigo-Android.aab
+          sha256sum dist/Veldigo-Android.apk dist/Veldigo-Android.aab > dist/Android-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veldigo-android-release
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Configure Windows
+        shell: pwsh
+        run: |
+          python tools/configure_android.py
+          python tools/generate_brand_icons.py
+          flutter pub get
+      - run: flutter build windows --release
+      - name: Package launcher and installer
+        shell: pwsh
+        run: ./scripts/package_windows.ps1
+      - name: Stage Windows binaries and checksums
+        shell: pwsh
+        run: |
+          $files = 'dist/Veldigo-portable.exe','dist/Veldigo-Setup.exe','dist/Veldigo-Windows-portable.zip'
+          foreach ($file in $files) {
+            if (!(Test-Path $file)) { throw "Missing release artifact $file" }
+          }
+          $files | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash + '  ' + $_ } | Set-Content dist/Windows-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veldigo-windows-release
+          path: |
+            dist/Veldigo-portable.exe
+            dist/Veldigo-Setup.exe
+            dist/Veldigo-Windows-portable.zip
+            dist/Windows-SHA256.txt
+          if-no-files-found: error
+
+  publish:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: veldigo-*-release
+          path: release-assets
+          merge-multiple: true
+      - name: Validate files
+        run: |
+          test -s release-assets/Veldigo-Android.apk
+          test -s release-assets/Veldigo-Android.aab
+          test -s release-assets/Veldigo-portable.exe
+          test -s release-assets/Veldigo-Setup.exe
+          test -s release-assets/Veldigo-Windows-portable.zip
+      - name: Publish explicitly labeled preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.2.0-preview.1 release-assets/* \
+            --title "Veldigo v0.2.0 Preview 1" \
+            --target "$GITHUB_SHA" \
+            --notes-file release/RELEASE_NOTES.md \
+            --prerelease

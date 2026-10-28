@@ -1,0 +1,192 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+
+import '../core/password_generator.dart';
+import '../core/vault_item.dart';
+import 'brand.dart';
+
+class EntryEditor extends StatefulWidget {
+  final ItemKind kind;
+  final VaultItem? original;
+  const EntryEditor({super.key, required this.kind, this.original});
+
+  @override
+  State<EntryEditor> createState() => _EntryEditorState();
+}
+
+class _EntryEditorState extends State<EntryEditor> {
+  final form = GlobalKey<FormState>();
+  late final title = TextEditingController(text: widget.original?.title ?? '');
+  late final username =
+      TextEditingController(text: widget.original?.username ?? '');
+  late final secret = TextEditingController(text: widget.original?.secret ?? '');
+  late final website = TextEditingController(text: widget.original?.website ?? '');
+  late final notes = TextEditingController(text: widget.original?.notes ?? '');
+  late String category = widget.original?.category ?? 'Osobno';
+  late bool favorite = widget.original?.favorite ?? false;
+  bool showSecret = false;
+  final categories = const [
+    'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo'
+  ];
+
+  @override
+  void dispose() {
+    title.dispose();
+    username.dispose();
+    secret.dispose();
+    website.dispose();
+    notes.dispose();
+    super.dispose();
+  }
+
+  void save() {
+    if (!form.currentState!.validate()) return;
+    final item = VaultItem(
+      id: widget.original?.id ??
+          '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}',
+      kind: widget.kind,
+      title: title.text.trim(),
+      username: username.text.trim(),
+      secret: secret.text,
+      website: website.text.trim(),
+      notes: notes.text,
+      category: category,
+      favorite: favorite,
+      updatedAt: DateTime.now().toUtc(),
+    );
+    Navigator.of(context).pop(item);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isNote = widget.kind == ItemKind.note;
+    final isCard = widget.kind == ItemKind.card;
+    final isTotp = widget.kind == ItemKind.totp;
+    final label = isNote ? 'bilješku' : isCard ? 'karticu' :
+        isTotp ? 'autentifikator' : 'lozinku';
+    return Dialog(
+      backgroundColor: VColors.background,
+      insetPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: VColors.border)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 580, maxHeight: 770),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 16, 10, 8),
+            child: Row(children: [
+              const Icon(Icons.shield_outlined, color: VColors.accent),
+              const SizedBox(width: 12),
+              Expanded(child: Text(
+                widget.original == null ? 'Dodaj novu $label' : 'Uredi $label',
+                style: Theme.of(context).textTheme.titleLarge)),
+              IconButton(icon: const Icon(Icons.close),
+                tooltip: 'Zatvori', onPressed: () => Navigator.pop(context)),
+            ]),
+          ),
+          const Divider(color: VColors.border),
+          Flexible(child: SingleChildScrollView(
+            padding: const EdgeInsets.all(22),
+            child: Form(key: form, child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              TextFormField(
+                controller: title,
+                decoration: InputDecoration(
+                  labelText: isNote ? 'Naziv bilješke' : 'Naziv usluge',
+                  prefixIcon: const Icon(Icons.label_outline)),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Naziv je obavezan.' : null),
+              if (!isNote) ...[
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: username,
+                  decoration: InputDecoration(
+                    labelText: isCard ? 'Ime vlasnika kartice'
+                        : isTotp ? 'Naziv računa / e-mail'
+                        : 'Korisničko ime / e-mail',
+                    prefixIcon: const Icon(Icons.person_outline))),
+              ],
+              const SizedBox(height: 14),
+              if (isNote)
+                TextFormField(controller: notes, maxLines: 7,
+                  decoration: const InputDecoration(
+                    labelText: 'Sadržaj bilješke',
+                    alignLabelWithHint: true))
+              else
+                TextFormField(
+                  controller: secret,
+                  obscureText: !showSecret,
+                  enableSuggestions: false, autocorrect: false,
+                  decoration: InputDecoration(
+                    labelText: isCard ? 'Broj kartice' :
+                        isTotp ? 'TOTP tajni ključ (Base32)' : 'Lozinka',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (!isCard && !isTotp)
+                        IconButton(
+                          tooltip: 'Generiraj lozinku',
+                          icon: const Icon(Icons.casino_outlined),
+                          onPressed: () => setState(() =>
+                            secret.text = PasswordGenerator.generate())),
+                      IconButton(
+                        tooltip: showSecret ? 'Sakrij' : 'Prikaži',
+                        icon: Icon(showSecret
+                          ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() =>
+                          showSecret = !showSecret)),
+                    ]),
+                  ),
+                  validator: (v) => v == null || v.isEmpty
+                      ? 'Unesite vrijednost.' : null),
+              if (!isNote) ...[
+                const SizedBox(height: 14),
+                if (!isCard && !isTotp) TextFormField(
+                  controller: website,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Web-adresa',
+                    prefixIcon: Icon(Icons.link))),
+                if (!isTotp) const SizedBox(height: 14),
+                if (!isTotp && !isNote)
+                  TextFormField(controller: notes, maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Dodatna sigurna bilješka (neobavezno)',
+                      alignLabelWithHint: true)),
+              ],
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue: categories.contains(category) ? category : 'Ostalo',
+                decoration: const InputDecoration(
+                  labelText: 'Kategorija',
+                  prefixIcon: Icon(Icons.folder_outlined)),
+                items: categories.map((cat) => DropdownMenuItem(
+                  value: cat, child: Text(cat))).toList(),
+                onChanged: (value) => setState(() => category = value!)),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Dodaj u favorite'),
+                activeTrackColor: VColors.accent,
+                value: favorite,
+                onChanged: (value) => setState(() => favorite = value)),
+            ])),
+          )),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              Expanded(child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Odustani'))),
+              const SizedBox(width: 12),
+              Expanded(child: VPrimaryButton(
+                label: 'Spremi',
+                onPressed: save,
+                icon: Icons.save_outlined)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}

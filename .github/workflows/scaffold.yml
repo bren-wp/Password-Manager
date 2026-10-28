@@ -1,0 +1,48 @@
+name: Generate native Android and Windows scaffolds
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/veldigo-flutter-android-windows]
+    paths:
+      - pubspec.yaml
+      - scripts/bootstrap.sh
+      - scripts/bootstrap.ps1
+      - tools/configure_android.py
+      - tools/generate_brand_icons.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: veldigo-scaffold
+  cancel-in-progress: false
+
+jobs:
+  scaffold:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate and brand platform projects
+        run: |
+          flutter create --platforms=android,windows --project-name veldigo --org com.brendigo .
+          python tools/configure_android.py
+          python tools/generate_brand_icons.py
+          flutter pub get
+      - name: Commit generated native projects to the development branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f android windows .metadata pubspec.lock
+          if git diff --cached --quiet; then
+            echo "No native changes"
+            exit 0
+          fi
+          git commit -m "build: check in generated Veldigo Android/Windows platform projects"
+          git push origin HEAD:feat/veldigo-flutter-android-windows

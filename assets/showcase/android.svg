@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="780" viewBox="0 0 420 780" role="img" aria-label="Veldigo Android — prikaz trezora">
+<defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#48F4DE"/><stop offset="1" stop-color="#18CBC7"/></linearGradient></defs>
+<rect width="420" height="780" rx="42" fill="#020913"/>
+<rect x="16" y="16" width="388" height="748" rx="31" fill="#061321" stroke="#1A4B57" stroke-width="2"/>
+<text x="38" y="60" font-size="17" fill="#AFC5D6" font-family="Arial">14:27</text>
+<path d="M55 89 L76 97 L74 123 L55 137 L36 123 L34 97Z" fill="none" stroke="#2DE5D2" stroke-width="4"/>
+<path d="M45 104 L55 123 L65 104" fill="none" stroke="#2DE5D2" stroke-width="4"/>
+<text x="92" y="115" font-size="27" font-family="Arial" letter-spacing="4" font-weight="bold" fill="#F1F8FE">VELDIGO</text>
+<text x="33" y="187" font-size="35" font-family="Arial" font-weight="bold" fill="#FFFFFF">Moj trezor</text>
+<text x="33" y="217" font-size="16" font-family="Arial" fill="#8FA9C3">Vaše lozinke, sigurno na jednom mjestu.</text>
+<rect x="33" y="244" width="354" height="55" rx="14" fill="#0D2032" stroke="#1D4255"/>
+<text x="60" y="280" font-family="Arial" font-size="17" fill="#7894AF">⌕  Pretraži lozinke...</text>
+<rect x="33" y="318" width="110" height="91" rx="14" fill="#0E2436" stroke="#284555"/><rect x="155" y="318" width="110" height="91" rx="14" fill="#0E2436" stroke="#284555"/><rect x="277" y="318" width="110" height="91" rx="14" fill="#0E2436" stroke="#284555"/>
+<text x="50" y="359" font-family="Arial" font-size="29" font-weight="bold" fill="#27E4D2">24</text><text x="50" y="388" font-family="Arial" font-size="14" fill="#9CB8CF">lozinke</text>
+<text x="172" y="359" font-family="Arial" font-size="29" font-weight="bold" fill="#F0F8FF">3</text><text x="172" y="388" font-family="Arial" font-size="14" fill="#9CB8CF">bilješke</text>
+<text x="294" y="359" font-family="Arial" font-size="29" font-weight="bold" fill="#F0F8FF">2</text><text x="294" y="388" font-family="Arial" font-size="14" fill="#9CB8CF">upozorenja</text>
+<text x="34" y="454" font-family="Arial" font-size="23" fill="#FFF" font-weight="bold">Moje lozinke</text>
+<g font-family="Arial" font-size="18" fill="#EFF7FF">
+<rect x="33" y="472" width="354" height="71" rx="13" fill="#0D1E31" stroke="#1F3C51"/><text x="54" y="503" fill="#28E4D1">●</text><text x="88" y="505">Google</text><text x="88" y="526" font-size="13" fill="#92AAC1">mojemail@example.com</text>
+<rect x="33" y="552" width="354" height="71" rx="13" fill="#0D1E31" stroke="#1F3C51"/><text x="54" y="584" fill="#28E4D1">●</text><text x="88" y="585">GitHub</text><text x="88" y="606" font-size="13" fill="#92AAC1">developer@example.com</text>
+<rect x="33" y="632" width="354" height="71" rx="13" fill="#0D1E31" stroke="#1F3C51"/><text x="54" y="663" fill="#28E4D1">●</text><text x="88" y="665">Microsoft</text><text x="88" y="686" font-size="13" fill="#92AAC1">mojemail@example.com</text>
+</g>
+<rect x="16" y="715" width="388" height="49" rx="20" fill="#0B2233"/>
+<text x="48" y="747" font-size="15" font-family="Arial" fill="#2DE5D2">Trezor</text><text x="137" y="747" font-size="15" font-family="Arial" fill="#9CB3CA">Generator</text><text x="246" y="747" font-size="15" font-family="Arial" fill="#9CB3CA">Sigurnost</text><text x="342" y="747" font-size="15" font-family="Arial" fill="#9CB3CA">⋯</text>
+</svg>

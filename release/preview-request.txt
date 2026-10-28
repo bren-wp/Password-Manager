@@ -1,0 +1,4 @@
+Veldigo v0.2.0-preview.1
+Android APK + AAB and Windows portable.exe + setup.exe
+Requested release artifacts must be built and tested before publishing.
+The release is a preview and must not be used as a production credential store.
