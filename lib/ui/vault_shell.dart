@@ -251,13 +251,67 @@ class _VaultShellState extends State<VaultShell> {
   void selectItem(VaultItem item, bool desktop) {
     setState(() => selectedId = item.id);
     if (!desktop) {
-      showDialog<void>(context: context, builder: (ctx) => Dialog(
-        backgroundColor: VColors.background,
-        child: ConstrainedBox(constraints: const BoxConstraints(
-          maxWidth: 450, maxHeight: 720),
-          child: SingleChildScrollView(child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: detail(item))))));
+      // The Android design uses an entire account-details screen, not a
+      // small centered modal. Listen to the live vault so edits immediately
+      // refresh this view and permanently erased records cannot leak back
+      // onto the screen from a stale captured VaultItem.
+      showDialog<void>(context: context, builder: (dialogContext) =>
+        Dialog.fullscreen(child: AnimatedBuilder(
+          animation: widget.store,
+          builder: (ctx, _) {
+            final live = widget.store.items
+                .where((record) => record.id == item.id).firstOrNull;
+            if (live == null) {
+              return Scaffold(
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: 'Natrag',
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                  ),
+                ),
+                body: const Center(
+                  child: Text('Zapis više nije dostupan.')),
+              );
+            }
+            final heading = switch (live.kind) {
+              ItemKind.note => 'Detalji bilješke',
+              ItemKind.card => 'Detalji kartice',
+              ItemKind.totp => 'Detalji autentifikatora',
+              _ => 'Detalji lozinke',
+            };
+            return Scaffold(
+              backgroundColor: VColors.background,
+              appBar: AppBar(
+                backgroundColor: VColors.background,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Natrag',
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+                title: const VeldigoLogo(size: 29),
+                actions: [
+                  if (!live.trashed)
+                    IconButton(
+                      tooltip: 'Uredi zapis',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => edit(original: live),
+                    ),
+                ],
+              ),
+              body: SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  children: [
+                    Text(heading, style: Theme.of(ctx).textTheme.headlineMedium),
+                    const SizedBox(height: 18),
+                    detail(live),
+                  ],
+                ),
+              ),
+            );
+          },
+        )));
     }
   }
 
