@@ -40,7 +40,6 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   bool loading = true;
   bool welcomeCompleted = false;
   String? error;
-  DateTime? backgroundedAt;
 
   @override
   void initState() {
@@ -60,16 +59,14 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Prevent cached credentials from remaining available after switching
+    // applications, minimizing the time secrets live in Dart-managed memory.
+    // Inactive is deliberately excluded; short system dialogs and focus
+    // transitions do not necessarily indicate app backgrounding.
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      backgroundedAt ??= DateTime.now();
-    } else if (state == AppLifecycleState.resumed) {
-      final previous = backgroundedAt;
-      backgroundedAt = null;
-      if (previous != null &&
-          DateTime.now().difference(previous) >= const Duration(minutes: 2)) {
-        store.lock();
-      }
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      if (store.isUnlocked) store.lock();
     }
   }
 
