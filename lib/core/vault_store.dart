@@ -339,6 +339,48 @@ class VaultStore extends ChangeNotifier {
     return bytes;
   });
 
+  /// Allows a fresh installation to load an existing encrypted .veldigo
+  /// archive without first generating a second (empty) vault.
+  /// No existing ciphertext is ever replaced by this operation.
+  Future<void> importFirstVault(
+      List<int> bytes, String masterPassword) => _serial(() async {
+    final files = _files;
+    final target = _file;
+    if (files == null || target == null) {
+      throw StateError('Trezor nije inicijaliziran.');
+    }
+    if (_exists || await files.hasAny || await target.exists()) {
+      throw StateError('Postojeći trezor neće biti prepisan.');
+    }
+    if (bytes.length > _maxVaultBytes || bytes.isEmpty) {
+      throw const FormatException('Datoteka sigurnosne kopije nije valjana.');
+    }
+    final imported = await _decode(utf8.decode(bytes), masterPassword);
+    _key = imported.key;
+    _salt = imported.salt;
+    try {
+      final lockFile = File('${target.path}.write-lock');
+      final guard = await lockFile.open(mode: FileMode.append);
+      try {
+        await guard.lock(FileLock.exclusive);
+        if (await files.hasAny) {
+          throw const VaultConflictException();
+        }
+        await files.install(bytes);
+        _committedHash = await _hash(bytes);
+      } finally {
+        await guard.unlock();
+        await guard.close();
+      }
+      _items = imported.items;
+      _exists = true;
+      notifyListeners();
+    } catch (_) {
+      lock();
+      rethrow;
+    }
+  });
+
   Future<void> changeMasterPassword(
       String currentPassword, String newPassword) => _serial(() async {
     final file = _file;
