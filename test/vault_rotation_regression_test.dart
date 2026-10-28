@@ -55,6 +55,30 @@ void main() {
     expect(files.any((e) => e.contains('before-password-change')), isTrue);
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('simultaneous first-run creation never silently replaces a vault',
+      () async {
+    final file = File('${temp.path}/shared-first-run.vault');
+    final first = VaultStore(vaultFileOverride: file);
+    final second = VaultStore(vaultFileOverride: file);
+    await Future.wait([first.initialize(), second.initialize()]);
+    final outcome = await Future.wait([
+      first.create('first master password unique').then((_) => true,
+        onError: (Object _, StackTrace __) => false),
+      second.create('second master password unique').then((_) => true,
+        onError: (Object _, StackTrace __) => false),
+    ]);
+    expect(outcome.where((success) => success).length, 1);
+    first.lock();
+    second.lock();
+    final opened = VaultStore(vaultFileOverride: file);
+    await opened.initialize();
+    await opened.unlock(outcome.first
+        ? 'first master password unique' : 'second master password unique');
+    expect(opened.hasVault, isTrue);
+    await expectLater(opened.create('do not overwrite existing vault'),
+        throwsA(isA<StateError>()));
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test('second open instance cannot overwrite accounts from first', () async {
     final path = File('${temp.path}/parallel-instances.vault');
     final first = VaultStore(vaultFileOverride: path);
