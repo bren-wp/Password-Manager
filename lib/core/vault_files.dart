@@ -21,13 +21,14 @@ class VaultFiles {
 
   Future<bool> get hasAny async =>
       await primary.exists() || await swap.exists() ||
-      await previous.exists() || await older.exists();
+      await previous.exists() || await older.exists() ||
+      await pending.exists() || await quarantine.exists();
 
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
     // .swap is the previous committed primary, .bak is a copy of it.
     // Do not touch .pending: it may contain an incomplete write.
-    for (final candidate in [swap, previous, older]) {
+    for (final candidate in [swap, previous, older, pending]) {
       if (!await candidate.exists()) continue;
       if (!await verify(await candidate.readAsBytes())) continue;
       await candidate.copy(primary.path);

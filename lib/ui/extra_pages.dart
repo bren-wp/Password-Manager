@@ -50,9 +50,23 @@ class _GeneratorPageState extends State<GeneratorPage> {
           IconButton(tooltip: 'Kopiraj lozinku',
             icon: const Icon(Icons.copy),
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: generated));
-              if (context.mounted) { ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Kopirano.'))); }
+              final copied = generated;
+              await Clipboard.setData(ClipboardData(text: copied));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text(
+                    'Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
+              }
+              Future<void>.delayed(const Duration(seconds: 30), () async {
+                try {
+                  final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (clipboard?.text == copied) {
+                    await Clipboard.setData(const ClipboardData(text: ''));
+                  }
+                } catch (_) {
+                  // Clipboard may be inaccessible while the app is suspended.
+                }
+              });
             }),
           IconButton(tooltip: 'Nova lozinka',
             icon: const Icon(Icons.refresh), onPressed: regenerate),
@@ -476,7 +490,7 @@ class SettingsPage extends StatelessWidget {
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
-        title: Text('Veldigo 0.1.0'),
+        title: Text('Veldigo 0.2.1'),
         subtitle: Text('Android i Windows • Brendigo')),
       ListTile(
         leading: Icon(Icons.shield_outlined, color: VColors.accent),

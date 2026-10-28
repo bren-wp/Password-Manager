@@ -105,14 +105,14 @@ class VPanel extends StatelessWidget {
   const VPanel({super.key, required this.child,
     this.padding = const EdgeInsets.all(18)});
   @override
-  Widget build(BuildContext context) => Container(
-    padding: padding,
-    decoration: BoxDecoration(
-      color: VColors.surface,
-      border: Border.all(color: VColors.border),
+  Widget build(BuildContext context) => Material(
+    color: VColors.surface,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(18),
+      side: const BorderSide(color: VColors.border),
     ),
-    child: child,
+    child: Padding(padding: padding, child: child),
   );
 }
 

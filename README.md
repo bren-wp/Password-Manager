@@ -29,7 +29,7 @@ samo nekoliko dodira.
 
 ## Sve važno na jednom mjestu
 
-| <img src="https://img.shields.io/badge/01-TREZOR-27E4D2?style=flat-square&labelColor=071526" alt="" /> | **Vaši računi, pregledno organizirani.** Spremite naziv usluge, korisničko ime, lozinku, web-adresu i dodatnu bilješku. |
+| **01 · Trezor** | **Vaši računi, pregledno organizirani.** Spremite naziv usluge, korisničko ime, lozinku, web-adresu i dodatnu bilješku. |
 |---|---|
 | **02 · Generator** | Stvorite jedinstvene lozinke uz kontrolu duljine i vrste znakova. |
 | **03 · Sigurne bilješke** | Pohranite privatne tekstove i osjetljive informacije u šifrirani trezor. |
@@ -37,7 +37,8 @@ samo nekoliko dodira.
 | **05 · Autentifikator** | Stvarajte vremenski ograničene TOTP kodove iz ručno unesenih tajnih ključeva. |
 | **06 · Sigurnosni centar** | Provjerite ponovljene i jednostavne lozinke prema lokalnim pravilima. |
 | **07 · Sigurnosna kopija** | Izvezite i vratite zaštićenu datoteku trezora te prenesite zapise između uređaja. |
-| **08 · Favoriti i kategorije** | Pronađite najčešće korištene račune bez suvišnog pretraživanja. |
+| **08 · Favoriti i kategorije** | Pronađite račune i izradite vlastite kategorije. |
+| **09 · Koš i oporavak** | Vratite slučajno obrisan račun bez napuštanja šifriranog trezora. |
 
 ## Dizajn prilagođen svakom zaslonu
 
@@ -57,6 +58,9 @@ Veldigo vizualni identitet.
 - **Lokalna pohrana** bez obveznog računa ili vanjskog poslužitelja.
 - **Šifrirani izvoz** za samostalno čuvanje sigurnosnih kopija.
 - **Kontrolirani oporavak** uz zadržavanje prethodnih verzija podataka.
+- **Zaštita od prepisivanja** kada su otvorene dvije instance trezora.
+- **Koš za zapise** kako slučajno brisanje ne bi odmah uklonilo lozinku.
+- **Uvoz na novom uređaju** iz postojeće šifrirane `.veldigo` kopije.
 
 **Važno:** glavna lozinka ne može se resetirati putem udaljenog servisa.
 Čuvajte je na sigurnome, kao i dodatnu šifriranu kopiju trezora.

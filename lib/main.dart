@@ -7,6 +7,7 @@ import 'core/vault_store.dart';
 import 'ui/auth_screen.dart';
 import 'ui/brand.dart';
 import 'ui/vault_shell.dart';
+import 'ui/welcome_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,7 @@ class VeldigoApp extends StatefulWidget {
 class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   final VaultStore store = VaultStore();
   bool loading = true;
+  bool welcomeCompleted = false;
   String? error;
   DateTime? backgroundedAt;
 
@@ -92,6 +94,11 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
           body: Center(child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text(error!, textAlign: TextAlign.center)))); }
+        if (!store.hasVault && !welcomeCompleted) {
+          return WelcomeScreen(onStart: () => setState(() {
+            welcomeCompleted = true;
+          }));
+        }
         if (!store.hasVault) { return AuthScreen(
           key: const ValueKey('create'), store: store, create: true); }
         if (!store.isUnlocked) { return AuthScreen(

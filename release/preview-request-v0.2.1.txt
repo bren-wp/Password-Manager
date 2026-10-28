@@ -1,0 +1,5 @@
+Veldigo 0.2.1 Preview 1 — Windows and Android release request
+Expected: Veldigo-Android.apk; Veldigo-Android.aab; Veldigo-portable.exe; Veldigo-Setup.exe.
+Release only after Flutter analyze, automated tests, both platform builds and checksums pass.
+Validation retry #2: includes encrypted trash, first-device import, responsive UI and the Dart analyzer fix.
+Retry #4: Material/ink accessibility fix and multi-size widget validation.

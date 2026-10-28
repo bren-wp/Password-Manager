@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,6 +20,7 @@ const _navigation = <(String, IconData)>[
   ('Generator', Icons.auto_awesome_outlined),
   ('Sigurnost', Icons.shield_outlined),
   ('Sigurnosna kopija', Icons.cloud_upload_outlined),
+  ('Koš', Icons.delete_outline),
   ('Postavke', Icons.settings_outlined),
 ];
 
@@ -55,15 +58,27 @@ class _VaultShellState extends State<VaultShell> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  List<String> get availableCategories => <String>{
+    'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo',
+    ...widget.store.items.where((item) => item.kind == ItemKind.category)
+      .map((item) => item.title),
+    ...widget.store.items.where((item) => item.kind != ItemKind.category)
+      .map((item) => item.category),
+  }.toList();
+
   Future<void> edit({ItemKind kind = ItemKind.password, VaultItem? original}) async {
     final item = await showDialog<VaultItem>(
       context: context, barrierDismissible: false,
-      builder: (_) => EntryEditor(kind: original?.kind ?? kind, original: original));
+      builder: (_) => EntryEditor(kind: original?.kind ?? kind,
+        original: original, availableCategories: availableCategories));
     if (item == null) return;
     try {
       await widget.store.put(item);
       if (mounted) setState(() => selectedId = item.id);
       notifyUser('Zapis je sigurno spremljen.');
+    } on VaultConflictException {
+      notifyUser('Trezor je izmijenjen u drugom prozoru. '
+        'Zaključajte ga i ponovno otključajte prije spremanja.');
     } catch (_) {
       notifyUser('Spremanje nije uspjelo.');
     }
@@ -73,20 +88,58 @@ class _VaultShellState extends State<VaultShell> {
     final yes = await showDialog<bool>(context: context, builder: (ctx) =>
       AlertDialog(
         title: const Text('Obrisati zapis?'),
-        content: Text('Zapis „${item.title}” bit će trajno uklonjen.'),
+        content: Text('Zapis „${item.title}” premjestit će se u Koš. '
+          'Možete ga kasnije vratiti.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Odustani')),
           TextButton(onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Obriši',
+            child: const Text('Premjesti u Koš',
               style: TextStyle(color: VColors.red))),
         ]));
     if (yes != true) return;
     try {
       await widget.store.remove(item.id);
       if (mounted) setState(() => selectedId = null);
-      notifyUser('Zapis je obrisan.');
+      notifyUser('Zapis je premješten u Koš.');
+    } on VaultConflictException {
+      notifyUser('Trezor je izmijenjen u drugom prozoru. '
+        'Ponovno ga otključajte.');
     } catch (_) { notifyUser('Brisanje nije uspjelo.'); }
+  }
+
+  Future<void> recoverItem(VaultItem item) async {
+    try {
+      await widget.store.restoreTrashed(item.id);
+      if (mounted) setState(() => selectedId = null);
+      notifyUser('Zapis je vraćen iz Koša.');
+    } catch (_) {
+      notifyUser('Zapis nije vraćen.');
+    }
+  }
+
+  Future<void> eraseItem(VaultItem item) async {
+    final approved = await showDialog<bool>(context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Trajno ukloniti zapis?'),
+        content: Text('Zapis „${item.title}” više neće biti dostupan u '
+          'aktivnom trezoru. Starije šifrirane kopije mogu još '
+          'sadržavati ovaj zapis.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Odustani')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Trajno ukloni',
+              style: TextStyle(color: VColors.red))),
+        ]));
+    if (approved != true) return;
+    try {
+      await widget.store.permanentlyRemove(item.id);
+      if (mounted) setState(() => selectedId = null);
+      notifyUser('Zapis je uklonjen iz aktivnog trezora.');
+    } catch (_) {
+      notifyUser('Trajno brisanje nije uspjelo.');
+    }
   }
 
   Future<void> copySecret(String text) async {
@@ -103,9 +156,11 @@ class _VaultShellState extends State<VaultShell> {
     });
   }
 
-  List<VaultItem> filtered({ItemKind? kind, bool favorites = false}) {
+  List<VaultItem> filtered({ItemKind? kind,
+      bool favorites = false, bool trash = false}) {
     final q = query.toLowerCase().trim();
     return widget.store.items.where((item) =>
+        item.kind != ItemKind.category && item.trashed == trash &&
         (kind == null || item.kind == kind) &&
         (!favorites || item.favorite) &&
         (categoryFilter == null || item.category == categoryFilter) &&
@@ -137,7 +192,8 @@ class _VaultShellState extends State<VaultShell> {
           children: [
             for (final (label, icon) in _navigation)
               Padding(padding: const EdgeInsets.symmetric(vertical: 2),
-                child: ListTile(
+                child: Material(color: Colors.transparent,
+                  child: ListTile(
                   dense: true,
                   selected: page == label,
                   selectedColor: VColors.accent,
@@ -150,7 +206,7 @@ class _VaultShellState extends State<VaultShell> {
                     if (drawer) { Navigator.of(context).pop(); }
                     navigate(label);
                   },
-                )),
+                ))),
           ],
         )),
         const Padding(padding: EdgeInsets.all(16),
@@ -164,13 +220,19 @@ class _VaultShellState extends State<VaultShell> {
     padding: EdgeInsets.fromLTRB(desktop ? 28 : 14, 23, 22, 14),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(page == 'Trezor' ? 'Moj trezor' : page,
+        Text(page == 'Trezor' && !desktop
+            ? 'Dobrodošao u Veldigo'
+            : (page == 'Trezor' ? 'Moj trezor' : page),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 4),
-        const Text('Vaši podaci, sigurno na jednom mjestu.',
-          style: TextStyle(color: VColors.muted, fontSize: 13)),
+        Text(page == 'Trezor' && !desktop
+            ? 'Tvoj siguran trezor za sve lozinke i važne podatke.'
+            : 'Vaši podaci, sigurno na jednom mjestu.',
+          style: const TextStyle(color: VColors.muted, fontSize: 13)),
       ])),
-      if (page == 'Trezor' || page == 'Sve lozinke')
+      if (desktop && (page == 'Trezor' || page == 'Sve lozinke'))
         VPrimaryButton(label: desktop ? 'Nova lozinka' : 'Dodaj',
           icon: Icons.add, onPressed: () => edit()),
     ]),
@@ -189,14 +251,36 @@ class _VaultShellState extends State<VaultShell> {
     }
   }
 
-  Widget listPage({ItemKind? kind, bool favorites = false}) {
-    final items = filtered(kind: kind, favorites: favorites);
+  Widget listPage({ItemKind? kind, bool favorites = false,
+      bool trash = false}) {
+    final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 840;
-      final selected = items.where((e) => e.id == selectedId).firstOrNull;
+      final selected = items.where((e) => e.id == selectedId).firstOrNull ??
+          (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(children: [
+          if (!desktop && constraints.maxHeight > 460 &&
+              page == 'Trezor' && !favorites && kind == null) ...[
+            VPanel(child: Row(children: [
+              const Icon(Icons.verified_user_outlined,
+                size: 38, color: VColors.accent),
+              const SizedBox(width: 14),
+              const Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Trezor je zaštićen za druge',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                  SizedBox(height: 3),
+                  Text('Tvoji podaci su sigurno šifrirani.',
+                    style: TextStyle(color: VColors.muted, fontSize: 12)),
+                ],
+              )),
+              const Icon(Icons.chevron_right, color: VColors.muted),
+            ])),
+            const SizedBox(height: 12),
+          ],
           if (kind != ItemKind.totp) TextField(
             controller: search,
             onChanged: (value) => setState(() => query = value),
@@ -208,18 +292,25 @@ class _VaultShellState extends State<VaultShell> {
           if (kind == null && !favorites && page == 'Trezor')
             Row(children: [
               _stat('Lozinke', widget.store.items.where(
-                (e) => e.kind == ItemKind.password).length,
+                (e) => !e.trashed && e.kind == ItemKind.password).length,
                 Icons.key_outlined),
               const SizedBox(width: 10),
               _stat('Bilješke', widget.store.items.where(
-                (e) => e.kind == ItemKind.note).length,
+                (e) => !e.trashed && e.kind == ItemKind.note).length,
                 Icons.description_outlined),
               const SizedBox(width: 10),
-              _stat('Ukupno', widget.store.items.length,
-                Icons.shield_outlined),
+              _stat('Upozorenja', widget.store.items.where((e) =>
+                !e.trashed && e.kind == ItemKind.password && e.secret.length < 12).length,
+                Icons.notifications_active_outlined),
             ]),
-          if (kind == null && !favorites && page == 'Trezor')
+          if (kind == null && !favorites && page == 'Trezor') ...[
             const SizedBox(height: 14),
+            if (constraints.maxHeight > 550 && !desktop)
+              const Align(alignment: Alignment.centerLeft,
+                child: Padding(padding: EdgeInsets.only(bottom: 10),
+                  child: Text('Moje lozinke', style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)))),
+          ],
           Expanded(child: Row(children: [
             Expanded(child: VPanel(
               padding: EdgeInsets.zero,
@@ -252,9 +343,16 @@ class _VaultShellState extends State<VaultShell> {
                           icon: Icon(item.favorite ? Icons.star : Icons.star_border,
                             color: item.favorite ? Colors.amber : VColors.muted),
                           onPressed: () async {
-                            await widget.store.put(item.copyWith(
-                              favorite: !item.favorite,
-                              updatedAt: DateTime.now().toUtc()));
+                            try {
+                              await widget.store.put(item.copyWith(
+                                favorite: !item.favorite,
+                                updatedAt: DateTime.now().toUtc()));
+                            } on VaultConflictException {
+                              notifyUser('Promjene u drugom prozoru su novije. '
+                                'Ponovno otključajte trezor.');
+                            } catch (_) {
+                              notifyUser('Favorit nije spremljen.');
+                            }
                           }),
                         onTap: () => selectItem(item, desktop),
                       );
@@ -277,15 +375,15 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget _stat(String label, int value, IconData icon) =>
-    Expanded(child: VPanel(padding: const EdgeInsets.all(12),
-      child: Row(children: [
-        Icon(icon, color: VColors.accent),
-        const SizedBox(width: 8),
-        Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text('$value', style: const TextStyle(
-            fontWeight: FontWeight.bold, fontSize: 20)),
-            Text(label, style: const TextStyle(
-              color: VColors.muted, fontSize: 11))])),
+    Expanded(child: VPanel(padding: const EdgeInsets.symmetric(
+      horizontal: 4, vertical: 12),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: VColors.accent, size: 23),
+        const SizedBox(height: 3),
+        Text('$value', style: const TextStyle(
+          fontWeight: FontWeight.bold, fontSize: 19)),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: VColors.muted, fontSize: 11)),
       ])));
 
   Widget detail(VaultItem item) => VPanel(
@@ -306,6 +404,11 @@ class _VaultShellState extends State<VaultShell> {
           _info('Korisničko ime', item.username,
             onCopy: () => copySecret(item.username)),
         if (item.secret.isNotEmpty) _secretField(item),
+        if (item.kind == ItemKind.card && item.expiry.isNotEmpty)
+          _info('Vrijedi do', item.expiry),
+        if (item.kind == ItemKind.card && item.cvv.isNotEmpty)
+          _SecretDetails(secret: item.cvv,
+            label: 'CVV', copy: copySecret),
         if (item.website.isNotEmpty)
           _info('Web-adresa', item.website, onCopy: () => copySecret(item.website)),
         if (item.notes.isNotEmpty)
@@ -316,13 +419,26 @@ class _VaultShellState extends State<VaultShell> {
           '${item.updatedAt.toLocal().year}.',
           style: const TextStyle(color: VColors.muted, fontSize: 11)),
         const SizedBox(height: 22),
-        VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
-          onPressed: () => edit(original: item)),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => remove(item),
-          icon: const Icon(Icons.delete_outline, color: VColors.red),
-          label: const Text('Obriši', style: TextStyle(color: VColors.red))),
+        if (item.trashed) ...[
+          VPrimaryButton(label: 'Vrati iz Koša',
+            icon: Icons.restore,
+            onPressed: () => recoverItem(item)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => eraseItem(item),
+            icon: const Icon(Icons.delete_forever, color: VColors.red),
+            label: const Text('Trajno ukloni',
+              style: TextStyle(color: VColors.red))),
+        ] else ...[
+          VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
+            onPressed: () => edit(original: item)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => remove(item),
+            icon: const Icon(Icons.delete_outline, color: VColors.red),
+            label: const Text('Premjesti u Koš',
+              style: TextStyle(color: VColors.red))),
+        ],
       ],
     )),
   );
@@ -347,20 +463,70 @@ class _VaultShellState extends State<VaultShell> {
       ? 'Broj kartice' : item.kind == ItemKind.totp
       ? 'TOTP ključ' : 'Lozinka', copy: copySecret);
 
+  Future<void> addCategory() async {
+    final controller = TextEditingController();
+    try {
+      final accepted = await showDialog<bool>(context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Nova kategorija'),
+          content: TextField(controller: controller,
+            maxLength: 48, autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Naziv kategorije')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Odustani')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Spremi')),
+          ],
+        ));
+      if (accepted != true) return;
+      final name = controller.text.trim();
+      if (name.isEmpty || availableCategories.any(
+          (old) => old.toLowerCase() == name.toLowerCase())) {
+        notifyUser('Unesite jedinstveni naziv kategorije.');
+        return;
+      }
+      await widget.store.put(VaultItem(
+        id: 'category-${DateTime.now().microsecondsSinceEpoch}-'
+          '${Random.secure().nextInt(1 << 32)}',
+        kind: ItemKind.category,
+        title: name,
+        updatedAt: DateTime.now().toUtc(),
+      ));
+      notifyUser('Kategorija je spremljena.');
+    } catch (_) {
+      notifyUser('Spremanje kategorije nije uspjelo.');
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Widget categoriesPage() {
-    const categories = ['Osobno', 'Posao', 'Zabava',
-      'Financije', 'Tehnologija', 'Ostalo'];
+    final categories = availableCategories;
     return ListView(padding: const EdgeInsets.all(16), children: [
+      Wrap(crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12, runSpacing: 10, children: [
+          const Text('Organizirajte svoje podatke',
+            style: TextStyle(color: VColors.muted)),
+          VPrimaryButton(label: 'Nova kategorija',
+            icon: Icons.add, onPressed: addCategory),
+        ]),
+      const SizedBox(height: 18),
       Wrap(spacing: 12, runSpacing: 12, children: [
         for (final category in categories)
           SizedBox(width: 245, child: InkWell(
-            onTap: () => setState(() {categoryFilter = category; page = 'Trezor';}),
+            onTap: () => setState(() {
+              categoryFilter = category;
+              page = 'Trezor';
+            }),
             child: VPanel(child: Row(children: [
               const Icon(Icons.folder_outlined, color: VColors.accent),
               const SizedBox(width: 12),
               Expanded(child: Text(category)),
-              Text('${widget.store.items.where((e) =>
-                e.category == category).length}',
+              Text('${widget.store.items.where((item) =>
+                !item.trashed && item.kind != ItemKind.category &&
+                item.category == category).length}',
                 style: const TextStyle(color: VColors.muted)),
             ])),
           )),
@@ -378,7 +544,9 @@ class _VaultShellState extends State<VaultShell> {
       items: filtered(kind: ItemKind.totp),
       onAdd: () => edit(kind: ItemKind.totp)),
     'Generator' => const GeneratorPage(),
-    'Sigurnost' => SecurityPage(items: widget.store.items),
+    'Sigurnost' => SecurityPage(items: widget.store.items
+      .where((item) => !item.trashed).toList()),
+    'Koš' => listPage(trash: true),
     'Sigurnosna kopija' => BackupPage(store: widget.store,
       onMessage: notifyUser),
     'Postavke' => SettingsPage(store: widget.store,
@@ -426,6 +594,14 @@ class _VaultShellState extends State<VaultShell> {
             child: extraButton()),
         Expanded(child: content()),
       ]),
+      floatingActionButton: (page == 'Trezor' || page == 'Sve lozinke')
+          ? FloatingActionButton(
+              tooltip: 'Dodaj novu lozinku',
+              backgroundColor: VColors.accent,
+              foregroundColor: VColors.background,
+              onPressed: () => edit(),
+              child: const Icon(Icons.add, size: 30))
+          : null,
       bottomNavigationBar: NavigationBar(
         backgroundColor: VColors.surface,
         selectedIndex: switch (page) {

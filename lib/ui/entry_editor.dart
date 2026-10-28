@@ -9,7 +9,9 @@ import 'brand.dart';
 class EntryEditor extends StatefulWidget {
   final ItemKind kind;
   final VaultItem? original;
-  const EntryEditor({super.key, required this.kind, this.original});
+  final List<String> availableCategories;
+  const EntryEditor({super.key, required this.kind, this.original,
+    this.availableCategories = const []});
 
   @override
   State<EntryEditor> createState() => _EntryEditorState();
@@ -23,12 +25,15 @@ class _EntryEditorState extends State<EntryEditor> {
   late final secret = TextEditingController(text: widget.original?.secret ?? '');
   late final website = TextEditingController(text: widget.original?.website ?? '');
   late final notes = TextEditingController(text: widget.original?.notes ?? '');
+  late final expiry = TextEditingController(text: widget.original?.expiry ?? '');
+  late final cvv = TextEditingController(text: widget.original?.cvv ?? '');
   late String category = widget.original?.category ?? 'Osobno';
   late bool favorite = widget.original?.favorite ?? false;
   bool showSecret = false;
-  final categories = const [
-    'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo'
-  ];
+  List<String> get categories => <String>{
+    'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo',
+    ...widget.availableCategories, category,
+  }.toList();
 
   @override
   void dispose() {
@@ -37,6 +42,8 @@ class _EntryEditorState extends State<EntryEditor> {
     secret.dispose();
     website.dispose();
     notes.dispose();
+    expiry.dispose();
+    cvv.dispose();
     super.dispose();
   }
 
@@ -51,6 +58,8 @@ class _EntryEditorState extends State<EntryEditor> {
       secret: secret.text,
       website: website.text.trim(),
       notes: notes.text,
+      expiry: expiry.text,
+      cvv: cvv.text,
       category: category,
       favorite: favorite,
       updatedAt: DateTime.now().toUtc(),
@@ -140,6 +149,21 @@ class _EntryEditorState extends State<EntryEditor> {
                   ),
                   validator: (v) => v == null || v.isEmpty
                       ? 'Unesite vrijednost.' : null),
+              if (isCard) ...[
+                const SizedBox(height: 14),
+                TextFormField(controller: expiry,
+                  keyboardType: TextInputType.datetime,
+                  decoration: const InputDecoration(
+                    labelText: 'Vrijedi do (MM/GG)',
+                    prefixIcon: Icon(Icons.calendar_today_outlined))),
+                const SizedBox(height: 14),
+                TextFormField(controller: cvv, obscureText: true,
+                  keyboardType: TextInputType.number,
+                  enableSuggestions: false, autocorrect: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Sigurnosni kod (CVV)',
+                    prefixIcon: Icon(Icons.lock_outline))),
+              ],
               if (!isNote) ...[
                 const SizedBox(height: 14),
                 if (!isCard && !isTotp) TextFormField(

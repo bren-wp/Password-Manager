@@ -38,6 +38,23 @@ class VaultStore extends ChangeNotifier {
   List<VaultItem> _items = [];
   bool _exists = false;
   Future<void> _pending = Future<void>.value();
+  String? _committedHash;
+
+  Future<String> _hash(List<int> bytes) async =>
+      base64Encode((await Sha256().hash(bytes)).bytes);
+
+  /// Prevent stale application instances from silently overwriting records.
+  Future<void> _checkLatestOnDisk() async {
+    final head = _committedHash;
+    final file = _file;
+    if (head == null || file == null || !await file.exists()) {
+      if (head != null) throw const VaultConflictException();
+      return;
+    }
+    if (await _hash(await _readFile(file)) != head) {
+      throw const VaultConflictException();
+    }
+  }
 
   bool get hasVault => _exists;
   bool get isUnlocked => _key != null;
@@ -180,11 +197,13 @@ class VaultStore extends ChangeNotifier {
         _key = restored.key;
         _salt = restored.salt;
         _items = restored.items;
+        _committedHash = await _hash(await _readFile(file));
       } else {
         // The app may have been terminated between rename operations.
         // Authenticate candidates before restoring any missing primary.
         bool recovered = false;
-        for (final source in [files.swap, files.previous, files.older]) {
+        for (final source in [files.swap, files.previous, files.older,
+            files.pending]) {
           if (!await source.exists()) continue;
           try {
             final bytes = await _readFile(source);
@@ -194,6 +213,7 @@ class VaultStore extends ChangeNotifier {
             await files.recoverInterruptedReplacement();
             if (!await file.exists()) continue;
             _items = restored.items;
+            _committedHash = await _hash(await _readFile(file));
             recovered = true;
             break;
           } catch (_) { /* Try an older authenticated recovery copy. */ }
@@ -229,6 +249,7 @@ class VaultStore extends ChangeNotifier {
           rethrow;
         }
         _items = decoded.items;
+        _committedHash = await _hash(await _readFile(_file!));
         _exists = true;
         notifyListeners();
         return;
@@ -242,6 +263,7 @@ class VaultStore extends ChangeNotifier {
     _key = null;
     _salt = null;
     _items = [];
+    _committedHash = null;
     notifyListeners();
   }
 
@@ -266,7 +288,17 @@ class VaultStore extends ChangeNotifier {
       'mac': base64Encode(box.mac.bytes),
       'cipherText': base64Encode(box.cipherText),
     }));
-    await files.install(bytes);
+    final lockFile = File('${_file!.path}.write-lock');
+    final guard = await lockFile.open(mode: FileMode.append);
+    try {
+      await guard.lock(FileLock.exclusive);
+      await _checkLatestOnDisk();
+      await files.install(bytes);
+      _committedHash = await _hash(bytes);
+    } finally {
+      await guard.unlock();
+      await guard.close();
+    }
   }
 
   Future<void> save() => _serial(() async {
@@ -289,8 +321,42 @@ class VaultStore extends ChangeNotifier {
     notifyListeners();
   });
 
+  /// Delete is reversible: encrypted contents stay in the local trash.
   Future<void> remove(String id) => _serial(() async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final next = List<VaultItem>.of(_items);
+    final index = next.indexWhere((record) => record.id == id);
+    if (index == -1) throw StateError('Zapis nije pronađen.');
+    if (next[index].trashed) return;
+    next[index] = next[index].copyWith(
+      trashed: true, updatedAt: DateTime.now().toUtc());
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
+
+  Future<void> restoreTrashed(String id) => _serial(() async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final next = List<VaultItem>.of(_items);
+    final index = next.indexWhere((record) => record.id == id);
+    if (index == -1 || !next[index].trashed) {
+      throw StateError('Zapis nije pronađen u Košu.');
+    }
+    next[index] = next[index].copyWith(
+      trashed: false, updatedAt: DateTime.now().toUtc());
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
+
+  /// Irreversible in the active vault, but encrypted historic copies may
+  /// retain prior data until deliberately removed by the user.
+  Future<void> permanentlyRemove(String id) => _serial(() async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final existing = _items.where((record) => record.id == id).firstOrNull;
+    if (existing == null || !existing.trashed) {
+      throw StateError('Zapis mora najprije biti u Košu.');
+    }
     final next = _items.where((record) => record.id != id).toList();
     await _persist(next);
     if (isUnlocked) _items = next;
@@ -306,6 +372,48 @@ class VaultStore extends ChangeNotifier {
       throw const FormatException('Trezor nije valjan — izvoz prekinut.');
     }
     return bytes;
+  });
+
+  /// Allows a fresh installation to load an existing encrypted .veldigo
+  /// archive without first generating a second (empty) vault.
+  /// No existing ciphertext is ever replaced by this operation.
+  Future<void> importFirstVault(
+      List<int> bytes, String masterPassword) => _serial(() async {
+    final files = _files;
+    final target = _file;
+    if (files == null || target == null) {
+      throw StateError('Trezor nije inicijaliziran.');
+    }
+    if (_exists || await files.hasAny || await target.exists()) {
+      throw StateError('Postojeći trezor neće biti prepisan.');
+    }
+    if (bytes.length > _maxVaultBytes || bytes.isEmpty) {
+      throw const FormatException('Datoteka sigurnosne kopije nije valjana.');
+    }
+    final imported = await _decode(utf8.decode(bytes), masterPassword);
+    _key = imported.key;
+    _salt = imported.salt;
+    try {
+      final lockFile = File('${target.path}.write-lock');
+      final guard = await lockFile.open(mode: FileMode.append);
+      try {
+        await guard.lock(FileLock.exclusive);
+        if (await files.hasAny) {
+          throw const VaultConflictException();
+        }
+        await files.install(bytes);
+        _committedHash = await _hash(bytes);
+      } finally {
+        await guard.unlock();
+        await guard.close();
+      }
+      _items = imported.items;
+      _exists = true;
+      notifyListeners();
+    } catch (_) {
+      lock();
+      rethrow;
+    }
   });
 
   Future<void> changeMasterPassword(
@@ -365,7 +473,19 @@ class VaultStore extends ChangeNotifier {
     _key = imported.key;
     _salt = imported.salt;
     try {
-      await files.install(bytes);
+      // The imported backup is intentionally allowed to differ from the
+      // current primary, but still serializes against external writers.
+      final lockFile = File('${target.path}.write-lock');
+      final guard = await lockFile.open(mode: FileMode.append);
+      try {
+        await guard.lock(FileLock.exclusive);
+        await _checkLatestOnDisk();
+        await files.install(bytes);
+        _committedHash = await _hash(bytes);
+      } finally {
+        await guard.unlock();
+        await guard.close();
+      }
       _items = imported.items;
       _exists = true;
       notifyListeners();
@@ -375,6 +495,13 @@ class VaultStore extends ChangeNotifier {
       rethrow;
     }
   });
+}
+
+class VaultConflictException implements Exception {
+  const VaultConflictException();
+  @override
+  String toString() => 'Trezor je promijenjen u drugom procesu. '
+      'Ponovno ga otključajte prije spremanja.';
 }
 
 class VaultAuthenticationException implements Exception {

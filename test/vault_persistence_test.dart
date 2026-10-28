@@ -46,6 +46,17 @@ void main() {
     expect(await file.readAsString(), 'AUTH:valid');
   });
 
+  test('verified pending file is recoverable after interrupted first install',
+      () async {
+    final file = File('${temp.path}/new-vault');
+    final files = VaultFiles(file, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    await files.pending.writeAsString('AUTH:pending', flush: true);
+    expect(await files.hasAny, isTrue);
+    await files.recoverInterruptedReplacement();
+    expect(await file.readAsString(), 'AUTH:pending');
+  });
+
   test('AES-GCM vault round trip, wrong password and recovery copy', () async {
     final file = File('${temp.path}/private.vault');
     final store = VaultStore(vaultFileOverride: file);
