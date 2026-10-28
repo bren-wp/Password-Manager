@@ -48,6 +48,32 @@ void main() {
     expect(reader.items, isEmpty);
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('disposing while unlock is pending never revives a disposed vault',
+      () async {
+    const password = 'a very long stable disposal test password';
+    final file = File('${temp.path}/disposed.vault');
+    final first = VaultStore(vaultFileOverride: file);
+    await first.initialize();
+    await first.create(password);
+    await first.put(entry('disposed-account'));
+    first.lock();
+
+    final reader = VaultStore(vaultFileOverride: file);
+    await reader.initialize();
+    final attempt = reader.unlock(password);
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    reader.dispose();
+    try {
+      await attempt;
+    } on VaultSessionCancelledException {
+      // Disposing invalidates the pending unlock.
+    } on VaultAuthenticationException {
+      // An interrupted ciphertext verification also fails closed.
+    }
+    expect(reader.isUnlocked, isFalse);
+    expect(reader.items, isEmpty);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test('locking while changing the master key cannot resurrect the key',
       () async {
     const original = 'original sufficiently long master passphrase';
