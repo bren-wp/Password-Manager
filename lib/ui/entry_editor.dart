@@ -10,8 +10,10 @@ class EntryEditor extends StatefulWidget {
   final ItemKind kind;
   final VaultItem? original;
   final List<String> availableCategories;
+  /// Must complete before the editor closes to prevent losing unsaved secrets.
+  final Future<void> Function(VaultItem item)? onPersist;
   const EntryEditor({super.key, required this.kind, this.original,
-    this.availableCategories = const []});
+    this.availableCategories = const [], this.onPersist});
 
   @override
   State<EntryEditor> createState() => _EntryEditorState();
@@ -30,6 +32,8 @@ class _EntryEditorState extends State<EntryEditor> {
   late String category = widget.original?.category ?? 'Osobno';
   late bool favorite = widget.original?.favorite ?? false;
   bool showSecret = false;
+  bool busy = false;
+  String? saveError;
   List<String> get categories => <String>{
     'Osobno', 'Posao', 'Zabava', 'Financije', 'Tehnologija', 'Ostalo',
     ...widget.availableCategories, category,
@@ -47,8 +51,9 @@ class _EntryEditorState extends State<EntryEditor> {
     super.dispose();
   }
 
-  void save() {
-    if (!form.currentState!.validate()) return;
+  Future<void> save() async {
+    if (busy || !form.currentState!.validate()) return;
+    setState(() { busy = true; saveError = null; });
     final item = VaultItem(
       id: widget.original?.id ??
           '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}',
@@ -64,7 +69,19 @@ class _EntryEditorState extends State<EntryEditor> {
       favorite: favorite,
       updatedAt: DateTime.now().toUtc(),
     );
-    Navigator.of(context).pop(item);
+    try {
+      if (widget.onPersist != null) await widget.onPersist!(item);
+      if (mounted) Navigator.of(context).pop(item);
+    } catch (_) {
+      // Keep the form and all typed credentials intact after a failed save.
+      if (mounted) {
+        setState(() => saveError = 'Spremanje nije uspjelo. '
+          'Vaši uneseni podaci ostaju u ovom obrascu. '
+          'Provjerite prostor na disku i pokušajte ponovno.');
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -92,7 +109,7 @@ class _EntryEditorState extends State<EntryEditor> {
                 widget.original == null ? 'Dodaj novu $label' : 'Uredi $label',
                 style: Theme.of(context).textTheme.titleLarge)),
               IconButton(icon: const Icon(Icons.close),
-                tooltip: 'Zatvori', onPressed: () => Navigator.pop(context)),
+                tooltip: 'Zatvori', onPressed: busy ? null : () => Navigator.pop(context)),
             ]),
           ),
           const Divider(color: VColors.border),
@@ -196,16 +213,19 @@ class _EntryEditorState extends State<EntryEditor> {
                 onChanged: (value) => setState(() => favorite = value)),
             ])),
           )),
+          if (saveError != null) Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(saveError!, style: const TextStyle(color: VColors.red))),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(children: [
               Expanded(child: OutlinedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: busy ? null : () => Navigator.pop(context),
                 child: const Text('Odustani'))),
               const SizedBox(width: 12),
               Expanded(child: VPrimaryButton(
-                label: 'Spremi',
-                onPressed: save,
+                label: busy ? 'Spremanje…' : 'Spremi',
+                onPressed: busy ? null : save,
                 icon: Icons.save_outlined)),
             ]),
           ),
