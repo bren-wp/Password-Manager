@@ -38,6 +38,23 @@ class VaultStore extends ChangeNotifier {
   List<VaultItem> _items = [];
   bool _exists = false;
   Future<void> _pending = Future<void>.value();
+  String? _committedHash;
+
+  Future<String> _hash(List<int> bytes) async =>
+      base64Encode((await Sha256().hash(bytes)).bytes);
+
+  /// Prevent stale application instances from silently overwriting records.
+  Future<void> _checkLatestOnDisk() async {
+    final head = _committedHash;
+    final file = _file;
+    if (head == null || file == null || !await file.exists()) {
+      if (head != null) throw const VaultConflictException();
+      return;
+    }
+    if (await _hash(await _readFile(file)) != head) {
+      throw const VaultConflictException();
+    }
+  }
 
   bool get hasVault => _exists;
   bool get isUnlocked => _key != null;
@@ -180,6 +197,7 @@ class VaultStore extends ChangeNotifier {
         _key = restored.key;
         _salt = restored.salt;
         _items = restored.items;
+        _committedHash = await _hash(await _readFile(file));
       } else {
         // The app may have been terminated between rename operations.
         // Authenticate candidates before restoring any missing primary.
@@ -194,6 +212,7 @@ class VaultStore extends ChangeNotifier {
             await files.recoverInterruptedReplacement();
             if (!await file.exists()) continue;
             _items = restored.items;
+            _committedHash = await _hash(await _readFile(file));
             recovered = true;
             break;
           } catch (_) { /* Try an older authenticated recovery copy. */ }
@@ -229,6 +248,7 @@ class VaultStore extends ChangeNotifier {
           rethrow;
         }
         _items = decoded.items;
+        _committedHash = await _hash(await _readFile(_file!));
         _exists = true;
         notifyListeners();
         return;
@@ -242,6 +262,7 @@ class VaultStore extends ChangeNotifier {
     _key = null;
     _salt = null;
     _items = [];
+    _committedHash = null;
     notifyListeners();
   }
 
@@ -266,7 +287,17 @@ class VaultStore extends ChangeNotifier {
       'mac': base64Encode(box.mac.bytes),
       'cipherText': base64Encode(box.cipherText),
     }));
-    await files.install(bytes);
+    final lockFile = File('${_file!.path}.write-lock');
+    final guard = await lockFile.open(mode: FileMode.append);
+    try {
+      await guard.lock(FileLock.exclusive);
+      await _checkLatestOnDisk();
+      await files.install(bytes);
+      _committedHash = await _hash(bytes);
+    } finally {
+      await guard.unlock();
+      await guard.close();
+    }
   }
 
   Future<void> save() => _serial(() async {
@@ -365,7 +396,19 @@ class VaultStore extends ChangeNotifier {
     _key = imported.key;
     _salt = imported.salt;
     try {
-      await files.install(bytes);
+      // The imported backup is intentionally allowed to differ from the
+      // current primary, but still serializes against external writers.
+      final lockFile = File('${target.path}.write-lock');
+      final guard = await lockFile.open(mode: FileMode.append);
+      try {
+        await guard.lock(FileLock.exclusive);
+        await _checkLatestOnDisk();
+        await files.install(bytes);
+        _committedHash = await _hash(bytes);
+      } finally {
+        await guard.unlock();
+        await guard.close();
+      }
       _items = imported.items;
       _exists = true;
       notifyListeners();
@@ -375,6 +418,13 @@ class VaultStore extends ChangeNotifier {
       rethrow;
     }
   });
+}
+
+class VaultConflictException implements Exception {
+  const VaultConflictException();
+  @override
+  String toString() => 'Trezor je promijenjen u drugom procesu. '
+      'Ponovno ga otključajte prije spremanja.';
 }
 
 class VaultAuthenticationException implements Exception {
