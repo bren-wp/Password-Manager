@@ -5,4 +5,4 @@ flutter create --platforms=android,windows --project-name veldigo --org com.bren
 python3 tools/configure_android.py
 python3 tools/generate_brand_icons.py
 flutter pub get
-echo "Veldigo platform scaffolds created. Check android/app/build.gradle.kts: minSdk >= 24."
+echo "Veldigo Android and Windows projects generated with branded icons and security defaults."
