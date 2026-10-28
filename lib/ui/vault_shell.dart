@@ -417,7 +417,8 @@ class _VaultShellState extends State<VaultShell> {
         if (item.kind == ItemKind.card && item.expiry.isNotEmpty)
           _info('Vrijedi do', item.expiry),
         if (item.kind == ItemKind.card && item.cvv.isNotEmpty)
-          _SecretDetails(secret: item.cvv,
+          _SecretDetails(key: ValueKey('cvv-${item.id}'),
+            recordId: item.id, secret: item.cvv,
             label: 'CVV', copy: copySecret),
         if (item.website.isNotEmpty)
           _info('Web-adresa', item.website, onCopy: () => copySecret(item.website)),
@@ -469,6 +470,7 @@ class _VaultShellState extends State<VaultShell> {
         ])));
 
   Widget _secretField(VaultItem item) => _SecretDetails(
+    key: ValueKey('secret-${item.id}'), recordId: item.id,
     secret: item.secret, label: item.kind == ItemKind.card
       ? 'Broj kartice' : item.kind == ItemKind.totp
       ? 'TOTP ključ' : 'Lozinka', copy: copySecret);
@@ -641,17 +643,29 @@ class _VaultShellState extends State<VaultShell> {
 }
 
 class _SecretDetails extends StatefulWidget {
+  final String recordId;
   final String secret;
   final String label;
   final Future<void> Function(String) copy;
-  const _SecretDetails({required this.secret, required this.label,
-    required this.copy});
+  const _SecretDetails({super.key, required this.recordId,
+    required this.secret, required this.label, required this.copy});
   @override
   State<_SecretDetails> createState() => _SecretDetailsState();
 }
 
 class _SecretDetailsState extends State<_SecretDetails> {
   bool visible = false;
+
+  @override
+  void didUpdateWidget(covariant _SecretDetails oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.recordId != widget.recordId ||
+        oldWidget.secret != widget.secret ||
+        oldWidget.label != widget.label) {
+      visible = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
