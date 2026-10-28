@@ -202,7 +202,8 @@ class VaultStore extends ChangeNotifier {
         // The app may have been terminated between rename operations.
         // Authenticate candidates before restoring any missing primary.
         bool recovered = false;
-        for (final source in [files.swap, files.previous, files.older]) {
+        for (final source in [files.swap, files.previous, files.older,
+            files.pending]) {
           if (!await source.exists()) continue;
           try {
             final bytes = await _readFile(source);
