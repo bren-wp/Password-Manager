@@ -1,10 +1,10 @@
-# Veldigo v0.2.3 — Preview 1
+# Veldigo v0.2.3 — Preview 2
 
 **Još sigurniji oporavak. Privatnost odmah po izlasku.**
 
 ## Novo i poboljšano
 
-- Trezor se zaključava pri prelasku aplikacije u pozadinu,
+- Androidov sistemski odabir šifrirane kopije ima vremenski ograničenu iznimku od zaključavanja, a trezor se ponovno štiti po isteku i pri povratku aplikacije.\n- Trezor se zaključava pri prelasku aplikacije u pozadinu,
   bez dvominutnog razdoblja u kojem ostaje otključan.
 - Oporavak nakon prekida zapisivanja vraća **točno istu**
   autentificiranu šifriranu datoteku koja je uspješno otključana.
