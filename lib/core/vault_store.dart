@@ -194,40 +194,63 @@ class VaultStore extends ChangeNotifier {
     if (file == null || files == null || !_exists) {
       throw StateError('Trezor ne postoji.');
     }
+
+    // Serialize recovery with writers in other processes. Otherwise a
+    // verified backup and the re-created primary may refer to different
+    // generations of the vault.
+    final guard = await File('${file.path}.write-lock')
+        .open(mode: FileMode.append);
     try {
+      await guard.lock(FileLock.exclusive);
       if (await file.exists()) {
-        final restored = await _decode(
-          utf8.decode(await _readFile(file)), password);
-        _key = restored.key;
-        _salt = restored.salt;
-        _items = restored.items;
-        _committedHash = await _hash(await _readFile(file));
+        final bytes = await _readFile(file);
+        final opened = await _decode(utf8.decode(bytes), password);
+        _key = opened.key;
+        _salt = opened.salt;
+        _items = opened.items;
+        _committedHash = await _hash(bytes);
       } else {
-        // The app may have been terminated between rename operations.
-        // Authenticate candidates before restoring any missing primary.
-        bool recovered = false;
-        for (final source in [files.swap, files.previous, files.older,
-            files.pending]) {
-          if (!await source.exists()) continue;
+        bool restored = false;
+        for (final candidate in [
+          files.swap, files.previous, files.older, files.pending,
+          files.recoveryStage,
+        ]) {
+          if (!await candidate.exists()) continue;
           try {
-            final bytes = await _readFile(source);
-            final restored = await _decode(utf8.decode(bytes), password);
-            _key = restored.key;
-            _salt = restored.salt;
-            await files.recoverInterruptedReplacement();
-            if (!await file.exists()) continue;
-            _items = restored.items;
-            _committedHash = await _hash(await _readFile(file));
-            recovered = true;
+            final bytes = await _readFile(candidate);
+            final opened = await _decode(utf8.decode(bytes), password);
+            _key = opened.key;
+            _salt = opened.salt;
+            // Must install precisely this authenticated ciphertext.
+            await files.restoreExactWhenMissing(bytes);
+            final committed = await _readFile(file);
+            if (!listEquals(committed, bytes)) {
+              throw const FileSystemException(
+                'Sadržaj trezora promijenio se tijekom oporavka.');
+            }
+            _items = opened.items;
+            _committedHash = await _hash(committed);
+            restored = true;
             break;
-          } catch (_) { /* Try an older authenticated recovery copy. */ }
+          } on FileSystemException {
+            // Abort instead of silently choosing a different generation.
+            rethrow;
+          } catch (_) {
+            // A corrupted checkpoint or a snapshot from a previous master
+            // password is not proof that the remaining backups are invalid.
+            _key = null;
+            _salt = null;
+          }
         }
-        if (!recovered) throw const VaultAuthenticationException();
+        if (!restored) throw const VaultAuthenticationException();
       }
       notifyListeners();
     } catch (_) {
       lock();
       throw const VaultAuthenticationException();
+    } finally {
+      await guard.unlock();
+      await guard.close();
     }
   });
 
