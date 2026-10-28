@@ -64,6 +64,19 @@ void main() {
     expect(await files.recoveryStage.exists(), isFalse);
   });
 
+  test('damaged temporary restore cannot block verified backup recovery',
+      () async {
+    final target = File('${temp.path}/resume.vault');
+    final files = VaultFiles(target, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    await files.recoveryStage.writeAsString('damaged checkpoint', flush: true);
+    await files.swap.writeAsString('AUTH:committed', flush: true);
+    await files.recoverInterruptedReplacement();
+    expect(await target.readAsString(), 'AUTH:committed');
+    expect(temp.listSync().any((file) =>
+      file.path.contains('.recovery-corrupt-')), isTrue);
+  });
+
   test('recovery never overwrites a primary created by another instance',
       () async {
     final target = File('${temp.path}/concurrent.vault');
