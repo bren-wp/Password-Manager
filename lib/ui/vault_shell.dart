@@ -440,12 +440,13 @@ class _VaultShellState extends State<VaultShell> {
   Widget categoriesPage() {
     final categories = availableCategories;
     return ListView(padding: const EdgeInsets.all(16), children: [
-      Row(children: [
-        const Expanded(child: Text('Organizirajte svoje podatke',
-          style: TextStyle(color: VColors.muted))),
-        VPrimaryButton(label: 'Nova kategorija',
-          icon: Icons.add, onPressed: addCategory),
-      ]),
+      Wrap(crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12, runSpacing: 10, children: [
+          const Text('Organizirajte svoje podatke',
+            style: TextStyle(color: VColors.muted)),
+          VPrimaryButton(label: 'Nova kategorija',
+            icon: Icons.add, onPressed: addCategory),
+        ]),
       const SizedBox(height: 18),
       Wrap(spacing: 12, runSpacing: 12, children: [
         for (final category in categories)
