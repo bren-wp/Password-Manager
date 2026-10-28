@@ -61,11 +61,13 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Prevent cached credentials from remaining available after switching
     // applications, minimizing the time secrets live in Dart-managed memory.
-    // Inactive is deliberately excluded; short system dialogs and focus
-    // transitions do not necessarily indicate app backgrounding.
+    // Windows can remain inactive with another application foregrounded:
+    // treat focus loss as a lock, except during an explicitly authorized,
+    // time-limited native encrypted-backup file picker.
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
+        state == AppLifecycleState.detached ||
+        (Platform.isWindows && state == AppLifecycleState.inactive)) {
       if (store.isUnlocked && !store.externalPickerGraceActive) {
         store.lock();
       }
