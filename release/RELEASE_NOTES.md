@@ -1,8 +1,16 @@
-# Veldigo v0.2.4 — sigurnosno predizdanje
+# Veldigo v0.2.4 Preview 2 — sigurnosne ispravke
 
 **Pouzdanije spremanje. Provjera integriteta. Bolja privatnost.**
 
 ## Novosti
+
+- Zaključavanje trezora sada poništava prethodnu sesiju: zakašnjela promjena glavne lozinke, spremanje, otključavanje ili uvoz više ne smiju vratiti tajne ključeve u RAM.
+- Diskovne šifrirane kopije provjeravaju se ključem transakcije koji nije vezan uz naknadno zaključavanje sučelja, pa zaključavanje ne izaziva lažno oštećenje zapisa.
+- Lokalni trezor i sve oporavne datoteke čitaju se ograničenim tokom podataka do 64 MiB radi zaštite memorije.
+- Dodan je autentificirani oporavak iz izdvojene `.corrupt` kopije kad glavna datoteka nije dostupna.
+- Windows aplikacija automatski zaključava trezor i pri gubitku fokusa, osim dok je aktivan namjenski vremenski ograničen odabir datoteke.
+- Dodani regresijski testovi za utrke zaključavanja tijekom operacija i za prevelike/oštećene lokalne datoteke.
+
 
 - Ojačano spremanje prethodnih šifriranih verzija trezora i oporavak nakon prekida zapisivanja.
 - Izmijenjeni Windows portable sadržaj provjerava se kroz ugrađeni SHA-256 manifest prije izvršavanja; nepotpune ili izmijenjene datoteke ponovno se raspakiravaju.

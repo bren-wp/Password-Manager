@@ -10,7 +10,7 @@ using System.Text.Json;
 
 internal static class Program
 {
-    private const string Version = "0.2.4-preview.1";
+    private const string Version = "0.2.4-preview.2";
     private sealed class ManifestEntry
     {
         public string Path { get; set; } = "";

@@ -1,7 +1,7 @@
 name: veldigo
 description: Veldigo — your private encrypted password vault for Android and Windows.
 publish_to: none
-version: 0.2.4+6
+version: 0.2.4+7
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
