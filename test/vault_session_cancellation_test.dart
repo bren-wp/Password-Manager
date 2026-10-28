@@ -71,6 +71,35 @@ void main() {
     expect(store.items, isEmpty);
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('locking during an account save never leaves unlocked memory',
+      () async {
+    final file = File('${temp.path}/inflight-write.vault');
+    const password = 'an independent long test master password';
+    final store = VaultStore(vaultFileOverride: file);
+    await store.initialize();
+    await store.create(password);
+    final writing = store.put(entry('pending-secret'));
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    store.lock();
+    try {
+      await writing;
+    } on VaultSessionCancelledException {
+      // A lock must cancel unfinished user actions.
+    } on StateError {
+      // A write queued after the lock is not allowed.
+    }
+    expect(store.isUnlocked, isFalse);
+    expect(store.items, isEmpty);
+
+    // The transaction may have completed immediately before the lock, or
+    // it may have been rejected. Either result must leave an authentic vault.
+    final reopened = VaultStore(vaultFileOverride: file);
+    await reopened.initialize();
+    await reopened.unlock(password);
+    expect(reopened.items.every((item) =>
+      item.secret.startsWith('test-only-secret')), isTrue);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test('locking during backup import does not resurrect imported secrets',
       () async {
     const original = 'import-source sufficiently long passphrase';
