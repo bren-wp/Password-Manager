@@ -63,9 +63,11 @@ class _AuthScreenState extends State<AuthScreen> {
       if (accepted != true) return;
       await widget.store.importFirstVault(bytes, passphrase.text);
     } catch (_) {
-      if (mounted) setState(() => error =
-        'Uvoz nije uspio. Provjerite kopiju i glavnu lozinku. '
-        'Postojeći podaci nisu obrisani.');
+      if (mounted) {
+        setState(() => error =
+          'Uvoz nije uspio. Provjerite kopiju i glavnu lozinku. '
+          'Postojeći podaci nisu obrisani.');
+      }
     } finally {
       passphrase.dispose();
       if (mounted) setState(() => busy = false);
