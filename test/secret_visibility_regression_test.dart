@@ -102,5 +102,8 @@ void main() {
     expect(find.text('Zapis više nije dostupan.'), findsOneWidget);
     expect(find.text('temporary-private-string'), findsNothing);
     fixture.store.lock();
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing,
+      reason: 'All Android detail overlays must close when the vault locks.');
   }, timeout: const Timeout(Duration(minutes: 3)));
 }
