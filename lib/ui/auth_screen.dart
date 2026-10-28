@@ -45,6 +45,41 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> recover() async {
+    if (busy || password.text.isEmpty) {
+      setState(() => error = 'Unesite glavnu lozinku rezervne kopije.');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Oporavak trezora'),
+        content: const Text(
+          'Oporavak može vratiti stariju verziju zapisa. Trenutačna '
+          'datoteka bit će sačuvana za dodatni oporavak. Nastaviti?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Odustani')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Pokušaj oporavak')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() { busy = true; error = null; });
+    try {
+      await widget.store.recoverFromLocalBackup(password.text);
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'Nije pronađena valjana lokalna kopija za '
+            'unesenu lozinku. Postojeći podaci nisu obrisani.');
+      }
+    } finally {
+      password.clear();
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -113,6 +148,14 @@ class _AuthScreenState extends State<AuthScreen> {
           icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
           onPressed: busy ? null : submit,
         ),
+        if (!widget.create) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: busy ? null : recover,
+            icon: const Icon(Icons.settings_backup_restore),
+            label: const Text('Oporavi iz lokalne sigurnosne kopije'),
+          ),
+        ],
         const SizedBox(height: 25),
         const Text('Vaši podaci ostaju pod vašom kontrolom.',
           textAlign: TextAlign.center,
