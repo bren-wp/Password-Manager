@@ -42,6 +42,28 @@ class VaultStore extends ChangeNotifier {
   // Every user-initiated lock invalidates every asynchronous operation started
   // in the previous unlocked session, including imports and master-key changes.
   int _sessionEpoch = 0;
+  bool _disposed = false;
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // The operating system can close a window while encryption is awaiting
+    // KDF or disk IO. Dispose must invalidate callbacks without notifying
+    // listeners that are already being unmounted.
+    _disposed = true;
+    _sessionEpoch++;
+    _externalPickerTimeout?.cancel();
+    _externalPickerTimeout = null;
+    _key = null;
+    _salt = null;
+    _items = [];
+    _committedHash = null;
+    super.dispose();
+  }
+
 
   void _assertNotCancelled(int epoch) {
     if (epoch != _sessionEpoch) {
@@ -148,7 +170,7 @@ class VaultStore extends ChangeNotifier {
     // Check for interrupted replacements, but never delete/move ciphertext
     // without the master password. Recovery happens after authentication.
     _exists = await _files!.hasAny;
-    notifyListeners();
+    _notify();
   }
 
   List<int> _random(int count) {
@@ -180,7 +202,7 @@ class VaultStore extends ChangeNotifier {
       _assertUnlockedSession(session);
       _items = [];
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
       lock();
       rethrow;
@@ -333,7 +355,7 @@ class VaultStore extends ChangeNotifier {
         if (!restored) throw const VaultAuthenticationException();
       }
       _assertNotCancelled(session);
-      notifyListeners();
+      _notify();
     } on VaultSessionCancelledException {
       lock();
       rethrow;
@@ -403,7 +425,7 @@ class VaultStore extends ChangeNotifier {
         _assertNotCancelled(session);
         _items = decoded.items;
         _exists = true;
-        notifyListeners();
+        _notify();
         return;
       } on VaultConflictException {
         lock();
@@ -426,7 +448,7 @@ class VaultStore extends ChangeNotifier {
     _salt = null;
     _items = [];
     _committedHash = null;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> _persist(List<VaultItem> entries) async {
@@ -470,7 +492,7 @@ class VaultStore extends ChangeNotifier {
   Future<void> save() => _serial(() async {
     await _persist(List<VaultItem>.of(_items));
     _exists = true;
-    notifyListeners();
+    _notify();
   });
 
   Future<void> put(VaultItem item) => _serial(() async {
@@ -484,7 +506,7 @@ class VaultStore extends ChangeNotifier {
     }
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   /// Delete is reversible: encrypted contents stay in the local trash.
@@ -498,7 +520,7 @@ class VaultStore extends ChangeNotifier {
       trashed: true, updatedAt: DateTime.now().toUtc());
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   Future<void> restoreTrashed(String id) => _serial(() async {
@@ -512,7 +534,7 @@ class VaultStore extends ChangeNotifier {
       trashed: false, updatedAt: DateTime.now().toUtc());
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   /// Irreversible in the active vault, but encrypted historic copies may
@@ -526,7 +548,7 @@ class VaultStore extends ChangeNotifier {
     final next = _items.where((record) => record.id != id).toList();
     await _persist(next);
     if (isUnlocked) _items = next;
-    notifyListeners();
+    _notify();
   });
 
   Future<List<int>> encryptedBackup() => _serial(() async {
@@ -581,7 +603,7 @@ class VaultStore extends ChangeNotifier {
       _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
       lock();
       rethrow;
@@ -633,7 +655,7 @@ class VaultStore extends ChangeNotifier {
     try {
       await _persist(List<VaultItem>.of(_items));
       _assertUnlockedSession(session);
-      notifyListeners();
+      _notify();
     } catch (_) {
       if (_sessionEpoch == session) {
         _key = oldKey;
@@ -686,7 +708,7 @@ class VaultStore extends ChangeNotifier {
       _assertUnlockedSession(session);
       _items = imported.items;
       _exists = true;
-      notifyListeners();
+      _notify();
     } catch (_) {
       if (_sessionEpoch == session) {
         _key = oldKey;
