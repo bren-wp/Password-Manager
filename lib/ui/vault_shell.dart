@@ -259,6 +259,18 @@ class _VaultShellState extends State<VaultShell> {
         Dialog.fullscreen(child: AnimatedBuilder(
           animation: widget.store,
           builder: (ctx, _) {
+            if (!widget.store.isUnlocked) {
+              // Modal routes sit above MaterialApp's home. An authentication
+              // lock must dismiss *all* old detail/editor routes, otherwise
+              // stale account content could remain over the unlock screen.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext, rootNavigator: true)
+                      .popUntil((route) => route.isFirst);
+                }
+              });
+              return const ColoredBox(color: VColors.background);
+            }
             final live = widget.store.items
                 .where((record) => record.id == item.id).firstOrNull;
             if (live == null) {
