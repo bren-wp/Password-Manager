@@ -290,7 +290,8 @@ class VaultStore extends ChangeNotifier {
         bool restored = false;
         for (final candidate in [
           files.recoveryStage, files.swap, files.previous, files.older,
-          files.previousRetired, files.olderRetired, files.pending,
+          files.previousRetired, files.olderRetired,
+          files.quarantine, files.pending,
         ]) {
           if (!await candidate.exists()) continue;
           try {
@@ -352,7 +353,8 @@ class VaultStore extends ChangeNotifier {
         ? await _hash(await _readFile(primary)) : null;
     for (final candidate in [
       files.swap, files.previous, files.older,
-      files.previousRetired, files.olderRetired, files.pending,
+      files.previousRetired, files.olderRetired,
+      files.quarantine, files.pending,
     ]) {
       if (!await candidate.exists()) continue;
       try {

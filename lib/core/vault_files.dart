@@ -80,7 +80,7 @@ class VaultFiles {
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
     for (final candidate in [recoveryStage, swap, previous, older,
-        previousRetired, olderRetired, pending]) {
+        previousRetired, olderRetired, quarantine, pending]) {
       if (!await candidate.exists()) continue;
       final bytes = await candidate.readAsBytes();
       if (!await verify(bytes)) continue;
@@ -183,7 +183,7 @@ class VaultFiles {
   Future<List<File>> verifiedRecoveryFiles() async {
     final found = <File>[];
     for (final file in [swap, previous, older,
-        previousRetired, olderRetired, recoveryStage, pending]) {
+        previousRetired, olderRetired, recoveryStage, quarantine, pending]) {
       if (await file.exists() && await verify(await file.readAsBytes())) {
         found.add(file);
       }
