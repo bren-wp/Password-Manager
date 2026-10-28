@@ -1,0 +1,9 @@
+Veldigo v0.2.3-preview.2
+
+Security and privacy follow-up release with the fully validated atomic
+recovery improvements, instant background lock and bounded native Android
+document-picker grace.
+
+Build and verify APK, AAB, Windows portable.exe, setup.exe and portable ZIP.
+Publishing is gated on Flutter analyze, tests, both release builds, asset
+presence and SHA-256 checksums.
