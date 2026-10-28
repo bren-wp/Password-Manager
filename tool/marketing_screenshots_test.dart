@@ -113,6 +113,17 @@ void main() {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: veldigoTheme(),
+            // WidgetsApp derives its default MediaQuery from the physical
+            // test view. Override it for every route (including dialogs)
+            // so responsive widgets see the *logical* mobile viewport.
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                size: Size(bounds.maxWidth / pixelRatio,
+                    bounds.maxHeight / pixelRatio),
+                devicePixelRatio: pixelRatio,
+              ),
+              child: child!,
+            ),
             home: KeyedSubtree(key: ValueKey(file), child: screen),
           ),
         ),
