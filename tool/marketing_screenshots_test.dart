@@ -111,6 +111,10 @@ void main() {
           width: bounds.maxWidth / pixelRatio,
           height: bounds.maxHeight / pixelRatio,
           child: MaterialApp(
+            // Navigator's initial home route is not replaced merely because
+            // a different home widget is passed on the next pumpWidget.
+            // A new application key isolates every screenshot's navigator.
+            key: ValueKey('capture-$platform-$file'),
             debugShowCheckedModeBanner: false,
             theme: veldigoTheme(),
             // WidgetsApp derives its default MediaQuery from the physical
@@ -165,8 +169,10 @@ void main() {
 
     await shot('02_Postavljanje_glavne_lozinke',
       AuthScreen(store: demo.store, create: true));
+    expect(find.text('Stvorite sigurni trezor'), findsOneWidget);
     await shot('03_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));
+    expect(find.text('Dobro došli natrag'), findsOneWidget);
     await shot('04_Dodavanje_lozinke',
       const Scaffold(body: Center(child:
         EntryEditor(kind: ItemKind.password))));
