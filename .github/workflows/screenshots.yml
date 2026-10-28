@@ -7,6 +7,8 @@ on:
       - tool/marketing_screenshots_test.dart
       - tools/publish_real_screenshots.py
       - .github/workflows/screenshots.yml
+      - 'lib/ui/**'
+      - lib/core/totp.dart
   workflow_dispatch:
 
 permissions:
