@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
@@ -247,7 +248,19 @@ class VaultStore extends ChangeNotifier {
     if (!await source.exists() || await source.length() > _maxVaultBytes) {
       throw const FormatException('Datoteka trezora nije dostupna.');
     }
-    return source.readAsBytes();
+    // Do not trust file metadata alone: a corrupted or concurrently enlarged
+    // vault must never trigger an unbounded allocation in a password manager.
+    final output = BytesBuilder(copy: false);
+    await for (final chunk in source.openRead(0, _maxVaultBytes + 1)) {
+      if (output.length + chunk.length > _maxVaultBytes) {
+        throw const FormatException('Datoteka trezora je prevelika.');
+      }
+      output.add(chunk);
+    }
+    if (output.length == 0) {
+      throw const FormatException('Datoteka trezora je prazna.');
+    }
+    return output.takeBytes();
   }
 
   Future<void> unlock(String password) => _serial(() async {
