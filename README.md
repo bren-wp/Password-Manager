@@ -1,91 +1,87 @@
-# Veldigo — Password Manager
+<div align="center">
 
-**Veldigo** is a privacy-first password vault for **Android and Windows**, built
-with a single responsive Flutter codebase. Dark navy surfaces, Veldigo turquoise
-accents, clean forms and adaptive layouts are inspired by the project's original
-Veldigo design specification.
+<img src="assets/brand/veldigo.svg" alt="Veldigo Password Manager" width="590" />
 
-> **Development preview — not production ready.** Security audit and pixel-perfect
-> screen-by-screen visual verification are still required before storing important
-> passwords or distributing a release.
+# Vaše lozinke. Vaša kontrola.
 
-## What works in the current code
+**Jedno sigurno mjesto za vaše lozinke, pristupne podatke i privatne bilješke.**
 
-- Create a device-local encrypted vault with a master password (minimum 12 characters).
-- Unlock, lock, add, edit, delete, search, categorize and favorite password records.
-- Store secure notes, card entries and TOTP authentication secrets.
-- Generate random passwords from selectable character groups.
-- Calculate standard six-digit TOTP codes from manually entered Base32 seeds.
-- Review basic local password hygiene: short/simple and repeated passwords.
-- Export and import encrypted `.veldigo` backup files for Android–Windows transfers.
-- Copy credentials to clipboard with best-effort clearing after 30 seconds.
-- Adaptive layouts with a mobile bottom bar / drawer and desktop sidebar.
-- Windows starts in a resizable 1200 × 800 window with a minimum of 820 × 560,
-  **not** maximized.
+**Android** &nbsp; • &nbsp; **Windows** &nbsp; • &nbsp; **Lokalni šifrirani trezor**
 
-## Build
+</div>
 
-Prerequisite: Flutter stable SDK, Android SDK for Android, Visual Studio C++
-Desktop development tools for Windows.
+---
 
-On **Windows PowerShell**:
+## Manje pamćenja. Više kontrole.
 
-```powershell
-.\scripts\bootstrap.ps1
-flutter analyze
-flutter test
-flutter run -d windows
-flutter build windows --release
-flutter build apk --release
-```
+Veldigo objedinjuje svakodnevne digitalne podatke u preglednoj aplikaciji
+koja je jednako ugodna na telefonu i računalu. Vaši su računi organizirani,
+lozinke skrivene od znatiželjnih pogleda, a nova snažna lozinka udaljena
+samo nekoliko dodira.
 
-On **macOS/Linux** (Android development):
+<div align="center">
 
-```bash
-bash scripts/bootstrap.sh
-flutter analyze
-flutter test
-flutter run -d android
-flutter build apk --debug
-```
+<img src="assets/showcase/android.svg" alt="Veldigo Android trezor — vizualni prikaz" width="300" />
 
-The first bootstrap generates standard Flutter Android/Windows platform projects.
-Platform scaffolds should be checked into the repository after regeneration and
-platform-specific Android policies, signing, icon and application labels are set.
+<img src="assets/showcase/windows.svg" alt="Veldigo Windows trezor — vizualni prikaz" width="650" />
 
-### Repository layout
+</div>
 
-- `lib/core`: record model, password generator, encrypted vault format and storage
-- `lib/ui`: Veldigo dark theme and adaptive Android/Windows screens
-- `test`: preliminary unit/widget tests
-- `.github/workflows`: Linux Android and Windows build checks
-- `SECURITY.md`: security design, risks and outstanding work
+## Sve važno na jednom mjestu
 
-## Security design
+| <img src="https://img.shields.io/badge/01-TREZOR-27E4D2?style=flat-square&labelColor=071526" alt="" /> | **Vaši računi, pregledno organizirani.** Spremite naziv usluge, korisničko ime, lozinku, web-adresu i dodatnu bilješku. |
+|---|---|
+| **02 · Generator** | Stvorite jedinstvene lozinke uz kontrolu duljine i vrste znakova. |
+| **03 · Sigurne bilješke** | Pohranite privatne tekstove i osjetljive informacije u šifrirani trezor. |
+| **04 · Kartice** | Spremite podatke o karticama zaštićene glavnom lozinkom. |
+| **05 · Autentifikator** | Stvarajte vremenski ograničene TOTP kodove iz ručno unesenih tajnih ključeva. |
+| **06 · Sigurnosni centar** | Provjerite ponovljene i jednostavne lozinke prema lokalnim pravilima. |
+| **07 · Sigurnosna kopija** | Izvezite i vratite zaštićenu datoteku trezora te prenesite zapise između uređaja. |
+| **08 · Favoriti i kategorije** | Pronađite najčešće korištene račune bez suvišnog pretraživanja. |
 
-Argon2id derives the 256-bit encryption key from the user's master password and
-a random 128-bit salt; AES-256-GCM encrypts/authenticates records at rest.
-No service account, network sync or backend is required for local storage.
-Encrypted backups use the same master password as the source vault.
+## Dizajn prilagođen svakom zaslonu
 
-**Warning:** This is a first-pass implementation, *not* an audited credential
-product. Do not use real passwords before independent review and hardening.
+**Na Androidu** Veldigo nudi intuitivnu navigaciju pri dnu zaslona, pregledne
+kartice i jednostavno dodavanje zapisa.
 
-## Design / product plan
+**Na Windowsu** koristi bočnu navigaciju, popis računa i detalje odabranog
+zapisa, uz prozor čiju veličinu možete slobodno prilagoditi.
 
-The reference design supplies **15 Android** and **11 Windows** screens. The
-responsive Veldigo navigation and key feature groups have been implemented,
-but exact 1:1 per-screen rendering has not yet been validated against reference
-PNG sizes, fonts, paddings and breakpoints.
+Obje aplikacije dijele prepoznatljive tamne površine, tirkizne akcente i
+Veldigo vizualni identitet.
 
-Next milestones: compare all 26 reference screenshots against rendered widgets,
-integrate branded app icon/splash; Android native autofill and screen-capture
-protection; Windows Hello; biometric unlock; password import from existing
-managers; QR camera TOTP enrollment; automated backup tests; signing,
-reproducible Android AAB/APK and Windows installer release process.
+## Privatnost ostaje u vašim rukama
 
-## Brand and license
+- **AES-256-GCM** za šifriranje i provjeru integriteta trezora.
+- **Argon2id** za izvođenje ključa iz glavne lozinke.
+- **Lokalna pohrana** bez obveznog računa ili vanjskog poslužitelja.
+- **Šifrirani izvoz** za samostalno čuvanje sigurnosnih kopija.
+- **Kontrolirani oporavak** uz zadržavanje prethodnih verzija podataka.
 
-**Product:** Veldigo · **Author:** Brendigo
+**Važno:** glavna lozinka ne može se resetirati putem udaljenog servisa.
+Čuvajte je na sigurnome, kao i dodatnu šifriranu kopiju trezora.
+Nijedan lokalni sustav ne može jamčiti oporavak nakon svakog kvara ili
+gubitka uređaja.
 
-MIT License. © 2026 Brendigo.
+## Veldigo za vaše uređaje
+
+Preuzmite dostupne pakete i detalje izdanja putem
+[**GitHub Releases**](https://github.com/bren-wp/Password-Manager/releases).
+
+**Android:** APK i AAB paketi za podržane uređaje.
+
+**Windows:** instalacijski program ili prijenosni paket bez klasične instalacije.
+
+> Predizdanja služe za provjeru funkcionalnosti. AAB paketi potpisani
+> testnim ključem nisu namijenjeni objavi na Google Playu, a Windows paketi
+> bez kôdnog potpisa mogu prikazati sigurnosno upozorenje.
+
+---
+
+<div align="center">
+
+**VELDIGO** — Sigurno organiziran digitalni život.
+
+© 2026 **Brendigo** · [MIT licenca](LICENSE)
+
+</div>
