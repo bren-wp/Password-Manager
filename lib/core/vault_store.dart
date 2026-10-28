@@ -447,6 +447,23 @@ class VaultStore extends ChangeNotifier {
     }
   });
 
+  /// Preserve and verify the existing ciphertext before destructive imports
+  /// or master-key rotation. Backup remains encrypted under the old key.
+  Future<void> _preserveVerifiedSnapshot(File source, String purpose) async {
+    final original = await _readFile(source);
+    if (!await _canDecrypt(original)) {
+      throw const FormatException(
+        'Aktualni trezor nije valjan. Spremanje nove verzije je prekinuto.');
+    }
+    final snapshot = File('${source.path}.$purpose-'
+        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+    await snapshot.writeAsBytes(original, flush: true);
+    if (!listEquals(original, await _readFile(snapshot))) {
+      throw const FileSystemException(
+        'Provjera zasebne šifrirane kopije nije uspjela.');
+    }
+  }
+
   Future<void> changeMasterPassword(
       String currentPassword, String newPassword) => _serial(() async {
     final file = _file;
@@ -462,9 +479,7 @@ class VaultStore extends ChangeNotifier {
     if (current.items.length != _items.length) {
       throw StateError('Trezor je izmijenjen izvan aplikacije.');
     }
-    final preserved = File('${file.path}.before-password-change-'
-        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
-    await file.copy(preserved.path);
+    await _preserveVerifiedSnapshot(file, 'before-password-change');
     final oldKey = _key;
     final oldSalt = _salt;
     final newSalt = _random(16);
@@ -495,9 +510,7 @@ class VaultStore extends ChangeNotifier {
     }
     final imported = await _decode(utf8.decode(bytes), backupPassword);
     if (await target.exists()) {
-      final copy = File('${target.path}.before-import-'
-        '${DateTime.now().toUtc().microsecondsSinceEpoch}');
-      await target.copy(copy.path); // Encrypted original stays recoverable.
+      await _preserveVerifiedSnapshot(target, 'before-import');
     }
     final oldKey = _key;
     final oldSalt = _salt;
