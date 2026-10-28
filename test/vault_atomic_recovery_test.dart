@@ -48,6 +48,34 @@ void main() {
     expect(reopened.items.map((record) => record.id).toSet(), {'old'});
   }, timeout: const Timeout(Duration(minutes: 3)));
 
+  test('existing valid recovery stage is never silently overwritten',
+      () async {
+    final target = File('${temp.path}/guarded.vault');
+    final files = VaultFiles(target, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    await files.recoveryStage.writeAsString('AUTH:newer', flush: true);
+    await expectLater(
+      files.restoreExactWhenMissing(utf8.encode('AUTH:older')),
+      throwsA(isA<FileSystemException>()));
+    expect(await files.recoveryStage.readAsString(), 'AUTH:newer');
+    expect(await target.exists(), isFalse);
+    await files.restoreExactWhenMissing(utf8.encode('AUTH:newer'));
+    expect(await target.readAsString(), 'AUTH:newer');
+    expect(await files.recoveryStage.exists(), isFalse);
+  });
+
+  test('recovery never overwrites a primary created by another instance',
+      () async {
+    final target = File('${temp.path}/concurrent.vault');
+    final files = VaultFiles(target, verify: (bytes) async =>
+        utf8.decode(bytes).startsWith('AUTH:'));
+    await target.writeAsString('AUTH:committed', flush: true);
+    await expectLater(
+      files.restoreExactWhenMissing(utf8.encode('AUTH:old')),
+      throwsA(isA<FileSystemException>()));
+    expect(await target.readAsString(), 'AUTH:committed');
+  });
+
   test('a corrupted recovery candidate never creates an empty vault', () async {
     final target = File('${temp.path}/broken.vault');
     await File('${target.path}.swap')
