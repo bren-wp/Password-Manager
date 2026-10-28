@@ -447,7 +447,7 @@ class SettingsPage extends StatelessWidget {
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),
         title: Text('Automatsko zaključavanje'),
-        subtitle: Text('Nakon 2 minute u pozadini')),
+        subtitle: Text('Odmah nakon prelaska aplikacije u pozadinu')),
       const Divider(color: VColors.border),
       ListTile(
         leading: const Icon(Icons.lock_outline, color: VColors.accent),
@@ -490,7 +490,7 @@ class SettingsPage extends StatelessWidget {
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
-        title: Text('Veldigo 0.2.2'),
+        title: Text('Veldigo 0.2.3'),
         subtitle: Text('Android i Windows • Brendigo')),
       ListTile(
         leading: Icon(Icons.shield_outlined, color: VColors.accent),
