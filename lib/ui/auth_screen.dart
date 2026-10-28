@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../core/vault_store.dart';
@@ -24,6 +27,49 @@ class _AuthScreenState extends State<AuthScreen> {
     password.dispose();
     confirmation.dispose();
     super.dispose();
+  }
+
+  Future<void> importBackup() async {
+    if (busy) return;
+    setState(() { busy = true; error = null; });
+    final passphrase = TextEditingController();
+    try {
+      final chosen = await FilePicker.platform.pickFiles(
+        type: FileType.custom, allowedExtensions: ['veldigo'], withData: true);
+      if (chosen == null || chosen.files.isEmpty || !mounted) return;
+      final file = chosen.files.single;
+      final bytes = file.bytes ??
+          (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null) throw const FormatException('Nečitljiva datoteka.');
+      if (!mounted) return;
+      final accepted = await showDialog<bool>(context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Uvezi postojeći trezor'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Uvozite šifriranu sigurnosnu kopiju na novi uređaj. '
+              'Unesite njezinu glavnu lozinku.'),
+            const SizedBox(height: 14),
+            TextField(controller: passphrase, obscureText: true,
+              enableSuggestions: false, autocorrect: false,
+              decoration: const InputDecoration(labelText: 'Glavna lozinka')),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Odustani')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Uvezi trezor')),
+          ],
+        ));
+      if (accepted != true) return;
+      await widget.store.importFirstVault(bytes, passphrase.text);
+    } catch (_) {
+      if (mounted) setState(() => error =
+        'Uvoz nije uspio. Provjerite kopiju i glavnu lozinku. '
+        'Postojeći podaci nisu obrisani.');
+    } finally {
+      passphrase.dispose();
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   Future<void> submit() async {
@@ -148,6 +194,13 @@ class _AuthScreenState extends State<AuthScreen> {
           icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
           onPressed: busy ? null : submit,
         ),
+        if (widget.create) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: busy ? null : importBackup,
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Uvezi postojeću šifriranu kopiju')),
+        ],
         if (!widget.create) ...[
           const SizedBox(height: 12),
           OutlinedButton.icon(
