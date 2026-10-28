@@ -14,6 +14,7 @@ class VaultItem {
   final String expiry;
   final String cvv;
   final bool favorite;
+  final bool trashed;
   final DateTime updatedAt;
 
   const VaultItem({
@@ -28,6 +29,7 @@ class VaultItem {
     this.expiry = '',
     this.cvv = '',
     this.favorite = false,
+    this.trashed = false,
     required this.updatedAt,
   });
 
@@ -41,6 +43,7 @@ class VaultItem {
     String? expiry,
     String? cvv,
     bool? favorite,
+    bool? trashed,
     DateTime? updatedAt,
   }) =>
       VaultItem(
@@ -55,6 +58,7 @@ class VaultItem {
         expiry: expiry ?? this.expiry,
         cvv: cvv ?? this.cvv,
         favorite: favorite ?? this.favorite,
+        trashed: trashed ?? this.trashed,
         updatedAt: updatedAt ?? this.updatedAt,
       );
 
@@ -70,6 +74,7 @@ class VaultItem {
         'expiry': expiry,
         'cvv': cvv,
         'favorite': favorite,
+        'trashed': trashed,
         'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
 
@@ -88,6 +93,7 @@ class VaultItem {
         expiry: data['expiry'] as String? ?? '',
         cvv: data['cvv'] as String? ?? '',
         favorite: data['favorite'] == true,
+        trashed: data['trashed'] == true,
         updatedAt: DateTime.tryParse(data['updatedAt'] as String? ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       );
