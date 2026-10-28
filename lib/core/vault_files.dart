@@ -18,24 +18,63 @@ class VaultFiles {
   File get previous => File('${primary.path}.bak');
   File get older => File('${primary.path}.bak2');
   File get quarantine => File('${primary.path}.corrupt');
+  File get recoveryStage => File('${primary.path}.recovery');
 
   Future<bool> get hasAny async =>
       await primary.exists() || await swap.exists() ||
       await previous.exists() || await older.exists() ||
-      await pending.exists() || await quarantine.exists();
+      await pending.exists() || await quarantine.exists() ||
+      await recoveryStage.exists();
 
+  /// Complete a *specific authenticated* recovery checkpoint, never a
+  /// different candidate selected by a subsequent directory scan.
+  ///
+  /// The caller is responsible for holding the cross-process write lock. The
+  /// source checkpoints remain intact. The stage uses a same-directory rename
+  /// so a crash cannot expose a partially copied primary vault.
+  Future<void> restoreExactWhenMissing(List<int> encryptedBytes) async {
+    if (await primary.exists()) {
+      throw const FileSystemException('Trezor je već vraćen u drugom procesu.');
+    }
+    if (!await verify(encryptedBytes)) {
+      throw const FormatException('Kopija ne prolazi provjeru autentikacije.');
+    }
+    if (await recoveryStage.exists()) {
+      final existing = await recoveryStage.readAsBytes();
+      if (!listEquals(existing, encryptedBytes)) {
+        // An interrupted earlier recovery can hold a different, potentially
+        // newer vault. Never silently destroy that candidate.
+        throw const FileSystemException(
+          'Pronađena je druga nepotvrđena oporavna datoteka.');
+      }
+    } else {
+      await recoveryStage.writeAsBytes(encryptedBytes, flush: true);
+    }
+    final staged = await recoveryStage.readAsBytes();
+    if (!listEquals(staged, encryptedBytes) || !await verify(staged)) {
+      throw const FileSystemException('Oporavna datoteka nije potpuna.');
+    }
+    if (await primary.exists()) {
+      throw const FileSystemException('Druga instanca je vratila trezor.');
+    }
+    await recoveryStage.rename(primary.path);
+    final committed = await primary.readAsBytes();
+    if (!listEquals(committed, encryptedBytes) || !await verify(committed)) {
+      throw const FileSystemException('Naknadna provjera trezora nije uspjela.');
+    }
+  }
+
+  /// Compatibility helper for verified, single-process recovery tests.
+  /// The live vault calls restoreExactWhenMissing under a file lock instead.
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
-    // .swap is the previous committed primary, .bak is a copy of it.
-    // Do not touch .pending: it may contain an incomplete write.
-    for (final candidate in [swap, previous, older, pending]) {
+    for (final candidate in [swap, previous, older, pending, recoveryStage]) {
       if (!await candidate.exists()) continue;
-      if (!await verify(await candidate.readAsBytes())) continue;
-      await candidate.copy(primary.path);
-      if (await verify(await primary.readAsBytes())) return;
-      await primary.delete();
+      final bytes = await candidate.readAsBytes();
+      if (!await verify(bytes)) continue;
+      await restoreExactWhenMissing(bytes);
+      return;
     }
-    // Do not create an empty vault; callers can report the repair failure.
   }
 
   /// Caller must serialize install operations; items are committed in memory
