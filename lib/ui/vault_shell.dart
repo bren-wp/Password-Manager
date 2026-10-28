@@ -69,21 +69,21 @@ class _VaultShellState extends State<VaultShell> {
   }.toList();
 
   Future<void> edit({ItemKind kind = ItemKind.password, VaultItem? original}) async {
+    // Save while the dialog is still visible. A failed encrypted write must
+    // not dispose the unsaved password the user just typed.
     final item = await showDialog<VaultItem>(
-      context: context, barrierDismissible: false,
-      builder: (_) => EntryEditor(kind: original?.kind ?? kind,
-        original: original, availableCategories: availableCategories));
-    if (item == null) return;
-    try {
-      await widget.store.put(item);
-      if (mounted) setState(() => selectedId = item.id);
-      notifyUser('Zapis je sigurno spremljen.');
-    } on VaultConflictException {
-      notifyUser('Trezor je izmijenjen u drugom prozoru. '
-        'Zaključajte ga i ponovno otključajte prije spremanja.');
-    } catch (_) {
-      notifyUser('Spremanje nije uspjelo.');
-    }
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => EntryEditor(
+        kind: original?.kind ?? kind,
+        original: original,
+        availableCategories: availableCategories,
+        onPersist: widget.store.put,
+      ),
+    );
+    if (item == null || !mounted) return;
+    setState(() => selectedId = item.id);
+    notifyUser('Zapis je sigurno spremljen.');
   }
 
   Future<void> remove(VaultItem item) async {
