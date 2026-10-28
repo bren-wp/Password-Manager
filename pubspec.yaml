@@ -1,0 +1,24 @@
+name: veldigo
+description: Veldigo — your private encrypted password vault for Android and Windows.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cryptography: ^2.9.0
+  cryptography_flutter: ^2.3.4
+  path_provider: ^2.1.6
+  file_picker: ^10.3.11
+  window_manager: ^0.5.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
