@@ -2,9 +2,9 @@ name: Veldigo preview release
 
 on:
   push:
-    branches: [fix/veldigo-hardening-ui-v0.2.1]
+    branches: [feat/veldigo-security-and-real-screenshots-v0.2.2]
     paths:
-      - release/preview-request-v0.2.1.txt
+      - release/preview-request-v0.2.2.txt
   workflow_dispatch:
 
 permissions:
@@ -106,8 +106,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.1-preview.1 release-assets/* \
-            --title "Veldigo v0.2.1 Preview 1" \
+          gh release create v0.2.2-preview.1 release-assets/* \
+            --title "Veldigo v0.2.2 Preview 1" \
             --target "$GITHUB_SHA" \
             --notes-file release/RELEASE_NOTES.md \
             --prerelease
