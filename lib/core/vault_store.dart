@@ -321,8 +321,42 @@ class VaultStore extends ChangeNotifier {
     notifyListeners();
   });
 
+  /// Delete is reversible: encrypted contents stay in the local trash.
   Future<void> remove(String id) => _serial(() async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final next = List<VaultItem>.of(_items);
+    final index = next.indexWhere((record) => record.id == id);
+    if (index == -1) throw StateError('Zapis nije pronađen.');
+    if (next[index].trashed) return;
+    next[index] = next[index].copyWith(
+      trashed: true, updatedAt: DateTime.now().toUtc());
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
+
+  Future<void> restoreTrashed(String id) => _serial(() async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final next = List<VaultItem>.of(_items);
+    final index = next.indexWhere((record) => record.id == id);
+    if (index == -1 || !next[index].trashed) {
+      throw StateError('Zapis nije pronađen u Košu.');
+    }
+    next[index] = next[index].copyWith(
+      trashed: false, updatedAt: DateTime.now().toUtc());
+    await _persist(next);
+    if (isUnlocked) _items = next;
+    notifyListeners();
+  });
+
+  /// Irreversible in the active vault, but encrypted historic copies may
+  /// retain prior data until deliberately removed by the user.
+  Future<void> permanentlyRemove(String id) => _serial(() async {
+    if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final existing = _items.where((record) => record.id == id).firstOrNull;
+    if (existing == null || !existing.trashed) {
+      throw StateError('Zapis mora najprije biti u Košu.');
+    }
     final next = _items.where((record) => record.id != id).toList();
     await _persist(next);
     if (isUnlocked) _items = next;
