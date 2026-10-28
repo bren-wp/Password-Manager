@@ -4,3 +4,4 @@ dependency migration and bounded stream imports, RFC 6238 tests, Windows
 portable integrity checks, refreshed actual Flutter screenshots and the
 documented security/dead-code audits.
 Publish only when all Flutter analyses/tests and Android + Windows builds pass.
+Rebuild from code with Dart 3.10 lint corrections and locked file_picker 13.3.0 dependencies.
