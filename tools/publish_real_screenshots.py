@@ -7,6 +7,7 @@ the script never substitutes illustrations, mockups, or user secrets.
 from pathlib import Path
 import hashlib
 import shutil
+import struct
 
 root = Path(__file__).resolve().parents[1]
 origin = root / "tool" / "goldens" / "marketing"
@@ -44,6 +45,39 @@ windows = [
     "11_Prvo_postavljanje",
 ]
 
+# Physical sizes from the original Veldigo reference ZIP archives.
+# Compare the PNG IHDR rather than trusting screenshot test configuration.
+android_dimensions = {
+    "01_Glavni_trezor": (843, 1866),
+    "02_Postavljanje_glavne_lozinke": (887, 1774),
+    "03_Otkljucavanje": (887, 1774),
+    "04_Dodavanje_lozinke": (864, 1821),
+    "05_Detalji_lozinke": (862, 1824),
+    "06_Generator_lozinki": (887, 1774),
+    "07_Sigurnosni_centar": (841, 1870),
+    "08_Sigurne_biljeske": (887, 1774),
+    "09_Autentifikator_TOTP": (862, 1825),
+    "10_Postavke": (863, 1823),
+    "11_Kategorije": (832, 1856),
+    "12_Sigurnosna_kopija": (832, 1856),
+    "13_Kartice": (832, 1856),
+    "14_Uvodni_ekran": (832, 1856),
+    "15_Dobrodoslica": (832, 1856),
+}
+windows_dimensions = {
+    **{name: (1586, 992) for name in windows[:4]},
+    **{name: (1536, 1024) for name in windows[4:]},
+}
+
+
+def image_dimensions(path):
+    with path.open("rb") as source:
+        header = source.read(24)
+    if len(header) != 24 or header[:8] != bytes.fromhex("89504e470d0a1a0a"):
+        raise SystemExit(f"Invalid PNG file: {path}")
+    return struct.unpack(">II", header[16:24])
+
+
 missing = [
     str(origin / platform / (name + ".png"))
     for platform, names in [("android", android), ("windows", windows)]
@@ -53,6 +87,20 @@ missing = [
 if missing:
     raise SystemExit("Not all 26 real UI screenshots were captured:\n" +
                      "\n".join(missing))
+
+for platform, targets in [
+    ("android", android_dimensions), ("windows", windows_dimensions)
+]:
+    for name, expected in targets.items():
+        captured = origin / platform / (name + ".png")
+        actual = image_dimensions(captured)
+        if actual != expected:
+            raise SystemExit(
+                f"Wrong {platform} screenshot resolution: {name}: "
+                f"expected {expected}, captured {actual}. "
+                "Regenerate the actual Flutter view at the exact reference "
+                "physical pixel dimensions."
+            )
 
 # Every separately named screen must be genuinely different.
 # In particular, vault-home and account-detail had previously been committed
