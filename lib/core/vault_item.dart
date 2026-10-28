@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum ItemKind { password, note, card, totp }
+enum ItemKind { password, note, card, totp, category }
 
 class VaultItem {
   final String id;
@@ -11,6 +11,8 @@ class VaultItem {
   final String website;
   final String category;
   final String notes;
+  final String expiry;
+  final String cvv;
   final bool favorite;
   final DateTime updatedAt;
 
@@ -23,6 +25,8 @@ class VaultItem {
     this.website = '',
     this.category = 'Osobno',
     this.notes = '',
+    this.expiry = '',
+    this.cvv = '',
     this.favorite = false,
     required this.updatedAt,
   });
@@ -34,6 +38,8 @@ class VaultItem {
     String? website,
     String? category,
     String? notes,
+    String? expiry,
+    String? cvv,
     bool? favorite,
     DateTime? updatedAt,
   }) =>
@@ -46,6 +52,8 @@ class VaultItem {
         website: website ?? this.website,
         category: category ?? this.category,
         notes: notes ?? this.notes,
+        expiry: expiry ?? this.expiry,
+        cvv: cvv ?? this.cvv,
         favorite: favorite ?? this.favorite,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -59,6 +67,8 @@ class VaultItem {
         'website': website,
         'category': category,
         'notes': notes,
+        'expiry': expiry,
+        'cvv': cvv,
         'favorite': favorite,
         'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
@@ -75,6 +85,8 @@ class VaultItem {
         website: data['website'] as String? ?? '',
         category: data['category'] as String? ?? 'Osobno',
         notes: data['notes'] as String? ?? '',
+        expiry: data['expiry'] as String? ?? '',
+        cvv: data['cvv'] as String? ?? '',
         favorite: data['favorite'] == true,
         updatedAt: DateTime.tryParse(data['updatedAt'] as String? ?? '') ??
             DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
