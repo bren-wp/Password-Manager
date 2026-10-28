@@ -183,8 +183,10 @@ class VaultStore extends ChangeNotifier {
     return _kdf.deriveKeyFromPassword(password: password, nonce: salt);
   }
 
-  Future<void> create(String password) => _serial(() async {
+  Future<void> create(String password) {
     final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     if (_files == null) throw StateError('Trezor nije inicijaliziran.');
     if (_exists || await _files!.hasAny) {
       throw StateError('Trezor već postoji i neće biti prepisan.');
@@ -207,7 +209,8 @@ class VaultStore extends ChangeNotifier {
       lock();
       rethrow;
     }
-  });
+    });
+  }
 
   Future<({SecretKey key, List<int> salt, List<VaultItem> items})>
       _decode(String source, String password) async {
@@ -289,8 +292,10 @@ class VaultStore extends ChangeNotifier {
     return output.takeBytes();
   }
 
-  Future<void> unlock(String password) => _serial(() async {
+  Future<void> unlock(String password) {
     final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final file = _file;
     final files = _files;
     if (file == null || files == null || !_exists) {
@@ -366,12 +371,15 @@ class VaultStore extends ChangeNotifier {
       await guard.unlock();
       await guard.close();
     }
-  });
+    });
+  }
 
   /// Deliberately separate from unlock: never silently replace an existing
   /// primary with an older version when the user typed an old password.
-  Future<void> recoverFromLocalBackup(String password) => _serial(() async {
+  Future<void> recoverFromLocalBackup(String password) {
     final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final files = _files;
     final primary = _file;
     if (files == null || primary == null || !_exists) {
@@ -438,7 +446,8 @@ class VaultStore extends ChangeNotifier {
     }
     lock();
     throw const VaultAuthenticationException();
-  });
+    });
+  }
 
   void lock() {
     _sessionEpoch++;
@@ -566,8 +575,10 @@ class VaultStore extends ChangeNotifier {
   /// archive without first generating a second (empty) vault.
   /// No existing ciphertext is ever replaced by this operation.
   Future<void> importFirstVault(
-      List<int> bytes, String masterPassword) => _serial(() async {
+      List<int> bytes, String masterPassword) {
     final session = _sessionEpoch;
+    return _serial(() async {
+      _assertNotCancelled(session);
     final files = _files;
     final target = _file;
     if (files == null || target == null) {
@@ -608,7 +619,8 @@ class VaultStore extends ChangeNotifier {
       lock();
       rethrow;
     }
-  });
+    });
+  }
 
   /// Preserve and verify the existing ciphertext before destructive imports
   /// or master-key rotation. Backup remains encrypted under the old key.
