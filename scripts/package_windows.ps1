@@ -10,12 +10,12 @@ $payload = 'packaging/portable/payload.zip'
 $manifest = 'packaging/portable/payload-manifest.json'
 Copy-Item $portableZip $payload -Force
 # Bind each extracted file to the executable's embedded SHA-256 manifest.
-$rootPath = $releaseDir.TrimEnd('\\') + '\\'
+$rootPath = $releaseDir + [System.IO.Path]::DirectorySeparatorChar
 $entries = @(
   Get-ChildItem -LiteralPath $releaseDir -File -Recurse | Sort-Object FullName |
     ForEach-Object {
       [pscustomobject]@{
-        Path = $_.FullName.Substring($rootPath.Length).Replace('\\', '/')
+        Path = $_.FullName.Substring($rootPath.Length).Replace([System.IO.Path]::DirectorySeparatorChar, [char]'/')
         Sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
       }
     }
