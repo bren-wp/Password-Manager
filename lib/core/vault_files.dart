@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
 /// Crash-tolerant persistence for *already encrypted* vault bytes.
@@ -12,6 +13,25 @@ class VaultFiles {
   final File primary;
   final Future<bool> Function(List<int> bytes) verify;
   VaultFiles(this.primary, {required this.verify});
+
+  static const _maxEncryptedBytes = 64 * 1024 * 1024;
+
+  /// Never eagerly load an attacker-modified or concurrently growing recovery
+  /// file; this limit also applies to every intermediate backup generation.
+  Future<List<int>> _readBounded(File file) async {
+    if (!await file.exists() ||
+        await file.length() > _maxEncryptedBytes) {
+      throw const FormatException('Šifrirana kopija je prevelika.');
+    }
+    final buffer = BytesBuilder(copy: false);
+    await for (final chunk in file.openRead(0, _maxEncryptedBytes + 1)) {
+      if (buffer.length + chunk.length > _maxEncryptedBytes) {
+        throw const FormatException('Šifrirana kopija je prevelika.');
+      }
+      buffer.add(chunk);
+    }
+    return buffer.takeBytes();
+  }
 
   File get pending => File('${primary.path}.pending');
   File get swap => File('${primary.path}.swap');
@@ -43,9 +63,15 @@ class VaultFiles {
       throw const FormatException('Kopija ne prolazi provjeru autentikacije.');
     }
     if (await recoveryStage.exists()) {
-      final existing = await recoveryStage.readAsBytes();
+      List<int>? existing;
+      try {
+        existing = await _readBounded(recoveryStage);
+      } on FormatException {
+        // Treat an oversized interrupted stage as corrupt, preserving it
+        // in place as forensic material rather than reading it into RAM.
+      }
       if (!listEquals(existing, encryptedBytes)) {
-        if (await verify(existing)) {
+        if (existing != null && await verify(existing)) {
           // An interrupted earlier recovery may be newer. The caller must
           // authenticate that exact checkpoint rather than overwrite it.
           throw const FileSystemException(
@@ -61,7 +87,7 @@ class VaultFiles {
     } else {
       await recoveryStage.writeAsBytes(encryptedBytes, flush: true);
     }
-    final staged = await recoveryStage.readAsBytes();
+    final staged = await _readBounded(recoveryStage);
     if (!listEquals(staged, encryptedBytes) || !await verify(staged)) {
       throw const FileSystemException('Oporavna datoteka nije potpuna.');
     }
@@ -69,7 +95,7 @@ class VaultFiles {
       throw const FileSystemException('Druga instanca je vratila trezor.');
     }
     await recoveryStage.rename(primary.path);
-    final committed = await primary.readAsBytes();
+    final committed = await _readBounded(primary);
     if (!listEquals(committed, encryptedBytes) || !await verify(committed)) {
       throw const FileSystemException('Naknadna provjera trezora nije uspjela.');
     }
@@ -82,10 +108,15 @@ class VaultFiles {
     for (final candidate in [recoveryStage, swap, previous, older,
         previousRetired, olderRetired, quarantine, pending]) {
       if (!await candidate.exists()) continue;
-      final bytes = await candidate.readAsBytes();
-      if (!await verify(bytes)) continue;
-      await restoreExactWhenMissing(bytes);
-      return;
+      try {
+        final bytes = await _readBounded(candidate);
+        if (!await verify(bytes)) continue;
+        await restoreExactWhenMissing(bytes);
+        return;
+      } on FormatException {
+        // An invalid checkpoint must not hide a smaller, valid backup.
+        continue;
+      }
     }
   }
 
@@ -97,21 +128,22 @@ class VaultFiles {
     }
     final temp = pending;
     await temp.writeAsBytes(encryptedBytes, flush: true);
-    if (!listEquals(await temp.readAsBytes(), encryptedBytes) ||
-        !await verify(await temp.readAsBytes())) {
+    final tempBytes = await _readBounded(temp);
+    if (!listEquals(tempBytes, encryptedBytes) ||
+        !await verify(tempBytes)) {
       throw const FileSystemException('Provjera zapisane datoteke nije uspjela.');
     }
 
     // On an ordinary save, retain up to two verified previous generations.
     if (await primary.exists()) {
-      final oldBytes = await primary.readAsBytes();
+      final oldBytes = await _readBounded(primary);
       if (await verify(oldBytes)) {
         if (await previous.exists()) {
-          final previousBytes = await previous.readAsBytes();
+          final previousBytes = await _readBounded(previous);
           if (await verify(previousBytes)) {
             final nextOlder = File('${older.path}.new');
             await nextOlder.writeAsBytes(previousBytes, flush: true);
-            if (!listEquals(await nextOlder.readAsBytes(), previousBytes)) {
+            if (!listEquals(await _readBounded(nextOlder), previousBytes)) {
               throw const FileSystemException('Sigurnosna kopija je nepotpuna.');
             }
             await _replace(nextOlder, older);
@@ -119,7 +151,7 @@ class VaultFiles {
         }
         final nextPrevious = File('${previous.path}.new');
         await nextPrevious.writeAsBytes(oldBytes, flush: true);
-        if (!listEquals(await nextPrevious.readAsBytes(), oldBytes)) {
+        if (!listEquals(await _readBounded(nextPrevious), oldBytes)) {
           throw const FileSystemException('Rezervna kopija je nepotpuna.');
         }
         await _replace(nextPrevious, previous);
@@ -137,7 +169,7 @@ class VaultFiles {
     if (await primary.exists()) await primary.rename(swap.path);
     try {
       await temp.rename(primary.path);
-      if (!await verify(await primary.readAsBytes())) {
+      if (!await verify(await _readBounded(primary))) {
         throw const FormatException('Naknadna provjera nije uspjela.');
       }
     } catch (_) {
@@ -157,7 +189,7 @@ class VaultFiles {
     if (await destination.exists()) {
       if (await retired.exists()) {
         // Refuse to discard an older generation if the current one is corrupt.
-        if (!await verify(await destination.readAsBytes())) {
+        if (!await verify(await _readBounded(destination))) {
           throw const FileSystemException(
             'Postojeća kopija nije valjana; prethodna je sačuvana.');
         }
@@ -168,7 +200,7 @@ class VaultFiles {
     }
     try {
       await newFile.rename(destination.path);
-      if (!await verify(await destination.readAsBytes())) {
+      if (!await verify(await _readBounded(destination))) {
         throw const FormatException('Rezervna kopija nije valjana.');
       }
     } catch (_) {
@@ -184,8 +216,11 @@ class VaultFiles {
     final found = <File>[];
     for (final file in [swap, previous, older,
         previousRetired, olderRetired, recoveryStage, quarantine, pending]) {
-      if (await file.exists() && await verify(await file.readAsBytes())) {
-        found.add(file);
+      if (!await file.exists()) continue;
+      try {
+        if (await verify(await _readBounded(file))) found.add(file);
+      } on FormatException {
+        // Preserve but do not trust oversized/corrupt recovery material.
       }
     }
     return found;
