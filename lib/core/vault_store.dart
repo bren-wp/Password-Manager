@@ -235,29 +235,56 @@ class VaultStore extends ChangeNotifier {
   /// primary with an older version when the user typed an old password.
   Future<void> recoverFromLocalBackup(String password) => _serial(() async {
     final files = _files;
-    if (files == null || !_exists) throw StateError('Trezor ne postoji.');
-    for (final candidate in [files.swap, files.previous, files.older]) {
+    final primary = _file;
+    if (files == null || primary == null || !_exists) {
+      throw StateError('Trezor ne postoji.');
+    }
+    final initialPrimary = await primary.exists()
+        ? await _hash(await _readFile(primary)) : null;
+    for (final candidate in [
+      files.swap, files.previous, files.older, files.pending,
+    ]) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readFile(candidate);
         final decoded = await _decode(utf8.decode(bytes), password);
-        final previousKey = _key;
-        final previousSalt = _salt;
-        _key = decoded.key;
-        _salt = decoded.salt;
+        // This is a user-approved rollback. It is not a license to erase
+        // changes made concurrently by a different running instance.
+        final guard = await File('${primary.path}.write-lock')
+            .open(mode: FileMode.append);
         try {
-          await files.install(bytes);
-        } catch (_) {
-          _key = previousKey;
-          _salt = previousSalt;
-          rethrow;
+          await guard.lock(FileLock.exclusive);
+          final current = await primary.exists()
+              ? await _hash(await _readFile(primary)) : null;
+          if (current != initialPrimary) {
+            throw const VaultConflictException();
+          }
+          final previousKey = _key;
+          final previousSalt = _salt;
+          _key = decoded.key;
+          _salt = decoded.salt;
+          try {
+            await files.install(bytes);
+            _committedHash = await _hash(bytes);
+          } catch (_) {
+            _key = previousKey;
+            _salt = previousSalt;
+            rethrow;
+          }
+        } finally {
+          await guard.unlock();
+          await guard.close();
         }
         _items = decoded.items;
-        _committedHash = await _hash(await _readFile(_file!));
         _exists = true;
         notifyListeners();
         return;
-      } catch (_) { /* Move to the next recovery generation. */ }
+      } on VaultConflictException {
+        lock();
+        rethrow;
+      } catch (_) {
+        // Only try an older candidate on authentication / IO failure.
+      }
     }
     lock();
     throw const VaultAuthenticationException();
