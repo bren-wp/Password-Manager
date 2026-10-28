@@ -98,8 +98,8 @@ class _AuthScreenState extends State<AuthScreen> {
               ? 'Lozinke se ne podudaraju.' : null,
           ),
           const SizedBox(height: 16),
-          const Text('Glavnu lozinku nije moguće vratiti bez sigurnosne kopije. '
-            'Čuvajte je na sigurnome mjestu.',
+          const Text('Glavnu lozinku nije moguće vratiti. I sigurnosne kopije '
+            'zahtijevaju istu lozinku. Čuvajte je na sigurnome mjestu.',
             style: TextStyle(color: VColors.muted, fontSize: 12)),
         ],
         if (error != null) ...[
