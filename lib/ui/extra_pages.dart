@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:file_picker/file_picker.dart';
@@ -52,8 +51,8 @@ class _GeneratorPageState extends State<GeneratorPage> {
             icon: const Icon(Icons.copy),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: generated));
-              if (context.mounted) ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Kopirano.')));
+              if (context.mounted) { ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('Kopirano.'))); }
             }),
           IconButton(tooltip: 'Nova lozinka',
             icon: const Icon(Icons.refresh), onPressed: regenerate),
@@ -199,7 +198,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     var buffer = 0, bits = 0;
     for (final char in cleaned.split('')) {
       final next = abc.indexOf(char);
-      if (next < 0) throw const FormatException('Neispravan Base32 ključ.');
+      if (next < 0) { throw const FormatException('Neispravan Base32 ključ.'); }
       buffer = (buffer << 5) | next;
       bits += 5;
       if (bits >= 8) {
@@ -208,7 +207,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
         buffer &= (1 << bits) - 1;
       }
     }
-    if (output.isEmpty) throw const FormatException('Prazan ključ.');
+    if (output.isEmpty) { throw const FormatException('Prazan ključ.'); }
     return output;
   }
 
@@ -291,27 +290,27 @@ class _BackupPageState extends State<BackupPage> {
         allowedExtensions: ['veldigo'],
         bytes: data,
       );
-      if (path != null) widget.onMessage('Šifrirana kopija je spremljena.');
+      if (path != null) { widget.onMessage('Šifrirana kopija je spremljena.'); }
     } catch (_) {
       widget.onMessage('Izvoz nije uspio.');
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) { setState(() => busy = false); }
     }
   }
 
   Future<void> restore() async {
-    if (busy) return;
+    if (busy) { return; }
     setState(() => busy = true);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['veldigo'], withData: true);
-      if (result == null || result.files.isEmpty || !mounted) return;
+      if (result == null || result.files.isEmpty || !mounted) { return; }
       final file = result.files.single;
       final bytes = file.bytes ??
         (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null) throw const FormatException('Nečitljiva datoteka.');
-      if (!mounted) return;
+      if (bytes == null) { throw const FormatException('Nečitljiva datoteka.'); }
+      if (!mounted) { return; }
       final controller = TextEditingController();
       final confirmed = await showDialog<bool>(
         context: context,
