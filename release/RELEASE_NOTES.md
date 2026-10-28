@@ -1,44 +1,45 @@
-# Veldigo v0.2.2 — Preview 1
+# Veldigo v0.2.3 — Preview 1
 
-**Privatnije. Sigurnije spremanje. Bolji Android i Windows doživljaj.**
+**Još sigurniji oporavak. Privatnost odmah po izlasku.**
 
-## Poboljšanja
+## Novo i poboljšano
 
-- Prikaz svih 26 zaslona iz stvarnog renderiranog Flutter korisničkog
-  sučelja u GitHub README-u — 15 Android i 11 Windows rasporeda
-- Obrasci za račune sada ostaju otvoreni dok upis u šifrirani trezor
-  stvarno ne uspije; pri pogrešci uneseni podaci ostaju dostupni za ponovni pokušaj
-- Lokalna šifrirana kopija prije uvoza i promjene glavne lozinke
-  provjerava se nakon zapisivanja na disk
-- Zaštita protiv istodobnog stvaranja istog trezora u dvije instance
-- Oporavak kopija uz zaključavanje datoteke i otkrivanje konkurentnih promjena
-- Brzo ručno zaključavanje Android i Windows trezora
-- Dodatna Android ograničenja izvoza aplikacijskih podataka u
-  automatske cloud i device-transfer sigurnosne kopije
-- Dodani regresijski testovi za spremanje pri grešci, očuvanje kopija,
-  istodobno kreiranje i oporavak
+- Trezor se zaključava pri prelasku aplikacije u pozadinu,
+  bez dvominutnog razdoblja u kojem ostaje otključan.
+- Oporavak nakon prekida zapisivanja vraća **točno istu**
+  autentificiranu šifriranu datoteku koja je uspješno otključana.
+- Zaključavanje datoteke između različitih instanci sprječava
+  istodobni oporavak i zamjenu novijeg stanja starijim.
+- Datoteke za oporavak spremaju se i provjeravaju prije konačne
+  zamjene glavnog trezora.
+- Oštećena privremena kopija čuva se za mogući ručni oporavak;
+  valjana različita kopija ne zamjenjuje se bez potvrde.
+- Dodani testovi za konkurentni oporavak, prekinuti zapis,
+  provjeru identiteta šifrirane kopije i obnovu bez gubitka podataka.
+- Marketinški README ažuriran je sa svih **26 stvarno renderiranih**
+  Veldigo Flutter zaslona (15 Android i 11 Windows rasporeda).
 
-## Datoteke
+## Datoteke izdanja
 
-- `Veldigo-Android.apk` — instalacija na Android
-- `Veldigo-Android.aab` — Android App Bundle predizdanje
-- `Veldigo-portable.exe` — prijenosna Windows verzija
-- `Veldigo-Setup.exe` — Windows instalacijski program
-- `Veldigo-Windows-portable.zip` — Windows direktorij
-- `Android-SHA256.txt` i `Windows-SHA256.txt` — provjera integriteta preuzimanja
+- `Veldigo-Android.apk` — Android aplikacija
+- `Veldigo-Android.aab` — Android App Bundle
+- `Veldigo-portable.exe` — Windows prijenosna aplikacija
+- `Veldigo-Setup.exe` — Windows instalacija
+- `Veldigo-Windows-portable.zip` — alternativni prijenosni paket
+- `Android-SHA256.txt` i `Windows-SHA256.txt` — kontrolni zbrojevi
 
-## Važno
+## Važno za vaše podatke
 
-Ovo je **predizdanje**. Snimke potječu iz automatskog Flutter UI renderiranja,
-a ne s fizičkih uređaja. Potpuna 1:1 pixel-perfect usklađenost i neovisna
-revizija sigurnosti još nisu potvrđene.
+Ovo je **predizdanje**, a ne neovisno auditirana aplikacija za pohranu
+nezamjenjivih lozinki. Niti jedna aplikacija ne može zajamčiti oporavak
+nakon svakog kvara, zlonamjernog softvera ili gubitka uređaja.
 
-Android predizdanje nije potpisano privatnim Google Play upload ključem,
-a Windows paketi nisu Authenticode potpisani. Nemojte ih koristiti kao
-produkcijski trezor za nezamjenjive zapise.
+Čuvajte zasebnu šifriranu sigurnosnu kopiju i svoju glavnu lozinku.
+Prikazane snimke zaslona nastale su renderiranjem Flutter widgeta,
+ne snimanjem fizičkih Android uređaja ili Windows radne površine.
+Potpuna 1:1 pixel-perfect usporedba s referencama nije potvrđena.
 
-Zasebno čuvajte šifriranu kopiju trezora i glavnu lozinku. Nema
-daljinskog resetiranja lozinke, a zaštita od svih vrsta kvara hardvera
-ili gubitka uređaja ne može biti zajamčena.
+Android predizdanje nema trajni Google Play produkcijski upload potpis,
+a Windows instalacijski paketi nisu Authenticode potpisani.
 
 © Brendigo
