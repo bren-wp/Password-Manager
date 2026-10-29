@@ -5,6 +5,9 @@ on:
     branches: [main, 'feat/veldigo-*']
     paths:
       - tool/marketing_screenshots_test.dart
+      - tool/flutter_test_config.dart
+      - pubspec.yaml
+      - pubspec.lock
       - tools/publish_real_screenshots.py
       - .github/workflows/screenshots.yml
       - 'lib/ui/**'
