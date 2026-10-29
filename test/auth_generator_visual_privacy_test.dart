@@ -36,6 +36,29 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('primary generator action stays visible above Android nav',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(MaterialApp(
+      theme: veldigoTheme(),
+      home: const Scaffold(
+        body: GeneratorPage(),
+        bottomNavigationBar: SizedBox(height: 72),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    final button = find.text('Generiraj novu lozinku');
+    expect(button, findsOneWidget);
+    final position = tester.getRect(button);
+    expect(position.bottom, lessThanOrEqualTo(780),
+        reason: 'The primary action should not hide behind mobile navigation.');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Windows generator shares the five-segment meter',
       (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
