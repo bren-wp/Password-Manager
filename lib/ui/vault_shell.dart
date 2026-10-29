@@ -242,15 +242,24 @@ class _VaultShellState extends State<VaultShell> {
       );
     }
     return Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 26 : 18, desktop ? 25 : 14, 18, desktop ? 16 : 12),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 24, desktop ? 25 : 24, 18, desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(page == 'Trezor' && !desktop
-            ? 'Dobrodošao u Veldigo'
-            : (page == 'Trezor' ? 'Moj trezor' : page),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.headlineMedium),
+        if (page == 'Trezor' && !desktop)
+          Text.rich(const TextSpan(children: [
+              TextSpan(text: 'Dobrodošao u '),
+              TextSpan(text: 'Veldigo',
+                style: TextStyle(color: VColors.accent)),
+            ]),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: VColors.text, fontSize: 26,
+              fontWeight: FontWeight.w800))
+        else
+          Text(page == 'Trezor' ? 'Moj trezor' : page,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 4),
         Text(page == 'Trezor' && !desktop
             ? 'Tvoj siguran trezor za sve lozinke i važne podatke.'
@@ -563,16 +572,27 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget _stat(String label, int value, IconData icon) =>
-    Expanded(child: VPanel(padding: const EdgeInsets.symmetric(
-      horizontal: 4, vertical: 12),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: VColors.accent, size: 23),
-        const SizedBox(height: 3),
-        Text('$value', style: const TextStyle(
-          fontWeight: FontWeight.bold, fontSize: 19)),
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: VColors.muted, fontSize: 11)),
-      ])));
+    Expanded(child: VPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 13),
+      child: Row(children: [
+        Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(
+            color: VColors.accent.withValues(alpha: .10),
+            shape: BoxShape.circle),
+          child: Icon(icon, color: VColors.accent, size: 20)),
+        const SizedBox(width: 7),
+        Flexible(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, children: [
+            Text('$value', style: const TextStyle(
+              fontWeight: FontWeight.w800, fontSize: 19)),
+            Text(label, maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: VColors.muted, fontSize: 10)),
+          ])),
+      ]),
+    ));
 
   Widget detail(VaultItem item) => VPanel(
     child: SingleChildScrollView(child: Column(
