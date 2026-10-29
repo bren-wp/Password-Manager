@@ -87,34 +87,25 @@ class _GeneratorPageState extends State<GeneratorPage> {
     });
   }
 
+  /// A full-row, accessible toggle: tapping its title or switch must work.
+  /// Keep SwitchListTile semantics for keyboard/assistive-technology users.
   Widget _characterOption(String symbol, String name, String subtitle,
       bool checked, ValueChanged<bool> onChanged) =>
-    Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(children: [
-        SizedBox(width: 36, child: Center(child:
-          Text(symbol, style: const TextStyle(
-            fontSize: 13, color: VColors.accent,
-            fontWeight: FontWeight.w800)))),
-        const SizedBox(width: 7),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13,
-                fontWeight: FontWeight.w600)),
-            if (subtitle.isNotEmpty)
-              Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: VColors.muted, fontSize: 10)),
-          ],
-        )),
-        const SizedBox(width: 5),
-        Switch.adaptive(
-          value: checked,
-          activeTrackColor: VColors.accent,
-          onChanged: onChanged),
-      ]),
+    SwitchListTile.adaptive(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 7),
+      secondary: SizedBox(width: 31, child: Center(
+        child: Text(symbol, style: const TextStyle(
+          fontSize: 12, color: VColors.accent,
+          fontWeight: FontWeight.w800)))),
+      title: Text(name, style: const TextStyle(
+        fontSize: 12, fontWeight: FontWeight.w600)),
+      subtitle: subtitle.isEmpty ? null : Text(subtitle,
+        style: const TextStyle(
+          color: VColors.muted, fontSize: 10)),
+      value: checked,
+      activeTrackColor: VColors.accent,
+      onChanged: onChanged,
     );
 
   @override
@@ -200,13 +191,13 @@ class _GeneratorPageState extends State<GeneratorPage> {
         VPanel(padding: const EdgeInsets.symmetric(
           horizontal: 11, vertical: 5),
           child: Column(children: [
-            _characterOption('Aa', 'Velika slova', '(A, B, C, …)',
+            _characterOption('Aa', 'Velika slova (A–Z)', '',
               upper, (v) => changeCharacterSet('upper', v)),
             const Divider(height: 1),
-            _characterOption('aa', 'Mala slova', '(a, b, c, …)',
+            _characterOption('aa', 'Mala slova (a–z)', '',
               lower, (v) => changeCharacterSet('lower', v)),
             const Divider(height: 1),
-            _characterOption('123', 'Brojevi', '(0, 1, 2, …)',
+            _characterOption('123', 'Brojevi (0–9)', '',
               numbers, (v) => changeCharacterSet('numbers', v)),
             const Divider(height: 1),
             _characterOption('!#', 'Posebni znakovi', '(!, @, #, …)',
