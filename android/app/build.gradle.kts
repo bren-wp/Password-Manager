@@ -1,3 +1,13 @@
+// Only the release pipeline may opt into preview debug signing.
+// Production builds require a real upload keystore and separate credentials.
+val veldigoKeyFile = System.getenv("VELDIGO_ANDROID_KEYSTORE_PATH")
+val veldigoStorePassword = System.getenv("VELDIGO_ANDROID_STORE_PASSWORD")
+val veldigoKeyAlias = System.getenv("VELDIGO_ANDROID_KEY_ALIAS")
+val veldigoKeyPassword = System.getenv("VELDIGO_ANDROID_KEY_PASSWORD")
+val veldigoHasUploadKey = listOf(
+    veldigoKeyFile, veldigoStorePassword, veldigoKeyAlias, veldigoKeyPassword
+).all { !it.isNullOrBlank() }
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -29,14 +39,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (veldigoHasUploadKey) {
+            create("veldigoUpload") {
+                storeFile = file(veldigoKeyFile!!)
+                storePassword = veldigoStorePassword
+                keyAlias = veldigoKeyAlias
+                keyPassword = veldigoKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Preview artifacts may use the debug key ONLY when explicitly
             // authorized in CI. Never silently debug-sign a production AAB.
-            signingConfig = if (System.getenv("VELDIGO_ALLOW_DEBUG_SIGNED_PREVIEW") == "true") {
-                signingConfigs.getByName("debug")
-            } else {
-                null
+            signingConfig = when {
+                veldigoHasUploadKey -> signingConfigs.getByName("veldigoUpload")
+                System.getenv("VELDIGO_ALLOW_DEBUG_SIGNED_PREVIEW") == "true" ->
+                    signingConfigs.getByName("debug")
+                else -> null // Unsigned; never implicitly use the debug key.
             }
         }
     }
