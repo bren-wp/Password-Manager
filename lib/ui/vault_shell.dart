@@ -367,6 +367,7 @@ class _VaultShellState extends State<VaultShell> {
     final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 780;
+      final wideDesktop = desktop && MediaQuery.sizeOf(context).width >= 1280;
       final selected = items.where((e) => e.id == selectedId).firstOrNull ??
           (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
@@ -435,11 +436,33 @@ class _VaultShellState extends State<VaultShell> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: VColors.muted))))
                 : ListView.separated(
-                    itemCount: items.length,
+                    itemCount: items.length + (wideDesktop ? 1 : 0),
                     padding: const EdgeInsets.symmetric(vertical: 5),
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (_, i) => _accountTile(
-                      items[i], desktop, selected?.id == items[i].id),
+                    separatorBuilder: (_, _) =>
+                        SizedBox(height: wideDesktop ? 3 : 6),
+                    itemBuilder: (_, i) {
+                      if (wideDesktop && i == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                          child: Row(children: [
+                            Expanded(child: Text('USLUGA / KORISNIK',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 100, child: Text('KATEGORIJA',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 100, child: Text('AŽURIRANO',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 92),
+                          ]),
+                        );
+                      }
+                      final item = items[i - (wideDesktop ? 1 : 0)];
+                      return _accountTile(
+                        item, desktop, selected?.id == item.id);
+                    },
                   ),
             )),
             if (desktop) ...[
@@ -460,6 +483,7 @@ class _VaultShellState extends State<VaultShell> {
   /// Shared reference-style account card. Only masks are drawn for secrets.
   Widget _accountTile(VaultItem item, bool desktop, bool selected) {
     final compact = !desktop && MediaQuery.sizeOf(context).width < 365;
+    final wideDesktop = desktop && MediaQuery.sizeOf(context).width >= 1280;
     Future<void> action(String name) async {
       if (!mounted || !widget.store.isUnlocked) return;
       switch (name) {
@@ -494,7 +518,9 @@ class _VaultShellState extends State<VaultShell> {
         borderRadius: BorderRadius.circular(13),
         onTap: () => selectItem(item, desktop),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          padding: EdgeInsets.symmetric(
+            horizontal: wideDesktop ? 8 : 10,
+            vertical: wideDesktop ? 4 : 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: selected
@@ -502,13 +528,14 @@ class _VaultShellState extends State<VaultShell> {
           ),
           child: Row(children: [
             Container(
-              width: compact ? 37 : 45, height: compact ? 37 : 45,
+              width: compact ? 37 : wideDesktop ? 32 : 45,
+              height: compact ? 37 : wideDesktop ? 32 : 45,
               decoration: BoxDecoration(
                 color: VColors.raised,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(iconFor(item), color: VColors.accent,
-                  size: compact ? 21 : 25),
+                  size: compact ? 21 : wideDesktop ? 19 : 25),
             ),
             const SizedBox(width: 11),
             Expanded(child: Column(
@@ -537,6 +564,15 @@ class _VaultShellState extends State<VaultShell> {
                 ],
               ],
             )),
+            if (wideDesktop) ...[
+              SizedBox(width: 100, child: VCategoryPill(name: item.category)),
+              SizedBox(width: 100, child: Text(
+                '${item.updatedAt.toLocal().day}.'
+                '${item.updatedAt.toLocal().month}.'
+                '${item.updatedAt.toLocal().year}.',
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: VColors.muted, fontSize: 10))),
+            ],
             if (item.secret.isNotEmpty && !item.trashed && !compact)
               IconButton(
                 tooltip: 'Kopiraj',
