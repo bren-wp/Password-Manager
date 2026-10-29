@@ -546,37 +546,86 @@ class _BackupPageState extends State<BackupPage> {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(16), children: [
-    const VSectionHeader(
-      title: 'Sigurnosna kopija',
-      subtitle: 'Izvoz, vraćanje i prijenos šifriranog trezora.',
-    ),
-    VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-      const Icon(Icons.enhanced_encryption, color: VColors.accent, size: 40),
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+    children: [
+      const VSectionHeader(
+        title: 'Sigurnosna kopija',
+        subtitle: 'Sačuvajte svoje podatke i prenesite ih na drugi uređaj.',
+      ),
+      VPanel(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(Icons.file_download_outlined,
+              color: VColors.accent, size: 29)),
+          const SizedBox(height: 13),
+          const Text('Izradi šifriranu kopiju', style: TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 9),
+          const Text('Spremite lozinke, sigurne bilješke i ostale zapise '
+            'u zaštićenu datoteku.',
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
+          const SizedBox(height: 17),
+          VPrimaryButton(label: 'Izradi sigurnosnu kopiju',
+            onPressed: busy ? null : export),
+        ],
+      )),
       const SizedBox(height: 10),
-      const Text('Sigurnosna kopija i prijenos',
-        style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
+      VPanel(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(Icons.file_upload_outlined,
+              color: VColors.accent, size: 29)),
+          const SizedBox(height: 13),
+          const Text('Vrati trezor iz kopije', style: TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 9),
+          const Text('Odaberite šifriranu datoteku i potvrdite '
+            'njezinu pristupnu lozinku. Vraćanje zamjenjuje aktivni trezor.',
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: busy ? null : restore,
+            icon: const Icon(Icons.folder_open_outlined, size: 18),
+            label: const Text('Odaberi datoteku')),
+        ],
+      )),
       const SizedBox(height: 10),
-      const Text('Izvezite svoj trezor kao šifriranu .veldigo datoteku. '
-        'Datoteka se može otvoriti na Androidu i Windowsu pomoću '
-        'iste glavne lozinke.',
-        style: TextStyle(color: VColors.muted)),
-      const SizedBox(height: 18),
-      VPrimaryButton(label: 'Izradi sigurnosnu kopiju',
-        icon: Icons.file_download_outlined,
-        onPressed: busy ? null : export),
+      const VPanel(padding: EdgeInsets.all(13),
+        child: Row(children: [
+          Icon(Icons.devices_outlined, size: 23, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Prijenos između uređaja',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('Android ↔ Windows putem šifrirane .veldigo datoteke.',
+                style: TextStyle(color: VColors.muted, fontSize: 11)),
+            ],
+          )),
+        ])),
       const SizedBox(height: 10),
-      OutlinedButton.icon(
-        onPressed: busy ? null : restore,
-        icon: const Icon(Icons.restore),
-        label: const Text('Vrati trezor iz kopije')),
-      const SizedBox(height: 10),
-      const Text('Važno: vraćanje zamjenjuje postojeći trezor. '
-        'Spremite aktualnu kopiju prije vraćanja.',
-        style: TextStyle(color: VColors.muted, fontSize: 12)),
-    ])),
-  ]);
+      const VPanel(padding: EdgeInsets.all(13),
+        child: Row(children: [
+          Icon(Icons.shield_outlined, size: 23, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Privatnost prije svega',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('Šifrirana datoteka ostaje pod vašom kontrolom. '
+                'Čuvajte njezinu lozinku i pohranite je na sigurno.',
+                style: TextStyle(color: VColors.muted, fontSize: 11)),
+            ],
+          )),
+        ])),
+    ],
+  );
 }
 
 class SettingsPage extends StatelessWidget {
