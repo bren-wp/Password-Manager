@@ -136,15 +136,19 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min, children: [
         if (!desktop) ...[
-          const Center(child: VeldigoLogo(size: 70)),
-          const SizedBox(height: 38),
+          const Center(child: VeldigoLogo(size: 92, showName: false)),
+          const SizedBox(height: 16),
+          const Center(child: VeldigoLogo(size: 23)),
+          const SizedBox(height: 30),
         ],
-        Text(widget.create ? 'Stvorite sigurni trezor' : 'Dobro došli natrag',
+        Text(widget.create ? 'Zaštitite svoj trezor' : 'Dobro došli natrag',
+          textAlign: desktop ? TextAlign.start : TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 12),
         Text(widget.create
             ? 'Postavite glavnu lozinku za šifriranje svih podataka.'
             : 'Otključajte svoj Veldigo trezor i nastavite gdje ste stali.',
+          textAlign: desktop ? TextAlign.start : TextAlign.center,
           style: const TextStyle(color: VColors.muted)),
         const SizedBox(height: 30),
         TextFormField(
@@ -178,6 +182,64 @@ class _AuthScreenState extends State<AuthScreen> {
               prefixIcon: Icon(Icons.verified_user_outlined)),
             validator: (value) => value != password.text
               ? 'Lozinke se ne podudaraju.' : null,
+          ),
+          const SizedBox(height: 18),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: password,
+            builder: (context, value, _) {
+              final text = value.text;
+              final checks = <(String, bool)>[
+                ('Najmanje 12 znakova', text.runes.length >= 12),
+                ('Velika i mala slova', RegExp(r'[A-Z]').hasMatch(text) &&
+                    RegExp(r'[a-z]').hasMatch(text)),
+                ('Broj', RegExp(r'[0-9]').hasMatch(text)),
+                ('Poseban znak', RegExp(r'[^a-zA-Z0-9]').hasMatch(text)),
+              ];
+              final met = checks.where((entry) => entry.$2).length;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    const Text('Jačina lozinke',
+                      style: TextStyle(color: VColors.muted, fontSize: 12)),
+                    const Spacer(),
+                    Text(met == 4 ? 'Vrlo jaka' : met >= 2
+                      ? 'Srednja' : 'Slaba',
+                      style: TextStyle(
+                        color: met == 4 ? VColors.accent
+                            : met >= 2 ? VColors.warning : VColors.red,
+                        fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    for (var i = 0; i < 4; i++) ...[
+                      Expanded(child: Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: i < met ? (met == 4
+                            ? VColors.accent : VColors.warning)
+                            : VColors.border,
+                          borderRadius: BorderRadius.circular(5)),
+                      )),
+                      if (i < 3) const SizedBox(width: 5),
+                    ],
+                  ]),
+                  const SizedBox(height: 12),
+                  for (final entry in checks)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Row(children: [
+                        Icon(entry.$2 ? Icons.check_circle : Icons.circle_outlined,
+                          color: entry.$2 ? VColors.accent : VColors.muted,
+                          size: 15),
+                        const SizedBox(width: 8),
+                        Text(entry.$1, style: const TextStyle(
+                          color: VColors.muted, fontSize: 11)),
+                      ]),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
           const Text('Glavnu lozinku nije moguće vratiti. I sigurnosne kopije '
