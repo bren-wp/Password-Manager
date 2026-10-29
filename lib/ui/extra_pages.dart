@@ -33,6 +33,10 @@ class _GeneratorPageState extends State<GeneratorPage> {
     return (entropyBits / 110).clamp(0.0, 1.0).toDouble();
   }
   late String generated = PasswordGenerator.generate(length: length);
+  late double _generatedStrength = estimatedStrength;
+  // This history exists only in the unlocked widget state. It is never
+  // persisted, logged, or copied into the encrypted vault implicitly.
+  final _history = <({String password, double strength, DateTime createdAt})>[];
 
   void regenerate() {
     try {
@@ -40,7 +44,16 @@ class _GeneratorPageState extends State<GeneratorPage> {
         length: length, uppercase: upper,
         lowercase: lower, numbers: numbers, special: symbols,
         avoidSimilar: avoidSimilar);
-      setState(() => generated = next);
+      setState(() {
+        _history.insert(0, (
+          password: generated,
+          strength: _generatedStrength,
+          createdAt: DateTime.now(),
+        ));
+        if (_history.length > 5) _history.removeLast();
+        generated = next;
+        _generatedStrength = estimatedStrength;
+      });
     } on ArgumentError {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Odaberite barem jednu skupinu znakova.')));
@@ -68,8 +81,9 @@ class _GeneratorPageState extends State<GeneratorPage> {
     regenerate();
   }
 
-  Future<void> copyGenerated() async {
-    final copied = generated;
+  Future<void> copyGenerated() => _copyPassword(generated);
+
+  Future<void> _copyPassword(String copied) async {
     await Clipboard.setData(ClipboardData(text: copied));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -108,11 +122,211 @@ class _GeneratorPageState extends State<GeneratorPage> {
       onChanged: onChanged,
     );
 
+
+  Widget _desktopOption(String label, bool checked,
+      ValueChanged<bool> onChanged) => SizedBox(
+    width: 168,
+    child: CheckboxListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      activeColor: VColors.accent,
+      checkColor: VColors.background,
+      title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11, color: VColors.text)),
+      value: checked,
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
+    ),
+  );
+
+  Widget _desktopGenerator(double strength, String strengthName) {
+    String quality(double score) => score >= .85
+        ? 'Vrlo jaka' : score >= .55 ? 'Jaka' : 'Umjerena';
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      children: [
+        const Row(children: [
+          Icon(Icons.shuffle, color: VColors.accent, size: 31),
+          SizedBox(width: 14),
+          Expanded(child: VSectionHeader(
+            title: 'Generator lozinki',
+            subtitle: 'Generirajte jake i jedinstvene lozinke.',
+          )),
+        ]),
+        const SizedBox(height: 8),
+        VPanel(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Generirana lozinka', style: TextStyle(
+              color: VColors.muted, fontSize: 12)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 2, 6, 2),
+              decoration: BoxDecoration(
+                color: VColors.background,
+                border: Border.all(color: VColors.border),
+                borderRadius: BorderRadius.circular(8)),
+              child: Row(children: [
+                Expanded(child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SelectableText(generated, maxLines: 1,
+                    style: const TextStyle(fontSize: 22,
+                      letterSpacing: .5, color: VColors.text)),
+                )),
+                IconButton(
+                  tooltip: 'Kopiraj lozinku',
+                  onPressed: copyGenerated,
+                  icon: const Icon(Icons.copy_outlined,
+                    color: VColors.accent)),
+                IconButton(
+                  tooltip: 'Nova lozinka',
+                  onPressed: regenerate,
+                  icon: const Icon(Icons.refresh,
+                    color: VColors.accent)),
+              ]),
+            ),
+            const SizedBox(height: 11),
+            Row(children: [
+              const Text('Snaga lozinke', style: TextStyle(
+                color: VColors.muted, fontSize: 11)),
+              const Spacer(),
+              Text(strengthName, style: const TextStyle(
+                color: VColors.accent, fontSize: 11,
+                fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 5),
+            Row(children: [
+              for (var index = 0; index < 5; index++) ...[
+                if (index > 0) const SizedBox(width: 4),
+                Expanded(child: Container(
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: strength >= (index + 1) / 5
+                        ? VColors.accent : VColors.border,
+                    borderRadius: BorderRadius.circular(4)),
+                )),
+              ],
+            ]),
+          ],
+        )),
+        const SizedBox(height: 12),
+        VPanel(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Duljina lozinke: $length znakova',
+              style: const TextStyle(fontSize: 12, color: VColors.text)),
+            Slider(
+              value: length.toDouble(),
+              min: 8, max: 128, divisions: 120,
+              activeColor: VColors.accent,
+              onChanged: (value) {
+                setState(() => length = value.toInt());
+                regenerate();
+              },
+            ),
+            const Row(children: [
+              Text('8', style: TextStyle(
+                fontSize: 10, color: VColors.muted)),
+              Spacer(),
+              Text('128', style: TextStyle(
+                fontSize: 10, color: VColors.muted)),
+            ]),
+            const SizedBox(height: 7),
+            Wrap(spacing: 7, runSpacing: 3, children: [
+              _desktopOption('Velika slova', upper,
+                (v) => changeCharacterSet('upper', v)),
+              _desktopOption('Mala slova', lower,
+                (v) => changeCharacterSet('lower', v)),
+              _desktopOption('Brojevi', numbers,
+                (v) => changeCharacterSet('numbers', v)),
+              _desktopOption('Posebni znakovi', symbols,
+                (v) => changeCharacterSet('symbols', v)),
+              _desktopOption('Bez sličnih', avoidSimilar, (v) {
+                setState(() => avoidSimilar = v);
+                regenerate();
+              }),
+            ]),
+            const SizedBox(height: 10),
+            VPrimaryButton(
+              label: 'Generiraj novu lozinku',
+              icon: Icons.shuffle,
+              onPressed: regenerate),
+          ],
+        )),
+        const SizedBox(height: 12),
+        VPanel(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              const Icon(Icons.history, size: 18,
+                color: VColors.muted),
+              const SizedBox(width: 8),
+              const Expanded(child: Text(
+                'Povijest generiranih lozinki',
+                style: TextStyle(fontSize: 12, color: VColors.text,
+                  fontWeight: FontWeight.w600))),
+              TextButton.icon(
+                onPressed: _history.isEmpty ? null :
+                    () => setState(_history.clear),
+                icon: const Icon(Icons.delete_outline, size: 15),
+                label: const Text('Očisti povijest'),
+              ),
+            ]),
+            if (_history.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('Povijest je prazna. Generirajte novu lozinku.',
+                  style: TextStyle(fontSize: 12, color: VColors.muted)),
+              ),
+            for (final item in _history) Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 1, 4, 1),
+                decoration: BoxDecoration(
+                  color: VColors.raised,
+                  border: Border.all(color: VColors.border),
+                  borderRadius: BorderRadius.circular(7)),
+                child: Row(children: [
+                  const Icon(Icons.shuffle, size: 15, color: VColors.muted),
+                  const SizedBox(width: 9),
+                  Expanded(child: Text(
+                    List.filled(min(18, item.password.length), '•').join(),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13, color: VColors.text))),
+                  Text(quality(item.strength), style: const TextStyle(
+                    color: VColors.accent, fontSize: 11)),
+                  const SizedBox(width: 14),
+                  Text(
+                    '${item.createdAt.hour.toString().padLeft(2, '0')}:'
+                    '${item.createdAt.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(fontSize: 10,
+                      color: VColors.muted)),
+                  IconButton(
+                    tooltip: 'Kopiraj lozinku iz povijesti',
+                    icon: const Icon(Icons.copy_outlined, size: 17),
+                    onPressed: () => _copyPassword(item.password)),
+                ]),
+              ),
+            ),
+          ],
+        )),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strength = estimatedStrength;
     final strengthName = strength >= .85
         ? 'Vrlo jaka' : strength >= .55 ? 'Jaka' : 'Umjerena';
+    if (MediaQuery.sizeOf(context).width >= 850) {
+      return _desktopGenerator(strength, strengthName);
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       children: [
