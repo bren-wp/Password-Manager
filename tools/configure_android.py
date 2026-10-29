@@ -40,28 +40,15 @@ resource.write_text("""<?xml version="1.0" encoding="utf-8"?>
 doc.write(manifest, encoding="utf-8", xml_declaration=True)
 
 source = gradle.read_text(encoding="utf-8")
-source = source.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
 if "minSdk = 24" not in source:
-    raise SystemExit("Unable to set minSdk 24")
-gradle.write_text(source, encoding="utf-8")
+    raise SystemExit("Veldigo minimum Android API 24 is not configured")
+if "targetSdk = 36" not in source:
+    raise SystemExit("Google Play 2026 requires target API 36 or later")
 
-activity.write_text(
-    """package com.brendigo.veldigo
+# Do not overwrite MainActivity: CI should validate privacy invariants without
+# silently deleting later Android lifecycle, insets, or accessibility fixes.
+activity_source = activity.read_text(encoding="utf-8")
+if "WindowManager.LayoutParams.FLAG_SECURE" not in activity_source:
+    raise SystemExit("FLAG_SECURE screenshot protection is missing")
 
-import android.os.Bundle
-import android.view.WindowManager
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
-    }
-}
-""",
-    encoding="utf-8",
-)
-print("Veldigo identity, API 24, no OS backup and screenshot protection applied.")
+print("Veldigo API 24/36, backup exclusions and screenshot protection verified.")
