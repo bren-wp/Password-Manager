@@ -1,36 +1,25 @@
-# Veldigo v0.3.0 Preview 1 — Android + Windows
+# Veldigo v0.3.1 Preview 1 — Android + Windows
 
-**Preview izdanje; nije certificirani proizvod niti Google Play produkcijski potpisan AAB.**
-Verzija aplikacije: `0.3.0+13`. Autor i izdavač: Brendigo.
+**Predizdanje za provjeru. Nije produkcijski certificirano ni potpuno RGB-identično referencama.**
+Verzija: 0.3.1+14. Autor/izdavač: Brendigo.
 
-## Platforme i build
+## Funkcionalne i vizualne promjene
+- Android i Windows generator lozinki imaju pet jednako širokih vizualnih segmenata snage lozinke, prema izvornim konceptima.
+- Android generator zadržava kompaktne retke, kako primarna radnja ostaje vidljiva iznad donje navigacije pri tipičnom mobilnom viewportu.
+- Poboljšan je završni dio zaslona otključavanja na telefonu.
+- Prošireni testovi pokrivaju responzivnost, vidljivost gumba, generiranje lozinki, osnovne UI interakcije i regresije zaključavanja.
+- 26 originalnih dizajnerskih PNG-ova uspoređeno je s 26 Flutter testnih snimki; dimenzije su uparene, ali **0/26 je pixel-perfect**. Nije rađeno lažno rastezanje prikaza.
 
-- Android: Google Play target API 36, minSdk 24, Gradle 9.6.0 i Android Gradle Plugin 9.5.0, JDK 17.
-- Flutter 3.47.8 postavljen kao provjerena CI verzija.
-- Android nema nešifrirani promet aplikacije, OS backup trezora je isključen i `FLAG_SECURE` štiti osjetljive zaslone od uobičajenog snimanja.
-- Release signing: testno/pregledno potpisivanje **izričito označeno preview**. Za Play upload potreban je izdavačev zasebni upload ključ; testni AAB se ne smije slati u produkciju.
-- Windows: release desktop izvršna datoteka, prenosivi samostalni program, instalacijski paket i ZIP, bez potvrđenog Authenticode potpisa.
+## Sigurnost i privatnost
+- Osjetljiva polja (glavne lozinke, lozinke zapisa, TOTP ključ, CVV, šifrirane bilješke, lozinke uvoza/opravka) isključuju personalizirano učenje tipkovnice, automatske zamjene navodnika/crtica te relevantne prijedloge.
+- Zadržan lokalni AES-256-GCM/Argon2id format trezora. Nema nove vlastite enkripcije niti promjene formata kompatibilnih sigurnosnih kopija.
+- Android: minSdk 24, targetSdk 36, Gradle 9.6.0, Android Gradle Plugin 9.5.0; OS backup trezora i nezaštićeni promet ostaju onemogućeni.
+- Preview Android AAB koristi razvojni potpis (Nije za Google Play produkciju). Windows binarni programi nisu Authenticode potpisani.
 
-## Sigurnost, stabilnost i privatnost
+## Sadržaj izdanja
+- Veldigo-Android.apk; Veldigo-Android.aab
+- Veldigo-portable.exe; Veldigo-Setup.exe; Veldigo-Windows-portable.zip
+- Android-SHA256.txt; Windows-SHA256.txt
 
-- Očuvan je postojeći lokalni format trezora: **AES-256-GCM**, Argon2id (19 MiB, t=2, p=1), jedinstvena sol i slučajni nonce te autentifikacija šifriranog sadržaja.
-- Nije uvedena nova vlastita kriptografija, mrežna sinkronizacija, telemetrija ili potreba za slanjem lozinki vanjskom servisu.
-- Novi lokalni test `flutter test test/local_crypto_smoke_test.dart` provjerava šifriranje/dešifriranje, šifrirani prijenos, odbijanje pogrešne glavne lozinke te izmjenu autentifikacijske oznake.
-- Android build skripta više ne prepisuje `MainActivity.kt`; provjerava primjenu `FLAG_SECURE` i SDK razine.
-- Provjere `flutter analyze`, `flutter test`, lokalni crypto smoke test i debug/release buildovi uvjetuju objavu.
-
-## UI/UX
-
-- Nastavljene dorade Android i Windows dizajna iz prethodnih spojenih PR-ova #10 i #11, uključujući Windows generator i privatnu, maskiranu povijest generiranja.
-- Objavljene Flutter snimke zaslona nisu dokaz stvarnog prikaza u nativnom Windows/Android runtimeu.
-- **Nije potvrđeno pixel-perfect RGB 1:1 za 26 referenci.** Preostaju precizni vizualni diffovi, tipografija, različiti DPI-ovi i testovi na fizičkim uređajima.
-
-## Datoteke izdanja
-
-- `Veldigo-Android.apk`, `Veldigo-Android.aab`
-- `Veldigo-portable.exe`, `Veldigo-Setup.exe`, `Veldigo-Windows-portable.zip`
-- `Android-SHA256.txt`, `Windows-SHA256.txt`
-
-## Preostala ograničenja
-
-Nije izveden nezavisni sigurnosni audit, napadno testiranje, dokaz potpune otpornosti na gubitak napajanja, ni provjera svih Android uređaja i Windows DPI postavki. Rukovanje tajnama u memoriji i sigurnost međuspremnika ovise i o operacijskom sustavu. Nije zajamčena apsolutna sigurnost niti "vojna certifikacija". Neovjereni Windows izvršni programi mogu prikazati SmartScreen upozorenje. Korisnici trebaju čuvati neovisne šifrirane sigurnosne kopije.
+## Ograničenja
+Flutter testne snimke nisu dokaz izgleda na fizičkim Android/Windows uređajima. Nema garancije potpunog 1:1 vizualnog poklapanja, apsolutne sigurnosti ni dovršenog vanjskog penetracijskog testiranja. Biometrija i Windows Hello iz dizajnerskog koncepta nisu predstavljeni kao funkcionalni dok ne postoji sigurnosno provjerena integracija.
