@@ -1,0 +1,5 @@
+Veldigo 0.2.5-preview.1 Android/Windows visual parity hardening.
+Publish only after flutter analyze, unit/widget tests, Android APK/AAB build,
+Windows release/portable/setup packaging and checksum generation succeed.
+This tag must point to this commit including all UI, behavioral and privacy
+changes and README's 26 automatically captured screenshots.
