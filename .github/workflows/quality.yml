@@ -36,7 +36,7 @@ jobs:
           python tools/test_visual_parity_audit.py
       - run: flutter test
       - name: Offline encrypted vault round-trip and tamper checks
-        run: dart run tool/verify_local_crypto.dart
+        run: flutter test test/local_crypto_smoke_test.dart
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
