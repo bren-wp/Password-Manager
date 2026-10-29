@@ -105,12 +105,21 @@ void main() {
     tester.view.physicalSize = size;
     await tester.pumpWidget(RepaintBoundary(
       key: captureKey,
-      child: LayoutBuilder(builder: (context, bounds) => FittedBox(
-        fit: BoxFit.fill,
-        child: SizedBox(
-          width: bounds.maxWidth / pixelRatio,
-          height: bounds.maxHeight / pixelRatio,
-          child: MaterialApp(
+      child: LayoutBuilder(builder: (context, bounds) {
+        final logicalWidth = bounds.maxWidth / pixelRatio;
+        final logicalHeight = bounds.maxHeight / pixelRatio;
+        // Render each Flutter component at its intended logical size.
+        // Apply only uniform physical DPR scaling, never BoxFit.fill:
+        // individual widgets own their responsive spacing and typography.
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Transform.scale(
+            scale: pixelRatio,
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: logicalWidth,
+              height: logicalHeight,
+              child: MaterialApp(
             // Navigator's initial home route is not replaced merely because
             // a different home widget is passed on the next pumpWidget.
             // A new application key isolates every screenshot's navigator.
@@ -122,16 +131,17 @@ void main() {
             // so responsive widgets see the *logical* mobile viewport.
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(context).copyWith(
-                size: Size(bounds.maxWidth / pixelRatio,
-                    bounds.maxHeight / pixelRatio),
+                size: Size(logicalWidth, logicalHeight),
                 devicePixelRatio: pixelRatio,
               ),
               child: child!,
             ),
             home: KeyedSubtree(key: ValueKey(file), child: screen),
+              ),
+            ),
           ),
-        ),
-      )),
+        );
+      }),
     ));
     await tester.pump(const Duration(milliseconds: 350));
     await expectLater(find.byKey(captureKey),
