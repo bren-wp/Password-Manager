@@ -182,22 +182,25 @@ class SecurityPage extends StatelessWidget {
         subtitle: 'Pregled sigurnosti vaših spremljenih lozinki.',
       ),
       VPanel(child: Row(children: [
-        SizedBox(width: 85, height: 85, child: Stack(
+        SizedBox(width: constraints.maxWidth < 360 ? 68 : 85,
+          height: constraints.maxWidth < 360 ? 68 : 85,
+          child: Stack(
           fit: StackFit.expand, children: [
             CircularProgressIndicator(value: score / 100, strokeWidth: 8,
               color: VColors.accent, backgroundColor: VColors.border),
             Center(child: Text('$score', style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.bold))),
           ])),
-        const SizedBox(width: 20),
-        const Expanded(child: Column(
+        SizedBox(width: constraints.maxWidth < 360 ? 12 : 20),
+        Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Sigurnosni rezultat',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 7),
-          Text('Lokalna procjena duljine i ponavljanja lozinki. '
+            style: TextStyle(fontSize: constraints.maxWidth < 360 ? 16 : 20,
+              fontWeight: FontWeight.bold)),
+          const SizedBox(height: 7),
+          const Text('Lokalna procjena duljine i ponavljanja lozinki. '
             'Ne provjerava stvarne proboje računa niti aktivnu 2FA zaštitu.',
-            style: TextStyle(color: VColors.muted)),
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
         ])),
       ])),
       const SizedBox(height: 14),
@@ -308,9 +311,19 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
           onPressed: widget.onAdd,
           icon: const Icon(Icons.add, color: VColors.accent)),
       ),
-      const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
-        'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
-        'Koristite vlastiti Base32 tajni ključ.')),
+      const VPanel(child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.verified_user_outlined,
+            size: 24, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Text(
+            'TOTP kodovi generiraju se lokalno i ne šalju na poslužitelj. '
+            'Dodajte vlastiti Base32 tajni ključ.',
+            style: TextStyle(color: VColors.muted, fontSize: 12,
+              height: 1.45))),
+        ],
+      )),
       const SizedBox(height: 15),
       for (final item in widget.items)
         Padding(padding: const EdgeInsets.only(bottom: 10),
@@ -532,6 +545,10 @@ class SettingsPage extends StatelessWidget {
       title: 'Postavke',
       subtitle: 'Sigurnost, privatnost i upravljanje aplikacijom.',
     ),
+    const Text('SIGURNOST', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     VPanel(child: Column(children: [
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),
@@ -553,6 +570,10 @@ class SettingsPage extends StatelessWidget {
         onTap: () => changePassword(context)),
     ])),
     const SizedBox(height: 16),
+    const Text('PODACI', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     VPanel(child: Column(children: [
       ListTile(
         leading: const Icon(Icons.backup_outlined, color: VColors.accent),
@@ -566,6 +587,10 @@ class SettingsPage extends StatelessWidget {
       ),
     ])),
     const SizedBox(height: 16),
+    const Text('APLIKACIJA', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),
