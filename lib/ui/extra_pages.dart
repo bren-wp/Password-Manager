@@ -21,23 +21,49 @@ class GeneratorPage extends StatefulWidget {
 class _GeneratorPageState extends State<GeneratorPage> {
   int length = 20;
   bool upper = true, lower = true, numbers = true, symbols = true;
-  late String generated = PasswordGenerator.generate();
+  late String generated = PasswordGenerator.generate(length: length);
 
   void regenerate() {
     try {
-      setState(() => generated = PasswordGenerator.generate(
+      final next = PasswordGenerator.generate(
         length: length, uppercase: upper,
-        lowercase: lower, numbers: numbers, special: symbols));
+        lowercase: lower, numbers: numbers, special: symbols);
+      setState(() => generated = next);
     } on ArgumentError {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Odaberite barem jednu skupinu znakova.')));
     }
   }
 
+  void changeCharacterSet(String type, bool enabled) {
+    final remaining = (type == 'upper' ? enabled : upper) ||
+        (type == 'lower' ? enabled : lower) ||
+        (type == 'numbers' ? enabled : numbers) ||
+        (type == 'symbols' ? enabled : symbols);
+    if (!remaining) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Najmanje jedna skupina znakova mora ostati uključena.')));
+      return;
+    }
+    setState(() {
+      switch (type) {
+        case 'upper': upper = enabled;
+        case 'lower': lower = enabled;
+        case 'numbers': numbers = enabled;
+        case 'symbols': symbols = enabled;
+      }
+    });
+    regenerate();
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
+      const VSectionHeader(
+        title: 'Generator lozinki',
+        subtitle: 'Generirajte jake i jedinstvene lozinke.',
+      ),
       VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
         const Text('GENERIRANA LOZINKA',
@@ -85,23 +111,26 @@ class _GeneratorPageState extends State<GeneratorPage> {
               color: VColors.accent, fontWeight: FontWeight.bold))]),
         Slider(min: 8, max: 64, divisions: 56, value: length.toDouble(),
           activeColor: VColors.accent,
-          onChanged: (value) => setState(() => length = value.toInt())),
+          onChanged: (value) {
+            setState(() => length = value.toInt());
+            regenerate();
+          }),
         SwitchListTile.adaptive(
           title: const Text('Velika slova (A–Z)'), value: upper,
-          onChanged: (v) => setState(() => upper = v)),
+          onChanged: (v) => changeCharacterSet('upper', v)),
         SwitchListTile.adaptive(
           title: const Text('Mala slova (a–z)'), value: lower,
-          onChanged: (v) => setState(() => lower = v)),
+          onChanged: (v) => changeCharacterSet('lower', v)),
         SwitchListTile.adaptive(
           title: const Text('Brojevi (0–9)'), value: numbers,
-          onChanged: (v) => setState(() => numbers = v)),
+          onChanged: (v) => changeCharacterSet('numbers', v)),
         SwitchListTile.adaptive(
           title: const Text('Posebni znakovi'), value: symbols,
-          onChanged: (v) => setState(() => symbols = v)),
+          onChanged: (v) => changeCharacterSet('symbols', v)),
       ])),
       const SizedBox(height: 16),
       VPrimaryButton(label: 'Generiraj novu lozinku',
-        icon: Icons.auto_awesome, onPressed: regenerate),
+        icon: Icons.refresh, onPressed: regenerate),
     ],
   );
 }
@@ -121,9 +150,16 @@ class SecurityPage extends StatelessWidget {
       counts[item.secret] = (counts[item.secret] ?? 0) + 1;
     }
     final repeated = passwords.where((e) => (counts[e.secret] ?? 0) > 1).length;
-    final score = passwords.isEmpty ? 100 :
+    // An empty vault is not a verified 100/100 security result.
+    final score = passwords.isEmpty ? 0 :
       max(0, 100 - (weak.length * 12 + repeated * 8));
-    return ListView(padding: const EdgeInsets.all(16), children: [
+    return LayoutBuilder(builder: (context, constraints) {
+      final metricWidth = (constraints.maxWidth - 44) / 2;
+      return ListView(padding: const EdgeInsets.all(16), children: [
+      const VSectionHeader(
+        title: 'Sigurnosni centar',
+        subtitle: 'Pregled sigurnosti vaših spremljenih lozinki.',
+      ),
       VPanel(child: Row(children: [
         SizedBox(width: 85, height: 85, child: Stack(
           fit: StackFit.expand, children: [
@@ -135,7 +171,7 @@ class SecurityPage extends StatelessWidget {
         const SizedBox(width: 20),
         const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Sigurnosni centar',
+          Text('Sigurnosni rezultat',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           SizedBox(height: 7),
           Text('Lokalna procjena duljine i ponavljanja lozinki. '
@@ -145,12 +181,12 @@ class SecurityPage extends StatelessWidget {
       ])),
       const SizedBox(height: 14),
       Wrap(spacing: 12, runSpacing: 12, children: [
-        _metric('Ukupno lozinki', passwords.length, Icons.key),
-        _metric('Slabije lozinke', weak.length, Icons.warning_amber),
-        _metric('Ponovljene lozinke', repeated, Icons.repeat),
+        _metric('Ukupno lozinki', passwords.length, Icons.key, metricWidth),
+        _metric('Slabije lozinke', weak.length, Icons.warning_amber, metricWidth),
+        _metric('Ponovljene lozinke', repeated, Icons.repeat, metricWidth),
         _metric('Ostale bilješke',
           items.where((e) => e.kind == ItemKind.note).length,
-          Icons.description_outlined),
+          Icons.description_outlined, metricWidth),
       ]),
       const SizedBox(height: 18),
       const Text('Preporuke za poboljšanje',
@@ -171,10 +207,11 @@ class SecurityPage extends StatelessWidget {
           'Pronađeno je $repeated zapisa s ponovljenim lozinkama. '
           'Koristite jedinstvenu lozinku za svaki servis.')),
     ]);
+    });
   }
 
-  static Widget _metric(String title, int count, IconData icon) =>
-      SizedBox(width: 205, child: VPanel(child: Row(children: [
+  static Widget _metric(String title, int count, IconData icon, double width) =>
+      SizedBox(width: width, child: VPanel(child: Row(children: [
         Icon(icon, color: VColors.accent),
         const SizedBox(width: 10),
         Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,6 +249,16 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   Widget build(BuildContext context) {
     final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     return ListView(padding: const EdgeInsets.all(16), children: [
+      VSectionHeader(
+        title: 'Autentifikator',
+        subtitle: widget.items.isEmpty
+            ? 'Dodajte prvi račun s vlastitim TOTP tajnim ključem.'
+            : 'Jednokratni kodovi generiraju se lokalno.',
+        trailing: IconButton(
+          tooltip: 'Dodaj autentifikator',
+          onPressed: widget.onAdd,
+          icon: const Icon(Icons.add, color: VColors.accent)),
+      ),
       const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
         'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
         'Koristite vlastiti Base32 tajni ključ.')),
@@ -235,6 +282,15 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
                 style: const TextStyle(
                   fontSize: 29, color: VColors.accent,
                   fontWeight: FontWeight.bold, letterSpacing: 3))),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: (30 - epoch % 30) / 30,
+              backgroundColor: VColors.border,
+              color: VColors.accent,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(height: 8),
             Text('Novi kod za ${30 - epoch % 30} s',
               style: const TextStyle(color: VColors.muted)),
           ]))),
@@ -331,6 +387,10 @@ class _BackupPageState extends State<BackupPage> {
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16), children: [
+    const VSectionHeader(
+      title: 'Sigurnosna kopija',
+      subtitle: 'Izvoz, vraćanje i prijenos šifriranog trezora.',
+    ),
     VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
       const Icon(Icons.enhanced_encryption, color: VColors.accent, size: 40),
@@ -413,6 +473,10 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16), children: [
+    const VSectionHeader(
+      title: 'Postavke',
+      subtitle: 'Sigurnost, privatnost i upravljanje aplikacijom.',
+    ),
     VPanel(child: Column(children: [
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),

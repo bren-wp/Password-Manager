@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 
 abstract final class VColors {
-  static const background = Color(0xFF05111F);
-  static const surface = Color(0xFF0A1C2F);
-  static const raised = Color(0xFF10253A);
-  static const border = Color(0xFF1E3C52);
-  static const accent = Color(0xFF27E4D2);
-  static const text = Color(0xFFF4F8FF);
-  static const muted = Color(0xFF91A9C4);
-  static const red = Color(0xFFFF6677);
+  // These are design tokens measured against the reference's dark navy
+  // cards and cyan-green accents, shared by every Android/Windows screen.
+  static const background = Color(0xFF061220);
+  static const surface = Color(0xFF0A192A);
+  static const raised = Color(0xFF102338);
+  static const border = Color(0xFF193348);
+  static const accent = Color(0xFF2AE4CC);
+  static const text = Color(0xFFF4F7FC);
+  static const muted = Color(0xFF8A9EB9);
+  static const red = Color(0xFFFF6479);
+  static const warning = Color(0xFFFFB34F);
+  static const blue = Color(0xFF66B6FF);
+  static const success = Color(0xFF36D6A9);
 }
 
 ThemeData veldigoTheme() => ThemeData(
@@ -25,6 +30,34 @@ ThemeData veldigoTheme() => ThemeData(
         titleLarge: TextStyle(fontWeight: FontWeight.w700, color: VColors.text),
         bodyMedium: TextStyle(color: VColors.text),
       ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: VColors.background,
+        foregroundColor: VColors.text,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: VColors.background,
+        elevation: 0,
+        indicatorColor: VColors.raised,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) =>
+          TextStyle(
+            color: states.contains(WidgetState.selected)
+                ? VColors.accent : VColors.muted,
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700 : FontWeight.w500,
+          )),
+        iconTheme: WidgetStateProperty.resolveWith((states) =>
+          IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? VColors.accent : VColors.muted,
+            size: 23,
+          )),
+      ),
+      dividerColor: VColors.border,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: VColors.surface,
@@ -149,4 +182,61 @@ class VPrimaryButton extends StatelessWidget {
     icon: Icon(icon ?? Icons.lock_outline),
     label: Text(label),
   );
+}
+
+/// Consistent reference-inspired heading for secondary Android and desktop
+/// pages; the layout contracts, rather than text scale, control responsiveness.
+class VSectionHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  const VSectionHeader({super.key, required this.title, this.subtitle,
+    this.trailing});
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(0, 2, 0, 16),
+    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 22,
+              fontWeight: FontWeight.w800, color: VColors.text)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 5),
+            Text(subtitle!, style: const TextStyle(
+              fontSize: 12, color: VColors.muted, height: 1.35)),
+          ],
+        ])),
+      if (trailing != null) ...[
+        const SizedBox(width: 10),
+        trailing!,
+      ],
+    ]),
+  );
+}
+
+class VCategoryPill extends StatelessWidget {
+  final String name;
+  const VCategoryPill({super.key, required this.name});
+  @override
+  Widget build(BuildContext context) {
+    final lower = name.toLowerCase();
+    final color = lower.contains('posao') || lower.contains('work')
+        ? VColors.blue : lower.contains('zabava')
+        ? const Color(0xFFB693FF) : lower.contains('financ')
+        ? VColors.warning : VColors.accent;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 112),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        border: Border.all(color: color.withValues(alpha: .22)),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: color, fontSize: 10,
+          fontWeight: FontWeight.w600)),
+    );
+  }
 }

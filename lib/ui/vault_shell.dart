@@ -10,14 +10,14 @@ import 'entry_editor.dart';
 import 'extra_pages.dart';
 
 const _navigation = <(String, IconData)>[
-  ('Trezor', Icons.lock_outline),
+  ('Trezor', Icons.home_outlined),
   ('Sve lozinke', Icons.list_alt),
   ('Favoriti', Icons.star_outline),
   ('Kategorije', Icons.grid_view_rounded),
   ('Sigurne bilješke', Icons.description_outlined),
   ('Kartice', Icons.credit_card_outlined),
   ('Autentifikator', Icons.verified_user_outlined),
-  ('Generator', Icons.auto_awesome_outlined),
+  ('Generator', Icons.casino_outlined),
   ('Sigurnost', Icons.shield_outlined),
   ('Sigurnosna kopija', Icons.cloud_upload_outlined),
   ('Koš', Icons.delete_outline),
@@ -184,11 +184,13 @@ class _VaultShellState extends State<VaultShell> {
 
   Widget navMenu({bool drawer = false}) {
     return Container(
-      width: drawer ? 280 : 244,
-      color: VColors.surface,
+      width: drawer ? 280 : 228,
+      decoration: const BoxDecoration(
+        color: VColors.surface,
+        border: Border(right: BorderSide(color: VColors.border))),
       child: Column(children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 30, 12, 24),
-          child: VeldigoLogo(size: 43)),
+        const Padding(padding: EdgeInsets.fromLTRB(18, 26, 12, 30),
+          child: VeldigoLogo(size: 36)),
         Expanded(child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           children: [
@@ -199,11 +201,11 @@ class _VaultShellState extends State<VaultShell> {
                   dense: true,
                   selected: page == label,
                   selectedColor: VColors.accent,
-                  selectedTileColor: const Color(0xFF063C47),
+                  selectedTileColor: const Color(0xFF093846),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                   leading: Icon(icon, size: 20),
-                  title: Text(label),
+                  title: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   onTap: () {
                     if (drawer) { Navigator.of(context).pop(); }
                     navigate(label);
@@ -219,7 +221,7 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget titleBar(bool desktop) => Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 28 : 14, 23, 22, 14),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 18, desktop ? 25 : 14, 18, desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(page == 'Trezor' && !desktop
@@ -331,7 +333,7 @@ class _VaultShellState extends State<VaultShell> {
       bool trash = false}) {
     final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
-      final desktop = constraints.maxWidth >= 840;
+      final desktop = constraints.maxWidth >= 780;
       final selected = items.where((e) => e.id == selectedId).firstOrNull ??
           (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
@@ -389,7 +391,7 @@ class _VaultShellState extends State<VaultShell> {
           ],
           Expanded(child: Row(children: [
             Expanded(child: VPanel(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: items.isEmpty
                 ? Center(child: Padding(
                     padding: const EdgeInsets.all(30),
@@ -398,46 +400,15 @@ class _VaultShellState extends State<VaultShell> {
                       style: const TextStyle(color: VColors.muted))))
                 : ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, index) =>
-                      const Divider(height: 1, color: VColors.border),
-                    itemBuilder: (_, i) {
-                      final item = items[i];
-                      return ListTile(
-                        selected: desktop && selected?.id == item.id,
-                        selectedTileColor: const Color(0xFF073A43),
-                        leading: CircleAvatar(
-                          backgroundColor: VColors.raised,
-                          child: Icon(iconFor(item), color: VColors.accent)),
-                        title: Text(item.title, maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                        subtitle: Text(item.username.isNotEmpty
-                            ? item.username : item.category,
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: VColors.muted)),
-                        trailing: IconButton(
-                          tooltip: item.favorite ? 'Ukloni favorit' : 'Favorit',
-                          icon: Icon(item.favorite ? Icons.star : Icons.star_border,
-                            color: item.favorite ? Colors.amber : VColors.muted),
-                          onPressed: () async {
-                            try {
-                              await widget.store.put(item.copyWith(
-                                favorite: !item.favorite,
-                                updatedAt: DateTime.now().toUtc()));
-                            } on VaultConflictException {
-                              notifyUser('Promjene u drugom prozoru su novije. '
-                                'Ponovno otključajte trezor.');
-                            } catch (_) {
-                              notifyUser('Favorit nije spremljen.');
-                            }
-                          }),
-                        onTap: () => selectItem(item, desktop),
-                      );
-                    },
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
+                    itemBuilder: (_, i) => _accountTile(
+                      items[i], desktop, selected?.id == items[i].id),
                   ),
             )),
             if (desktop) ...[
               const SizedBox(width: 14),
-              SizedBox(width: 340,
+              SizedBox(width: 342,
                 child: selected == null
                   ? const VPanel(child: Center(
                     child: Text('Odaberite zapis za detalje.',
@@ -448,6 +419,122 @@ class _VaultShellState extends State<VaultShell> {
         ]),
       );
     });
+  }
+
+  /// Shared reference-style account card. Only masks are drawn for secrets.
+  Widget _accountTile(VaultItem item, bool desktop, bool selected) {
+    Future<void> action(String name) async {
+      if (!mounted || !widget.store.isUnlocked) return;
+      switch (name) {
+        case 'open':
+          selectItem(item, desktop);
+        case 'copy':
+          if (item.secret.isNotEmpty) await copySecret(item.secret);
+        case 'edit':
+          await edit(original: item);
+        case 'favorite':
+          try {
+            final current = widget.store.items.where(
+              (record) => record.id == item.id).firstOrNull;
+            if (current != null && !current.trashed) {
+              await widget.store.put(current.copyWith(
+                favorite: !current.favorite,
+                updatedAt: DateTime.now().toUtc()));
+            }
+          } catch (_) {
+            notifyUser('Favorit nije spremljen.');
+          }
+        case 'trash':
+          await remove(item);
+        case 'restore':
+          await recoverItem(item);
+      }
+    }
+    return Material(
+      color: selected ? const Color(0xFF103343) : VColors.surface,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => selectItem(item, desktop),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: selected
+                ? VColors.accent.withValues(alpha: .38) : VColors.border),
+          ),
+          child: Row(children: [
+            Container(
+              width: 45, height: 45,
+              decoration: BoxDecoration(
+                color: VColors.raised,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconFor(item), color: VColors.accent, size: 25),
+            ),
+            const SizedBox(width: 11),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14,
+                    fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(item.username.isEmpty ? item.category : item.username,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11,
+                    color: VColors.muted)),
+                if (!desktop) ...[
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    if (item.kind == ItemKind.password)
+                      const Expanded(child: Text('••••••••••',
+                        style: TextStyle(fontSize: 12,
+                          letterSpacing: 1.3, color: VColors.muted)))
+                    else
+                      const Spacer(),
+                    VCategoryPill(name: item.category),
+                  ]),
+                ],
+              ],
+            )),
+            if (item.secret.isNotEmpty && !item.trashed)
+              IconButton(
+                tooltip: 'Kopiraj',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => action('copy'),
+                icon: const Icon(Icons.copy_outlined,
+                  color: VColors.muted, size: 18),
+              ),
+            PopupMenuButton<String>(
+              tooltip: 'Više opcija',
+              icon: const Icon(Icons.more_vert,
+                color: VColors.muted, size: 20),
+              onSelected: action,
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'open',
+                  child: Text('Otvori detalje')),
+                if (!item.trashed) ...[
+                  if (item.secret.isNotEmpty)
+                    const PopupMenuItem(value: 'copy',
+                      child: Text('Kopiraj')),
+                  const PopupMenuItem(value: 'edit',
+                    child: Text('Uredi')),
+                  PopupMenuItem(value: 'favorite',
+                    child: Text(item.favorite
+                      ? 'Ukloni iz favorita' : 'Dodaj u favorite')),
+                  const PopupMenuItem(value: 'trash',
+                    child: Text('Premjesti u Koš')),
+                ] else
+                  const PopupMenuItem(value: 'restore',
+                    child: Text('Vrati iz Koša')),
+              ],
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _stat(String label, int value, IconData icon) =>
@@ -581,39 +668,84 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget categoriesPage() {
-    final categories = availableCategories;
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      Wrap(crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12, runSpacing: 10, children: [
-          const Text('Organizirajte svoje podatke',
-            style: TextStyle(color: VColors.muted)),
-          VPrimaryButton(label: 'Nova kategorija',
-            icon: Icons.add, onPressed: addCategory),
+    return LayoutBuilder(builder: (context, constraints) {
+      final fullWidth = constraints.maxWidth < 670;
+      final tileWidth = fullWidth
+          ? constraints.maxWidth - 32
+          : (constraints.maxWidth - 44) / 2;
+      final categories = availableCategories.where((category) =>
+        category.toLowerCase().contains(query.trim().toLowerCase())).toList();
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        const VSectionHeader(
+          title: 'Kategorije',
+          subtitle: 'Organizirajte pristupne podatke prema kategorijama.',
+        ),
+        TextField(
+          controller: search,
+          onChanged: (value) => setState(() => query = value),
+          decoration: const InputDecoration(
+            hintText: 'Pretraži kategorije…',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (categories.isEmpty)
+          const VPanel(child: Text('Nema kategorija za unesenu pretragu.',
+            style: TextStyle(color: VColors.muted))),
+        Wrap(spacing: 12, runSpacing: 12, children: [
+          for (final category in categories)
+            SizedBox(width: tileWidth, child: Material(
+              color: VColors.surface,
+              borderRadius: BorderRadius.circular(13),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(13),
+                onTap: () => setState(() {
+                  categoryFilter = category;
+                  page = 'Trezor';
+                  query = '';
+                  search.clear();
+                }),
+                child: VPanel(padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 16),
+                  child: Row(children: [
+                    Container(
+                      width: 34, height: 34,
+                      decoration: BoxDecoration(
+                        color: VColors.accent.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(9)),
+                      child: const Icon(Icons.folder_outlined,
+                        color: VColors.accent, size: 19)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(category, maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(color: VColors.raised,
+                        borderRadius: BorderRadius.circular(15)),
+                      child: Text('${widget.store.items.where((item) =>
+                        !item.trashed && item.kind != ItemKind.category &&
+                        item.category == category).length}',
+                        style: const TextStyle(
+                          color: VColors.accent, fontSize: 12)),
+                    ),
+                  ]),
+                ),
+              ),
+            )),
         ]),
-      const SizedBox(height: 18),
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        for (final category in categories)
-          SizedBox(width: 245, child: InkWell(
-            onTap: () => setState(() {
-              categoryFilter = category;
-              page = 'Trezor';
-            }),
-            child: VPanel(child: Row(children: [
-              const Icon(Icons.folder_outlined, color: VColors.accent),
-              const SizedBox(width: 12),
-              Expanded(child: Text(category)),
-              Text('${widget.store.items.where((item) =>
-                !item.trashed && item.kind != ItemKind.category &&
-                item.category == category).length}',
-                style: const TextStyle(color: VColors.muted)),
-            ])),
-          )),
-      ]),
-    ]);
+        const SizedBox(height: 18),
+        VPrimaryButton(label: 'Dodaj kategoriju',
+          icon: Icons.add, onPressed: addCategory),
+      ]);
+    });
   }
 
   Widget content() => switch (page) {
-    'Trezor' || 'Sve lozinke' => listPage(),
+    'Trezor' => listPage(),
+    'Sve lozinke' => listPage(kind: ItemKind.password),
     'Favoriti' => listPage(favorites: true),
     'Sigurne bilješke' => listPage(kind: ItemKind.note),
     'Kartice' => listPage(kind: ItemKind.card),
@@ -688,7 +820,8 @@ class _VaultShellState extends State<VaultShell> {
               child: const Icon(Icons.add, size: 30))
           : null,
       bottomNavigationBar: NavigationBar(
-        backgroundColor: VColors.surface,
+        height: 70,
+        backgroundColor: VColors.background,
         selectedIndex: switch (page) {
           'Generator' => 1, 'Sigurnost' => 2, 'Postavke' => 3, _ => 0,
         },

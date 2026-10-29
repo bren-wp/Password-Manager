@@ -91,28 +91,46 @@ class _EntryEditorState extends State<EntryEditor> {
     final isTotp = widget.kind == ItemKind.totp;
     final label = isNote ? 'bilješku' : isCard ? 'karticu' :
         isTotp ? 'autentifikator' : 'lozinku';
+    final mobile = MediaQuery.sizeOf(context).width < 650;
     return Dialog(
       backgroundColor: VColors.background,
-      insetPadding: const EdgeInsets.all(16),
+      insetPadding: mobile ? EdgeInsets.zero : const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(mobile ? 0 : 20),
         side: const BorderSide(color: VColors.border)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 580, maxHeight: 770),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+        constraints: BoxConstraints(
+          maxWidth: mobile ? double.infinity : 580,
+          maxHeight: mobile ? double.infinity : 770),
+        child: Column(
+          mainAxisSize: mobile ? MainAxisSize.max : MainAxisSize.min,
+          children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 16, 10, 8),
             child: Row(children: [
               const Icon(Icons.shield_outlined, color: VColors.accent),
               const SizedBox(width: 12),
               Expanded(child: Text(
-                widget.original == null ? 'Dodaj novu $label' : 'Uredi $label',
+                widget.original == null
+                    ? (mobile && widget.kind == ItemKind.password
+                        ? 'Nova lozinka' : 'Dodaj novu $label')
+                    : 'Uredi $label',
                 style: Theme.of(context).textTheme.titleLarge)),
               IconButton(icon: const Icon(Icons.close),
                 tooltip: 'Zatvori', onPressed: busy ? null : () => Navigator.pop(context)),
             ]),
           ),
           const Divider(color: VColors.border),
+          if (mobile)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(22, 8, 22, 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Spremite podatke za novi račun ili uslugu.',
+                  style: TextStyle(
+                    color: VColors.muted, fontSize: 12)),
+              ),
+            ),
           Flexible(child: SingleChildScrollView(
             padding: const EdgeInsets.all(22),
             child: Form(key: form, child: Column(

@@ -169,7 +169,7 @@ void main() {
 
     await shot('02_Postavljanje_glavne_lozinke',
       AuthScreen(store: demo.store, create: true));
-    expect(find.text('Stvorite sigurni trezor'), findsOneWidget);
+    expect(find.text('Zaštitite svoj trezor'), findsOneWidget);
     await shot('03_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));
     expect(find.text('Dobro došli natrag'), findsOneWidget);
