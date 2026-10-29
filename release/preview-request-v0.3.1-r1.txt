@@ -1,0 +1,9 @@
+Veldigo v0.3.1 Preview 1 — gated release request.
+Source branch: release/veldigo-v031-preview
+Version: 0.3.1+14
+Artifacts: Android APK/AAB, Windows portable EXE, Setup EXE, portable ZIP, SHA-256 checksums.
+UI changes: Android/Windows 5-segment strength meter, unlock footer, private IME, compact mobile CTA.
+Release tests: flutter analyze; flutter test; local crypto test; Android/Windows release build; SHA-256 verification.
+Explicit security caveat: Android DEBUG-SIGNED PREVIEW ONLY; Windows Authenticode not configured.
+References: 15 Android and 11 Windows original mockups; no exact 1:1 certification.
+Do not merge into main automatically.
