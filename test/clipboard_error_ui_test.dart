@@ -34,7 +34,8 @@ void main() {
       home: const Scaffold(body: GeneratorPage()),
     ));
     await tester.tap(find.byTooltip('Kopiraj lozinku'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Međuspremnik nije dostupan. Pokušajte ponovno.'),
         findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -69,7 +70,8 @@ void main() {
       ),
     ));
     await tester.tap(find.byTooltip('Kopiraj TOTP kod'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Međuspremnik nije dostupan. Pokušajte ponovno.'),
         findsOneWidget);
     expect(find.text('TOTP ključ nije valjan. Provjerite unos.'),
