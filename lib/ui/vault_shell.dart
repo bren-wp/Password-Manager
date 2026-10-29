@@ -644,17 +644,41 @@ class _VaultShellState extends State<VaultShell> {
   Widget detail(VaultItem item) => VPanel(
     child: SingleChildScrollView(child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          CircleAvatar(radius: 27, backgroundColor: VColors.raised,
-            child: Icon(iconFor(item), color: VColors.accent, size: 29)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text(item.title, style: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold)),
-              Text(item.category, style: const TextStyle(
-                color: VColors.muted))])),
-        ]),
-        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0A3D50), Color(0xFF092338),
+                VColors.surface]),
+            border: Border.all(color: VColors.accent
+              .withValues(alpha: .18)),
+            borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            CircleAvatar(radius: 24,
+              backgroundColor: VColors.background,
+              child: Icon(iconFor(item),
+                color: VColors.accent, size: 26)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(item.website.isEmpty
+                    ? item.category : item.website,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: VColors.muted, fontSize: 11)),
+              ],
+            )),
+          ]),
+        ),
+        const SizedBox(height: 14),
         if (item.username.isNotEmpty)
           _info('Korisničko ime', item.username,
             onCopy: () => copySecret(item.username)),
@@ -686,8 +710,16 @@ class _VaultShellState extends State<VaultShell> {
             label: const Text('Trajno ukloni',
               style: TextStyle(color: VColors.red))),
         ] else ...[
-          VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
-            onPressed: () => edit(original: item)),
+          if (item.kind == ItemKind.password && item.secret.isNotEmpty) ...[
+            VPrimaryButton(label: 'Kopiraj lozinku',
+              icon: Icons.copy_outlined,
+              onPressed: () => copySecret(item.secret)),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => edit(original: item),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Uredi')),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () => remove(item),
