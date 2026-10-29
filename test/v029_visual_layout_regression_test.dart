@@ -83,6 +83,11 @@ void main() {
         expect(theme.textTheme.headlineMedium?.fontSize, 24);
         expect(theme.textTheme.titleLarge?.fontSize, 19);
         expect(theme.appBarTheme.toolbarHeight, 56);
+        expect(
+          theme.outlinedButtonTheme.style?.textStyle
+              ?.resolve(<WidgetState>{})?.fontFamily,
+          'Roboto',
+          reason: 'Secondary button labels must not render in Ahem.');
         return const Scaffold(
           body: VPanel(child: VSectionHeader(
             title: 'Pristupni podaci',
