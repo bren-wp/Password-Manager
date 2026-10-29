@@ -281,8 +281,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+        child: Align(
+          alignment: desktop ? Alignment.center : Alignment.topCenter,
+          child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24,
+            desktop ? 24 : (MediaQuery.sizeOf(context).height < 690 ? 18 : 52),
+            24, 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: desktop ? 980 : 460),
             child: desktop
