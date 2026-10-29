@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/password_generator.dart';
 import '../core/vault_item.dart';
@@ -157,6 +158,9 @@ class _EntryEditorState extends State<EntryEditor> {
               SizedBox(height: fieldGap),
               if (isNote)
                 TextFormField(controller: notes, maxLines: 7,
+                  enableIMEPersonalizedLearning: false,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
                   decoration: const InputDecoration(
                     labelText: 'Sadržaj bilješke',
                     alignLabelWithHint: true))
@@ -165,6 +169,9 @@ class _EntryEditorState extends State<EntryEditor> {
                   controller: secret,
                   obscureText: !showSecret,
                   enableSuggestions: false, autocorrect: false,
+                  enableIMEPersonalizedLearning: false,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
                   autofillHints: const [],
                   decoration: InputDecoration(
                     labelText: isCard ? 'Broj kartice' :
@@ -199,6 +206,9 @@ class _EntryEditorState extends State<EntryEditor> {
                   autofillHints: const [],
                   keyboardType: TextInputType.number,
                   enableSuggestions: false, autocorrect: false,
+                  enableIMEPersonalizedLearning: false,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
                   decoration: const InputDecoration(
                     labelText: 'Sigurnosni kod (CVV)',
                     prefixIcon: Icon(Icons.lock_outline))),
@@ -214,6 +224,9 @@ class _EntryEditorState extends State<EntryEditor> {
                 if (!isTotp) SizedBox(height: fieldGap),
                 if (!isTotp && !isNote)
                   TextFormField(controller: notes, maxLines: 3,
+                    enableIMEPersonalizedLearning: false,
+                    smartDashesType: SmartDashesType.disabled,
+                    smartQuotesType: SmartQuotesType.disabled,
                     decoration: const InputDecoration(
                       labelText: 'Dodatna sigurna bilješka (neobavezno)',
                       alignLabelWithHint: true)),
