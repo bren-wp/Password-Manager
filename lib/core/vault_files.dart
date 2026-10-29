@@ -47,7 +47,32 @@ class VaultFiles {
       await previous.exists() || await older.exists() ||
       await pending.exists() || await quarantine.exists() ||
       await recoveryStage.exists() || await previousRetired.exists() ||
-      await olderRetired.exists();
+      await olderRetired.exists() ||
+      (await _legacyRecoveryFiles()).isNotEmpty;
+
+  /// Files from an older master-key generation cannot be authenticated using
+  /// the current key. Retain them as encrypted recovery evidence rather than
+  /// deleting them when rotating backup slots after password changes.
+  Future<List<File>> _legacyRecoveryFiles() async {
+    final archived = <File>[];
+    if (!await primary.parent.exists()) return archived;
+    await for (final entry in primary.parent.list(followLinks: false)) {
+      if (entry is File &&
+          entry.path.startsWith('${primary.path}.bak') &&
+          entry.path.contains('.retired-legacy-')) {
+        archived.add(entry);
+      }
+    }
+    archived.sort((a, b) => b.path.compareTo(a.path));
+    return archived;
+  }
+
+  /// Ordered local recovery candidates. The caller must authenticate each
+  /// candidate using the user-supplied master password before restoring it.
+  Future<List<File>> recoveryCandidates() async => [
+    recoveryStage, swap, previous, older, previousRetired, olderRetired,
+    quarantine, pending, ...await _legacyRecoveryFiles(),
+  ];
 
   /// Complete a *specific authenticated* recovery checkpoint, never a
   /// different candidate selected by a subsequent directory scan.
@@ -105,8 +130,7 @@ class VaultFiles {
   /// The live vault calls restoreExactWhenMissing under a file lock instead.
   Future<void> recoverInterruptedReplacement() async {
     if (await primary.exists()) return;
-    for (final candidate in [recoveryStage, swap, previous, older,
-        previousRetired, olderRetired, quarantine, pending]) {
+    for (final candidate in await recoveryCandidates()) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readBounded(candidate);
@@ -188,12 +212,16 @@ class VaultFiles {
     var moved = false;
     if (await destination.exists()) {
       if (await retired.exists()) {
-        // Refuse to discard an older generation if the current one is corrupt.
-        if (!await verify(await _readBounded(destination))) {
-          throw const FileSystemException(
-            'Postojeća kopija nije valjana; prethodna je sačuvana.');
+        // A previous backup may belong to the OLD master password after key
+        // rotation. It must not block new saves or be silently discarded.
+        // Keep the existing retired ciphertext as an immutable legacy copy.
+        if (await verify(await _readBounded(destination))) {
+          await retired.delete();
+        } else {
+          final legacy = File('${retired.path}-legacy-'
+              '${DateTime.now().toUtc().microsecondsSinceEpoch}');
+          await retired.rename(legacy.path);
         }
-        await retired.delete();
       }
       await destination.rename(retired.path);
       moved = true;
@@ -214,8 +242,7 @@ class VaultFiles {
 
   Future<List<File>> verifiedRecoveryFiles() async {
     final found = <File>[];
-    for (final file in [swap, previous, older,
-        previousRetired, olderRetired, recoveryStage, quarantine, pending]) {
+    for (final file in await recoveryCandidates()) {
       if (!await file.exists()) continue;
       try {
         if (await verify(await _readBounded(file))) found.add(file);
