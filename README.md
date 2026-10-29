@@ -28,15 +28,10 @@ samo nekoliko dodira.
 </div>
 
 <!-- ACTUAL_SCREENSHOTS_START -->
-## Svi zasloni aplikacije
+## Svaki zaslon. Uvijek pod kontrolom.
 
-Ovo su **stvarne snimke renderiranog Veldigo Flutter sučelja**,
-automatski dobivene iz funkcionalnih aplikacijskih widgeta uz
-**isključivo demonstracijske podatke**. Windows snimke prikazuju
-desktop raspored Flutter aplikacije u testnom okruženju, a ne
-fotografije zaslona Windows operacijskog sustava. Snimke nisu
-dizajnerske makete i ne predstavljaju dokaz 1:1 podudaranja s
-referentnim PNG predlošcima.
+Istražite svih **15 Android** i **11 Windows** zaslona Veldiga.
+Snimke prikazuju stvarno Veldigo sučelje s demonstracijskim podacima.
 
 <details>
 <summary><strong>Android — 15 zaslona</strong></summary>
