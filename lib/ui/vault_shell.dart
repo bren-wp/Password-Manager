@@ -226,7 +226,9 @@ class _VaultShellState extends State<VaultShell> {
   }.contains(page);
 
   Widget titleBar(bool desktop) {
-    if ((pageHasOwnHeading || page == 'Kartice') && !desktop) return const SizedBox.shrink();
+    if ((pageHasOwnHeading || page == 'Kartice') && !desktop) {
+      return const SizedBox.shrink();
+    }
     if (pageHasOwnHeading && desktop) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(26, 16, 18, 0),
