@@ -35,6 +35,16 @@ void main() {
     });
 
     await tester.pumpWidget(VeldigoApp(storeOverride: store));
+    // Vault initialization performs real filesystem I/O. In a widget test,
+    // pumpAndSettle alone does not advance futures awaiting that I/O.
+    for (var attempt = 0;
+        attempt < 25 && find.byType(VaultShell).evaluate().isEmpty;
+        attempt++) {
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      });
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
     expect(find.byType(VaultShell), findsOneWidget);
     await tester.tap(find.byTooltip('Dodaj novu lozinku'));
