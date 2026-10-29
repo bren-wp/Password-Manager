@@ -400,41 +400,10 @@ class _VaultShellState extends State<VaultShell> {
                       style: const TextStyle(color: VColors.muted))))
                 : ListView.separated(
                     itemCount: items.length,
-                    separatorBuilder: (_, index) =>
-                      const Divider(height: 1, color: VColors.border),
-                    itemBuilder: (_, i) {
-                      final item = items[i];
-                      return ListTile(
-                        selected: desktop && selected?.id == item.id,
-                        selectedTileColor: const Color(0xFF073A43),
-                        leading: CircleAvatar(
-                          backgroundColor: VColors.raised,
-                          child: Icon(iconFor(item), color: VColors.accent)),
-                        title: Text(item.title, maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                        subtitle: Text(item.username.isNotEmpty
-                            ? item.username : item.category,
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: VColors.muted)),
-                        trailing: IconButton(
-                          tooltip: item.favorite ? 'Ukloni favorit' : 'Favorit',
-                          icon: Icon(item.favorite ? Icons.star : Icons.star_border,
-                            color: item.favorite ? Colors.amber : VColors.muted),
-                          onPressed: () async {
-                            try {
-                              await widget.store.put(item.copyWith(
-                                favorite: !item.favorite,
-                                updatedAt: DateTime.now().toUtc()));
-                            } on VaultConflictException {
-                              notifyUser('Promjene u drugom prozoru su novije. '
-                                'Ponovno otključajte trezor.');
-                            } catch (_) {
-                              notifyUser('Favorit nije spremljen.');
-                            }
-                          }),
-                        onTap: () => selectItem(item, desktop),
-                      );
-                    },
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (_, i) => _accountTile(
+                      items[i], desktop, selected?.id == items[i].id),
                   ),
             )),
             if (desktop) ...[
@@ -450,6 +419,122 @@ class _VaultShellState extends State<VaultShell> {
         ]),
       );
     });
+  }
+
+  /// Shared reference-style account card. Only masks are drawn for secrets.
+  Widget _accountTile(VaultItem item, bool desktop, bool selected) {
+    Future<void> action(String name) async {
+      if (!mounted || !widget.store.isUnlocked) return;
+      switch (name) {
+        case 'open':
+          selectItem(item, desktop);
+        case 'copy':
+          if (item.secret.isNotEmpty) await copySecret(item.secret);
+        case 'edit':
+          await edit(original: item);
+        case 'favorite':
+          try {
+            final current = widget.store.items.where(
+              (record) => record.id == item.id).firstOrNull;
+            if (current != null && !current.trashed) {
+              await widget.store.put(current.copyWith(
+                favorite: !current.favorite,
+                updatedAt: DateTime.now().toUtc()));
+            }
+          } catch (_) {
+            notifyUser('Favorit nije spremljen.');
+          }
+        case 'trash':
+          await remove(item);
+        case 'restore':
+          await recoverItem(item);
+      }
+    }
+    return Material(
+      color: selected ? const Color(0xFF103343) : VColors.surface,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => selectItem(item, desktop),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: selected
+                ? VColors.accent.withValues(alpha: .38) : VColors.border),
+          ),
+          child: Row(children: [
+            Container(
+              width: 45, height: 45,
+              decoration: BoxDecoration(
+                color: VColors.raised,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconFor(item), color: VColors.accent, size: 25),
+            ),
+            const SizedBox(width: 11),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14,
+                    fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(item.username.isEmpty ? item.category : item.username,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11,
+                    color: VColors.muted)),
+                if (!desktop) ...[
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    if (item.kind == ItemKind.password)
+                      const Expanded(child: Text('••••••••••',
+                        style: TextStyle(fontSize: 12,
+                          letterSpacing: 1.3, color: VColors.muted)))
+                    else
+                      const Spacer(),
+                    VCategoryPill(name: item.category),
+                  ]),
+                ],
+              ],
+            )),
+            if (item.secret.isNotEmpty && !item.trashed)
+              IconButton(
+                tooltip: 'Kopiraj',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => action('copy'),
+                icon: const Icon(Icons.copy_outlined,
+                  color: VColors.muted, size: 18),
+              ),
+            PopupMenuButton<String>(
+              tooltip: 'Više opcija',
+              icon: const Icon(Icons.more_vert,
+                color: VColors.muted, size: 20),
+              onSelected: action,
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'open',
+                  child: Text('Otvori detalje')),
+                if (!item.trashed) ...[
+                  if (item.secret.isNotEmpty)
+                    const PopupMenuItem(value: 'copy',
+                      child: Text('Kopiraj')),
+                  const PopupMenuItem(value: 'edit',
+                    child: Text('Uredi')),
+                  PopupMenuItem(value: 'favorite',
+                    child: Text(item.favorite
+                      ? 'Ukloni iz favorita' : 'Dodaj u favorite')),
+                  const PopupMenuItem(value: 'trash',
+                    child: Text('Premjesti u Koš')),
+                ] else
+                  const PopupMenuItem(value: 'restore',
+                    child: Text('Vrati iz Koša')),
+              ],
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _stat(String label, int value, IconData icon) =>
