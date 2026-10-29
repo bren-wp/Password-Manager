@@ -73,3 +73,11 @@ Run `flutter pub get`, `flutter analyze`, `flutter test`, Android/Windows builds
 - **High: unlocked modal after vault lock.** A Flutter `Navigator` dialog remains above its home route even when the home is rebuilt to show the unlock screen. `lib/main.dart` now watches the unlocked→locked transition and dismisses every nested sensitive route after that frame; `test/lock_dismisses_sensitive_routes_test.dart` exercises an open password editor on lock.
 - **Recovery storage:** distinct legacy snapshots are retained intentionally, so disk usage can grow when rotating master keys. They remain encrypted and are not automatically uploaded. Assess disk-space and retention UX before production; never silently erase old-key recovery material without explicit user permission.
 - **Verification scope:** source review and automated tests only. No physical Android/Windows device, penetration test, power-loss injection or independent crypto audit is claimed by this follow-up. See the PR's current GitHub Actions run for actual pass/fail state.
+
+
+## v0.2.9 follow-up — native picker session isolation (29 October 2026)
+
+- **High: stale file-picker grace after manual lock.** Before this fix, `lock()` and `dispose()` invalidated the vault session but left `_externalPickerDepth` and `_externalPickerStarted` untouched. If a native picker outlived the lock and the user unlocked again, the old picker state could authorize a background-lock grace period in the new session. Its late `finally` could also decrement the depth of an unrelated picker.
+- **Code change:** reset the picker depth and timestamp whenever the session is invalidated, scope picker completion and timeout to the exact originating session epoch, and reject picker results that arrive after lock/dispose. Stale cleanup never mutates a new session's picker state.
+- **Regression coverage:** `test/vault_file_picker_privacy_test.dart` now covers cancellation on lock, stale completion after a new unlock, independent timeout ownership, and overlapping pickers within one session.
+- **Compatibility:** no encrypted vault format, master-password KDF, user data, or backup envelope changes. **Verification:** CI, native file-picker integration tests on Android/Windows, and physical-device background/foreground QA are still required before production signoff.
