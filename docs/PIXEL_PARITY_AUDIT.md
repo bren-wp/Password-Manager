@@ -64,3 +64,22 @@ Every screen must show the **correct functional state**, no duplicate or missing
 - `tools/test_visual_parity_audit.py` covers single-channel differences, same-color images of different dimensions, and ambiguous duplicate reference filenames. This Python suite is wired into the PR's quality workflow.
 - The reference ZIP archives are **not checked into this repository and were not available in the current session**; therefore no per-screen RGB comparison against the original artworks has been executed here. All 26 existing Flutter screenshots remain useful rendering baselines, **not a completed pixel-perfect certification**.
 - The Android UI now collapses nonessential vault chrome while the soft keyboard is visible and hides vault statistics at small available heights. Such responsive changes preserve the reference-sized layout, but should still be visually compared after capture.
+
+
+## Windows generator follow-up — 29 October 2026
+
+The supplied Windows reference `04_Generator_lozinki.png` has a compact
+desktop generator, character-group checkboxes, a strength indicator inside
+the generated-password panel, and a history section with masked passwords,
+copy actions, and a clear action. The pre-existing shared Flutter widget
+rendered essentially the mobile stack and had no history.
+
+The Windows-width layout now has dedicated responsive panels and working
+session-only password history. Old passwords remain masked in the history;
+copy and clear are explicit actions. Android retains its existing layout
+and switches. The history is intentionally in memory only and is **not**
+persisted across widget teardown, vault lock, or application restart.
+
+**This is a targeted UI change, not a claim of RGB-perfect parity.** New
+Flutter captures, all 26 image comparisons, manual DPI/scroll/focus checks,
+and native Windows QA still have to pass before visual signoff.
