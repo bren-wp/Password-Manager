@@ -1,0 +1,7 @@
+Veldigo v0.2.6-preview.1
+Android and Windows preview release from feat/veldigo-v026-stability-visual-audit.
+Do not publish unless Flutter analyze and tests pass, all five native packages
+have been built, and both SHA-256 manifests verify against the binaries.
+This is a preview: production publisher signatures and 26 reference pixel
+comparisons are not claimed.
+Keep the pull request open; do not merge into main.
