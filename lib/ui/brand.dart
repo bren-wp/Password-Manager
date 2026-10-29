@@ -68,11 +68,13 @@ ThemeData veldigoTheme() => ThemeData(
         side: const BorderSide(color: VColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
         minimumSize: const Size(0, 44),
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Roboto', fontWeight: FontWeight.w700),
       )),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: VColors.raised,
-        contentTextStyle: TextStyle(color: VColors.text, fontSize: 13),
+        contentTextStyle: TextStyle(
+          fontFamily: 'Roboto', color: VColors.text, fontSize: 13),
         behavior: SnackBarBehavior.floating),
       dividerTheme: const DividerThemeData(
         color: VColors.border, thickness: 1, space: 1),
