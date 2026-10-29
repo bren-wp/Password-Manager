@@ -2,7 +2,7 @@ name: Capture real Veldigo screen gallery
 
 on:
   push:
-    branches: [main, feat/veldigo-v026-stability-visual-audit]
+    branches: [main, 'feat/veldigo-*']
     paths:
       - tool/marketing_screenshots_test.dart
       - tools/publish_real_screenshots.py
@@ -36,6 +36,13 @@ jobs:
         run: flutter test --update-goldens tool/marketing_screenshots_test.dart --reporter expanded
       - name: Verify all 26 PNG files and update marketing README
         run: python tools/publish_real_screenshots.py
+      - name: Keep 26 real Flutter frames for independent visual measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: veldigo-26-actual-flutter-frames
+          path: tool/goldens/marketing/
+          if-no-files-found: error
+          retention-days: 7
       - name: Commit real UI screenshots to PR branch
         run: |
           git config user.name "github-actions[bot]"
