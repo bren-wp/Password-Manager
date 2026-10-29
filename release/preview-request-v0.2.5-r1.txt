@@ -3,3 +3,8 @@ Publish only after flutter analyze, unit/widget tests, Android APK/AAB build,
 Windows release/portable/setup packaging and checksum generation succeed.
 This tag must point to this commit including all UI, behavioral and privacy
 changes and README's 26 automatically captured screenshots.
+
+CI retry after analyzer correction: removed unnecessary multiple-underscore
+callback in mobile account-card separator. The 26 Flutter PNG screenshots
+were regenerated from the current UI and are distinct. Build/test/publish
+from the latest PR head; do not reuse an old partially failed workflow.
