@@ -101,6 +101,26 @@ class _GeneratorPageState extends State<GeneratorPage> {
     });
   }
 
+  /// Five equal segments match the reference design on both platforms.
+  /// The value is a local estimate, not a breach-database security verdict.
+  Widget _strengthSegments(double strength) => Row(
+    key: const ValueKey('veldigo-strength-segments'),
+    children: [
+      for (var i = 0; i < 5; i++) ...[
+        if (i > 0) const SizedBox(width: 4),
+        Expanded(child: Container(
+          key: ValueKey('veldigo-strength-segment-$i'),
+          height: 7,
+          decoration: BoxDecoration(
+            color: strength >= (i + 1) / 5
+                ? VColors.accent : VColors.border,
+            borderRadius: BorderRadius.circular(7),
+          ),
+        )),
+      ],
+    ],
+  );
+
   /// A full-row, accessible toggle: tapping its title or switch must work.
   /// Keep SwitchListTile semantics for keyboard/assistive-technology users.
   Widget _characterOption(String symbol, String name, String subtitle,
@@ -199,18 +219,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
                 fontWeight: FontWeight.bold)),
             ]),
             const SizedBox(height: 5),
-            Row(children: [
-              for (var index = 0; index < 5; index++) ...[
-                if (index > 0) const SizedBox(width: 4),
-                Expanded(child: Container(
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: strength >= (index + 1) / 5
-                        ? VColors.accent : VColors.border,
-                    borderRadius: BorderRadius.circular(4)),
-                )),
-              ],
-            ]),
+            _strengthSegments(strength),
           ],
         )),
         const SizedBox(height: 12),
@@ -439,12 +448,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
                   fontWeight: FontWeight.w700, fontSize: 13)),
               ]),
               const SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: strength,
-                minHeight: 6,
-                color: VColors.accent,
-                backgroundColor: VColors.border,
-                borderRadius: BorderRadius.circular(8)),
+              _strengthSegments(strength),
               const SizedBox(height: 8),
               const Text(
                 'Lokalna procjena na temelju duljine i skupa znakova.',
@@ -733,6 +737,10 @@ class _BackupPageState extends State<BackupPage> {
               'Unesite glavnu lozinku te sigurnosne kopije.'),
             const SizedBox(height: 16),
             TextField(controller: controller, obscureText: true,
+              enableSuggestions: false, autocorrect: false,
+              enableIMEPersonalizedLearning: false,
+              smartDashesType: SmartDashesType.disabled,
+              smartQuotesType: SmartQuotesType.disabled,
               decoration: const InputDecoration(
                 labelText: 'Lozinka sigurnosne kopije')),
           ]),
@@ -857,12 +865,24 @@ class SettingsPage extends StatelessWidget {
                 'kopiju. Stare kopije koriste prethodnu lozinku.'),
               const SizedBox(height: 12),
               TextField(controller: current, obscureText: true,
+                enableSuggestions: false, autocorrect: false,
+                enableIMEPersonalizedLearning: false,
+                smartDashesType: SmartDashesType.disabled,
+                smartQuotesType: SmartQuotesType.disabled,
                 decoration: const InputDecoration(labelText: 'Trenutačna lozinka')),
               const SizedBox(height: 12),
               TextField(controller: next, obscureText: true,
+                enableSuggestions: false, autocorrect: false,
+                enableIMEPersonalizedLearning: false,
+                smartDashesType: SmartDashesType.disabled,
+                smartQuotesType: SmartQuotesType.disabled,
                 decoration: const InputDecoration(labelText: 'Nova lozinka')),
               const SizedBox(height: 12),
               TextField(controller: confirm, obscureText: true,
+                enableSuggestions: false, autocorrect: false,
+                enableIMEPersonalizedLearning: false,
+                smartDashesType: SmartDashesType.disabled,
+                smartQuotesType: SmartQuotesType.disabled,
                 decoration: const InputDecoration(labelText: 'Potvrdite novu lozinku')),
             ]),
           )),
