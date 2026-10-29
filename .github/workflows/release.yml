@@ -2,9 +2,9 @@ name: Veldigo preview release
 
 on:
   push:
-    branches: [release/veldigo-v031-preview]
+    branches: [release/veldigo-v032-preview]
     paths:
-      - release/preview-request-v0.3.1-r1.txt
+      - release/preview-request-v0.3.2-r1.txt
   workflow_dispatch:
 
 permissions:
@@ -38,7 +38,7 @@ jobs:
         run: flutter test test/local_crypto_smoke_test.dart
       - name: Verify preview release metadata and signing scope
         run: |
-          grep -Fx 'version: 0.3.1+14' pubspec.yaml
+          grep -Fx 'version: 0.3.2+15' pubspec.yaml
           grep -Fx '        targetSdk = 36' android/app/build.gradle.kts
           grep -F 'gradle-9.6.0-all.zip' android/gradle/wrapper/gradle-wrapper.properties
       - name: Build preview APK
@@ -121,14 +121,14 @@ jobs:
           (cd release-assets && sha256sum -c Android-SHA256.txt && sha256sum -c Windows-SHA256.txt)
       - name: Verify release source revision
         run: |
-          test "$GITHUB_REF" = 'refs/heads/release/veldigo-v031-preview'
-          grep -Fx 'version: 0.3.1+14' pubspec.yaml
+          test "$GITHUB_REF" = 'refs/heads/release/veldigo-v032-preview'
+          grep -Fx 'version: 0.3.2+15' pubspec.yaml
       - name: Publish explicitly labeled preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.3.1-preview.1 release-assets/* \
-            --title "Veldigo v0.3.1 Preview 1" \
+          gh release create v0.3.2-preview.1 release-assets/* \
+            --title "Veldigo v0.3.2 Preview 1" \
             --target "$GITHUB_SHA" \
             --notes-file release/RELEASE_NOTES.md \
             --prerelease
