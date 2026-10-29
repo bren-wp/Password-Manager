@@ -668,35 +668,79 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget categoriesPage() {
-    final categories = availableCategories;
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      Wrap(crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12, runSpacing: 10, children: [
-          const Text('Organizirajte svoje podatke',
-            style: TextStyle(color: VColors.muted)),
-          VPrimaryButton(label: 'Nova kategorija',
-            icon: Icons.add, onPressed: addCategory),
+    return LayoutBuilder(builder: (context, constraints) {
+      final fullWidth = constraints.maxWidth < 670;
+      final tileWidth = fullWidth
+          ? constraints.maxWidth - 32
+          : (constraints.maxWidth - 44) / 2;
+      final categories = availableCategories.where((category) =>
+        category.toLowerCase().contains(query.trim().toLowerCase())).toList();
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        const VSectionHeader(
+          title: 'Kategorije',
+          subtitle: 'Organizirajte pristupne podatke prema kategorijama.',
+        ),
+        TextField(
+          controller: search,
+          onChanged: (value) => setState(() => query = value),
+          decoration: const InputDecoration(
+            hintText: 'Pretraži kategorije…',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (categories.isEmpty)
+          const VPanel(child: Text('Nema kategorija za unesenu pretragu.',
+            style: TextStyle(color: VColors.muted))),
+        Wrap(spacing: 12, runSpacing: 12, children: [
+          for (final category in categories)
+            SizedBox(width: tileWidth, child: Material(
+              color: VColors.surface,
+              borderRadius: BorderRadius.circular(13),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(13),
+                onTap: () => setState(() {
+                  categoryFilter = category;
+                  page = 'Trezor';
+                  query = '';
+                  search.clear();
+                }),
+                child: VPanel(padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 16),
+                  child: Row(children: [
+                    Container(
+                      width: 34, height: 34,
+                      decoration: BoxDecoration(
+                        color: VColors.accent.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(9)),
+                      child: const Icon(Icons.folder_outlined,
+                        color: VColors.accent, size: 19)),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(category, maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(color: VColors.raised,
+                        borderRadius: BorderRadius.circular(15)),
+                      child: Text('${widget.store.items.where((item) =>
+                        !item.trashed && item.kind != ItemKind.category &&
+                        item.category == category).length}',
+                        style: const TextStyle(
+                          color: VColors.accent, fontSize: 12)),
+                    ),
+                  ]),
+                ),
+              ),
+            )),
         ]),
-      const SizedBox(height: 18),
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        for (final category in categories)
-          SizedBox(width: 245, child: InkWell(
-            onTap: () => setState(() {
-              categoryFilter = category;
-              page = 'Trezor';
-            }),
-            child: VPanel(child: Row(children: [
-              const Icon(Icons.folder_outlined, color: VColors.accent),
-              const SizedBox(width: 12),
-              Expanded(child: Text(category)),
-              Text('${widget.store.items.where((item) =>
-                !item.trashed && item.kind != ItemKind.category &&
-                item.category == category).length}',
-                style: const TextStyle(color: VColors.muted)),
-            ])),
-          )),
-      ]),
-    ]);
+        const SizedBox(height: 18),
+        VPrimaryButton(label: 'Dodaj kategoriju',
+          icon: Icons.add, onPressed: addCategory),
+      ]);
+    });
   }
 
   Widget content() => switch (page) {
