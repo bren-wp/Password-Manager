@@ -30,7 +30,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
         (symbols ? PasswordGenerator.symbols.length : 0);
     if (alphabet == 0) return 0;
     final entropyBits = length * (log(alphabet) / ln2);
-    return (entropyBits / 110).clamp(0.0, 1.0);
+    return (entropyBits / 110).clamp(0.0, 1.0).toDouble();
   }
   late String generated = PasswordGenerator.generate(length: length);
 
