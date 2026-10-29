@@ -50,6 +50,9 @@ class _AuthScreenState extends State<AuthScreen> {
             const SizedBox(height: 14),
             TextField(controller: passphrase, obscureText: true,
               enableSuggestions: false, autocorrect: false,
+              enableIMEPersonalizedLearning: false,
+              smartDashesType: SmartDashesType.disabled,
+              smartQuotesType: SmartQuotesType.disabled,
               decoration: const InputDecoration(labelText: 'Glavna lozinka')),
           ]),
           actions: [
@@ -161,7 +164,9 @@ class _AuthScreenState extends State<AuthScreen> {
         TextFormField(
           controller: password, obscureText: !visible,
           autofillHints: const [], enableSuggestions: false,
-          autocorrect: false,
+          autocorrect: false, enableIMEPersonalizedLearning: false,
+          smartDashesType: SmartDashesType.disabled,
+          smartQuotesType: SmartQuotesType.disabled,
           decoration: InputDecoration(
             labelText: 'Glavna lozinka',
             prefixIcon: const Icon(Icons.lock_outline),
@@ -184,6 +189,10 @@ class _AuthScreenState extends State<AuthScreen> {
           TextFormField(
             controller: confirmation, obscureText: !visible,
             autocorrect: false, enableSuggestions: false,
+            enableIMEPersonalizedLearning: false,
+            smartDashesType: SmartDashesType.disabled,
+            smartQuotesType: SmartQuotesType.disabled,
+            autofillHints: const [],
             decoration: const InputDecoration(
               labelText: 'Potvrdite lozinku',
               prefixIcon: Icon(Icons.verified_user_outlined)),
@@ -280,9 +289,21 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ],
         const SizedBox(height: 25),
-        const Text('Vaši podaci ostaju pod vašom kontrolom.',
+        if (!desktop && !widget.create) ...[
+          const SizedBox(height: 8),
+          const Row(children: [
+            Expanded(child: Divider(color: VColors.border)),
+            Padding(padding: EdgeInsets.symmetric(horizontal: 12),
+              child: VeldigoLogo(size: 23, showName: false)),
+            Expanded(child: Divider(color: VColors.border)),
+          ]),
+          const SizedBox(height: 8),
+        ],
+        Text(widget.create
+            ? 'Vaši podaci ostaju pod vašom kontrolom.'
+            : 'Vaše lozinke ostaju samo vaše.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: VColors.muted, fontSize: 12)),
+          style: const TextStyle(color: VColors.muted, fontSize: 12)),
       ]),
     );
 
