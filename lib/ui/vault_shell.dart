@@ -146,9 +146,13 @@ class _VaultShellState extends State<VaultShell> {
 
   Future<void> copySecret(String text) async {
     if (text.isEmpty || !widget.store.isUnlocked) return;
-    await SensitiveClipboard.copy(text);
-    if (mounted && widget.store.isUnlocked) {
-      notifyUser('Kopirano. Međuspremnik se čisti nakon 30 sekundi.');
+    try {
+      await SensitiveClipboard.copy(text);
+      if (mounted && widget.store.isUnlocked) {
+        notifyUser('Kopirano. Međuspremnik se čisti nakon 30 sekundi.');
+      }
+    } catch (_) {
+      notifyUser('Međuspremnik nije dostupan. Pokušajte ponovno.');
     }
   }
 
