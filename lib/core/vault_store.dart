@@ -102,7 +102,11 @@ class VaultStore extends ChangeNotifier {
     if (_externalPickerDepth++ == 0) {
       _externalPickerStarted = DateTime.now();
       _externalPickerTimeout = Timer(externalPickerGrace, () {
-        if (_externalPickerDepth > 0 && isUnlocked) lock();
+        // A callback from an earlier picker can never lock a new session.
+        if (session == _sessionEpoch &&
+            _externalPickerDepth > 0 && isUnlocked) {
+          lock();
+        }
       });
     }
     try {
