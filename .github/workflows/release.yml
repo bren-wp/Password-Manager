@@ -35,7 +35,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - name: Verify local encryption/decryption and tamper rejection
-        run: dart run tool/verify_local_crypto.dart
+        run: flutter test test/local_crypto_smoke_test.dart
       - name: Verify preview release metadata and signing scope
         run: |
           grep -Fx 'version: 0.3.0+13' pubspec.yaml
