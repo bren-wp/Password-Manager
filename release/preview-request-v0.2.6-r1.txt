@@ -5,3 +5,6 @@ have been built, and both SHA-256 manifests verify against the binaries.
 This is a preview: production publisher signatures and 26 reference pixel
 comparisons are not claimed.
 Keep the pull request open; do not merge into main.
+
+CI retry requested after ensuring the lock-route widget test waits for real
+asynchronous vault initialization before interacting with the UI.
