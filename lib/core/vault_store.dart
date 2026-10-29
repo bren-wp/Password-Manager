@@ -144,6 +144,29 @@ class VaultStore extends ChangeNotifier {
   bool get isUnlocked => _key != null;
   List<VaultItem> get items => List.unmodifiable(_items);
 
+  // POSIX advisory locks may not exclude two handles from the same process.
+  // Serialize all writes to one vault path in the current Dart isolate as
+  // well; the existing OS file lock still guards separate app processes.
+  static final Map<String, Future<void>> _processFileGates = {};
+
+  static Future<T> _withProcessFileGate<T>(
+      File file, Future<T> Function() operation) async {
+    final path = file.absolute.path;
+    final waiting = _processFileGates[path];
+    final done = Completer<void>();
+    final ours = done.future;
+    _processFileGates[path] = ours;
+    if (waiting != null) await waiting;
+    try {
+      return await operation();
+    } finally {
+      done.complete();
+      if (identical(_processFileGates[path], ours)) {
+        _processFileGates.remove(path);
+      }
+    }
+  }
+
   Future<T> _serial<T>(Future<T> Function() operation) async {
     final waiting = _pending;
     final finished = Completer<void>();
@@ -474,20 +497,22 @@ class VaultStore extends ChangeNotifier {
       'mac': base64Encode(box.mac.bytes),
       'cipherText': base64Encode(box.cipherText),
     }));
-    final lockFile = File('${_file!.path}.write-lock');
-    final guard = await lockFile.open(mode: FileMode.append);
-    try {
-      await guard.lock(FileLock.exclusive);
-      await _checkLatestOnDisk();
-      _assertUnlockedSession(session);
-      await VaultFiles(_file!,
-        verify: (candidate) => _canDecryptUsingKey(candidate, key))
-          .install(bytes);
-      await _commitDigest(bytes, session);
-    } finally {
-      await guard.unlock();
-      await guard.close();
-    }
+    await _withProcessFileGate(_file!, () async {
+      final lockFile = File('${_file!.path}.write-lock');
+      final guard = await lockFile.open(mode: FileMode.append);
+      try {
+        await guard.lock(FileLock.exclusive);
+        await _checkLatestOnDisk();
+        _assertUnlockedSession(session);
+        await VaultFiles(_file!,
+          verify: (candidate) => _canDecryptUsingKey(candidate, key))
+            .install(bytes);
+        await _commitDigest(bytes, session);
+      } finally {
+        await guard.unlock();
+        await guard.close();
+      }
+    });
   }
 
   Future<void> save() => _serial(() async {
