@@ -101,6 +101,26 @@ class _GeneratorPageState extends State<GeneratorPage> {
     });
   }
 
+  /// Five equal segments match the reference design on both platforms.
+  /// The value is a local estimate, not a breach-database security verdict.
+  Widget _strengthSegments(double strength) => Row(
+    key: const ValueKey('veldigo-strength-segments'),
+    children: [
+      for (var i = 0; i < 5; i++) ...[
+        if (i > 0) const SizedBox(width: 4),
+        Expanded(child: Container(
+          key: ValueKey('veldigo-strength-segment-$i'),
+          height: 7,
+          decoration: BoxDecoration(
+            color: strength >= (i + 1) / 5
+                ? VColors.accent : VColors.border,
+            borderRadius: BorderRadius.circular(7),
+          ),
+        )),
+      ],
+    ],
+  );
+
   /// A full-row, accessible toggle: tapping its title or switch must work.
   /// Keep SwitchListTile semantics for keyboard/assistive-technology users.
   Widget _characterOption(String symbol, String name, String subtitle,
@@ -199,18 +219,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
                 fontWeight: FontWeight.bold)),
             ]),
             const SizedBox(height: 5),
-            Row(children: [
-              for (var index = 0; index < 5; index++) ...[
-                if (index > 0) const SizedBox(width: 4),
-                Expanded(child: Container(
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: strength >= (index + 1) / 5
-                        ? VColors.accent : VColors.border,
-                    borderRadius: BorderRadius.circular(4)),
-                )),
-              ],
-            ]),
+            _strengthSegments(strength),
           ],
         )),
         const SizedBox(height: 12),
@@ -405,13 +414,16 @@ class _GeneratorPageState extends State<GeneratorPage> {
         VPanel(padding: const EdgeInsets.symmetric(
           horizontal: 11, vertical: 5),
           child: Column(children: [
-            _characterOption('Aa', 'Velika slova (A–Z)', '',
+            _characterOption('Aa', 'Velika slova (A–Z)',
+              'A, B, C, …',
               upper, (v) => changeCharacterSet('upper', v)),
             const Divider(height: 1),
-            _characterOption('aa', 'Mala slova (a–z)', '',
+            _characterOption('aa', 'Mala slova (a–z)',
+              'a, b, c, …',
               lower, (v) => changeCharacterSet('lower', v)),
             const Divider(height: 1),
-            _characterOption('123', 'Brojevi (0–9)', '',
+            _characterOption('123', 'Brojevi (0–9)',
+              '0, 1, 2, …',
               numbers, (v) => changeCharacterSet('numbers', v)),
             const Divider(height: 1),
             _characterOption('!#', 'Posebni znakovi', '(!, @, #, …)',
@@ -439,12 +451,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
                   fontWeight: FontWeight.w700, fontSize: 13)),
               ]),
               const SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: strength,
-                minHeight: 6,
-                color: VColors.accent,
-                backgroundColor: VColors.border,
-                borderRadius: BorderRadius.circular(8)),
+              _strengthSegments(strength),
               const SizedBox(height: 8),
               const Text(
                 'Lokalna procjena na temelju duljine i skupa znakova.',
