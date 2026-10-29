@@ -18,6 +18,8 @@ abstract final class VColors {
 
 ThemeData veldigoTheme() => ThemeData(
       useMaterial3: true,
+      fontFamily: 'Roboto',
+      visualDensity: VisualDensity.standard,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: VColors.background,
       colorScheme: ColorScheme.fromSeed(
@@ -26,9 +28,19 @@ ThemeData veldigoTheme() => ThemeData(
         surface: VColors.surface,
       ),
       textTheme: const TextTheme(
-        headlineMedium: TextStyle(fontWeight: FontWeight.w800, color: VColors.text),
-        titleLarge: TextStyle(fontWeight: FontWeight.w700, color: VColors.text),
-        bodyMedium: TextStyle(color: VColors.text),
+        headlineMedium: TextStyle(fontSize: 24, height: 1.17,
+          letterSpacing: -.45, fontWeight: FontWeight.w800, color: VColors.text),
+        headlineSmall: TextStyle(fontSize: 21, height: 1.2,
+          letterSpacing: -.25, fontWeight: FontWeight.w800, color: VColors.text),
+        titleLarge: TextStyle(fontSize: 19, height: 1.24,
+          fontWeight: FontWeight.w700, color: VColors.text),
+        titleMedium: TextStyle(fontSize: 15, height: 1.3,
+          fontWeight: FontWeight.w700, color: VColors.text),
+        bodyLarge: TextStyle(fontSize: 15, height: 1.45, color: VColors.text),
+        bodyMedium: TextStyle(fontSize: 13, height: 1.4, color: VColors.text),
+        bodySmall: TextStyle(fontSize: 11, height: 1.35, color: VColors.muted),
+        labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+          color: VColors.text),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: VColors.background,
@@ -37,16 +49,42 @@ ThemeData veldigoTheme() => ThemeData(
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        toolbarHeight: 56,
+        titleTextStyle: const TextStyle(fontFamily: 'Roboto',
+          color: VColors.text, fontSize: 16, fontWeight: FontWeight.w700),
+        iconTheme: const IconThemeData(color: VColors.accent, size: 21),
       ),
+      iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(
+        foregroundColor: VColors.muted,
+        iconSize: 20,
+        minimumSize: const Size(44, 44),
+      )),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: VColors.accent,
+        selectionColor: Color(0x5522DCD4),
+        selectionHandleColor: VColors.accent),
+      outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
+        foregroundColor: VColors.accent,
+        side: const BorderSide(color: VColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+        minimumSize: const Size(0, 44),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      )),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: VColors.raised,
+        contentTextStyle: TextStyle(color: VColors.text, fontSize: 13),
+        behavior: SnackBarBehavior.floating),
+      dividerTheme: const DividerThemeData(
+        color: VColors.border, thickness: 1, space: 1),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: VColors.background,
         elevation: 0,
         indicatorColor: VColors.raised,
         labelTextStyle: WidgetStateProperty.resolveWith((states) =>
-          TextStyle(
+          TextStyle(fontFamily: 'Roboto',
             color: states.contains(WidgetState.selected)
                 ? VColors.accent : VColors.muted,
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700 : FontWeight.w500,
           )),
@@ -54,7 +92,7 @@ ThemeData veldigoTheme() => ThemeData(
           IconThemeData(
             color: states.contains(WidgetState.selected)
                 ? VColors.accent : VColors.muted,
-            size: 23,
+            size: 21,
           )),
       ),
       dividerColor: VColors.border,
@@ -75,12 +113,12 @@ ThemeData veldigoTheme() => ThemeData(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: VColors.accent, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       ),
       cardTheme: CardThemeData(
         color: VColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(13),
           side: const BorderSide(color: VColors.border),
         ),
       ),
@@ -151,13 +189,13 @@ class VPanel extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   const VPanel({super.key, required this.child,
-    this.padding = const EdgeInsets.all(18)});
+    this.padding = const EdgeInsets.all(15)});
   @override
   Widget build(BuildContext context) => Material(
     color: VColors.surface,
     clipBehavior: Clip.antiAlias,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(13),
       side: const BorderSide(color: VColors.border),
     ),
     child: Padding(padding: padding, child: child),
@@ -214,14 +252,15 @@ class VSectionHeader extends StatelessWidget {
     this.trailing});
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(0, 2, 0, 16),
+    padding: const EdgeInsets.fromLTRB(0, 2, 0, 14),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 22,
-              fontWeight: FontWeight.w800, color: VColors.text)),
+            style: const TextStyle(fontSize: 21, height: 1.18,
+              letterSpacing: -.25, fontWeight: FontWeight.w800,
+              color: VColors.text)),
           if (subtitle != null) ...[
             const SizedBox(height: 5),
             Text(subtitle!, style: const TextStyle(
