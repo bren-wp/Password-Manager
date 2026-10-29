@@ -184,12 +184,12 @@ class _VaultShellState extends State<VaultShell> {
 
   Widget navMenu({bool drawer = false}) {
     return Container(
-      width: drawer ? 280 : 228,
+      width: drawer ? 280 : 242,
       decoration: const BoxDecoration(
         color: VColors.surface,
         border: Border(right: BorderSide(color: VColors.border))),
       child: Column(children: [
-        const Padding(padding: EdgeInsets.fromLTRB(18, 26, 12, 30),
+        const Padding(padding: EdgeInsets.fromLTRB(18, 20, 12, 22),
           child: VeldigoLogo(size: 36)),
         Expanded(child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -244,7 +244,7 @@ class _VaultShellState extends State<VaultShell> {
       );
     }
     return Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 26 : 24, desktop ? 25 : 24, 18, desktop ? 16 : 12),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 16, desktop ? 25 : 14, 18, desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (page == 'Trezor' && !desktop)
@@ -255,7 +255,7 @@ class _VaultShellState extends State<VaultShell> {
             ]),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: VColors.text, fontSize: 26,
+            style: const TextStyle(color: VColors.text, fontSize: 24,
               fontWeight: FontWeight.w800))
         else
           Text(page == 'Trezor' ? 'Moj trezor' : page,
@@ -367,6 +367,7 @@ class _VaultShellState extends State<VaultShell> {
     final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 780;
+      final wideDesktop = desktop && MediaQuery.sizeOf(context).width >= 1280;
       final selected = items.where((e) => e.id == selectedId).firstOrNull ??
           (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
@@ -435,11 +436,33 @@ class _VaultShellState extends State<VaultShell> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: VColors.muted))))
                 : ListView.separated(
-                    itemCount: items.length,
+                    itemCount: items.length + (wideDesktop ? 1 : 0),
                     padding: const EdgeInsets.symmetric(vertical: 5),
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (_, i) => _accountTile(
-                      items[i], desktop, selected?.id == items[i].id),
+                    separatorBuilder: (_, _) =>
+                        SizedBox(height: wideDesktop ? 3 : 6),
+                    itemBuilder: (_, i) {
+                      if (wideDesktop && i == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
+                          child: Row(children: [
+                            Expanded(child: Text('USLUGA / KORISNIK',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 100, child: Text('KATEGORIJA',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 100, child: Text('AŽURIRANO',
+                              style: TextStyle(color: VColors.muted,
+                                letterSpacing: .8, fontSize: 10))),
+                            SizedBox(width: 92),
+                          ]),
+                        );
+                      }
+                      final item = items[i - (wideDesktop ? 1 : 0)];
+                      return _accountTile(
+                        item, desktop, selected?.id == item.id);
+                    },
                   ),
             )),
             if (desktop) ...[
@@ -459,6 +482,8 @@ class _VaultShellState extends State<VaultShell> {
 
   /// Shared reference-style account card. Only masks are drawn for secrets.
   Widget _accountTile(VaultItem item, bool desktop, bool selected) {
+    final compact = !desktop && MediaQuery.sizeOf(context).width < 365;
+    final wideDesktop = desktop && MediaQuery.sizeOf(context).width >= 1280;
     Future<void> action(String name) async {
       if (!mounted || !widget.store.isUnlocked) return;
       switch (name) {
@@ -493,7 +518,9 @@ class _VaultShellState extends State<VaultShell> {
         borderRadius: BorderRadius.circular(13),
         onTap: () => selectItem(item, desktop),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          padding: EdgeInsets.symmetric(
+            horizontal: wideDesktop ? 8 : 10,
+            vertical: wideDesktop ? 4 : 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: selected
@@ -501,12 +528,14 @@ class _VaultShellState extends State<VaultShell> {
           ),
           child: Row(children: [
             Container(
-              width: 45, height: 45,
+              width: compact ? 37 : wideDesktop ? 32 : 45,
+              height: compact ? 37 : wideDesktop ? 32 : 45,
               decoration: BoxDecoration(
                 color: VColors.raised,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconFor(item), color: VColors.accent, size: 25),
+              child: Icon(iconFor(item), color: VColors.accent,
+                  size: compact ? 21 : wideDesktop ? 19 : 25),
             ),
             const SizedBox(width: 11),
             Expanded(child: Column(
@@ -535,7 +564,16 @@ class _VaultShellState extends State<VaultShell> {
                 ],
               ],
             )),
-            if (item.secret.isNotEmpty && !item.trashed)
+            if (wideDesktop) ...[
+              SizedBox(width: 100, child: VCategoryPill(name: item.category)),
+              SizedBox(width: 100, child: Text(
+                '${item.updatedAt.toLocal().day}.'
+                '${item.updatedAt.toLocal().month}.'
+                '${item.updatedAt.toLocal().year}.',
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: VColors.muted, fontSize: 10))),
+            ],
+            if (item.secret.isNotEmpty && !item.trashed && !compact)
               IconButton(
                 tooltip: 'Kopiraj',
                 visualDensity: VisualDensity.compact,
@@ -573,43 +611,74 @@ class _VaultShellState extends State<VaultShell> {
     );
   }
 
+  /// Statistics stay aligned on narrow 320dp Android screens.
   Widget _stat(String label, int value, IconData icon) =>
-    Expanded(child: VPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 13),
-      child: Row(children: [
-        Container(
-          width: 32, height: 32,
-          decoration: BoxDecoration(
-            color: VColors.accent.withValues(alpha: .10),
-            shape: BoxShape.circle),
-          child: Icon(icon, color: VColors.accent, size: 20)),
-        const SizedBox(width: 7),
-        Flexible(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, children: [
-            Text('$value', style: const TextStyle(
-              fontWeight: FontWeight.w800, fontSize: 19)),
-            Text(label, maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: VColors.muted, fontSize: 10)),
-          ])),
-      ]),
-    ));
+    Expanded(child: LayoutBuilder(builder: (context, bounds) {
+      final compact = bounds.maxWidth < 110;
+      return VPanel(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 5 : 10, vertical: compact ? 9 : 12),
+        child: Row(children: [
+          Container(
+            width: compact ? 25 : 32, height: compact ? 25 : 32,
+            decoration: BoxDecoration(
+              color: VColors.accent.withValues(alpha: .10),
+              shape: BoxShape.circle),
+            child: Icon(icon, color: VColors.accent,
+              size: compact ? 16 : 20)),
+          SizedBox(width: compact ? 4 : 8),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, children: [
+              Text('$value', maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.w800,
+                  fontSize: compact ? 16 : 19)),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: VColors.muted,
+                  fontSize: compact ? 9 : 10)),
+            ])),
+        ]),
+      );
+    }));
 
   Widget detail(VaultItem item) => VPanel(
     child: SingleChildScrollView(child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          CircleAvatar(radius: 27, backgroundColor: VColors.raised,
-            child: Icon(iconFor(item), color: VColors.accent, size: 29)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text(item.title, style: const TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold)),
-              Text(item.category, style: const TextStyle(
-                color: VColors.muted))])),
-        ]),
-        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0A3D50), Color(0xFF092338),
+                VColors.surface]),
+            border: Border.all(color: VColors.accent
+              .withValues(alpha: .18)),
+            borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            CircleAvatar(radius: 24,
+              backgroundColor: VColors.background,
+              child: Icon(iconFor(item),
+                color: VColors.accent, size: 26)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(item.website.isEmpty
+                    ? item.category : item.website,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: VColors.muted, fontSize: 11)),
+              ],
+            )),
+          ]),
+        ),
+        const SizedBox(height: 14),
         if (item.username.isNotEmpty)
           _info('Korisničko ime', item.username,
             onCopy: () => copySecret(item.username)),
@@ -641,8 +710,16 @@ class _VaultShellState extends State<VaultShell> {
             label: const Text('Trajno ukloni',
               style: TextStyle(color: VColors.red))),
         ] else ...[
-          VPrimaryButton(label: 'Uredi', icon: Icons.edit_outlined,
-            onPressed: () => edit(original: item)),
+          if (item.kind == ItemKind.password && item.secret.isNotEmpty) ...[
+            VPrimaryButton(label: 'Kopiraj lozinku',
+              icon: Icons.copy_outlined,
+              onPressed: () => copySecret(item.secret)),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: () => edit(original: item),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Uredi')),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () => remove(item),
@@ -955,7 +1032,27 @@ class _VaultShellState extends State<VaultShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
-        title: const VeldigoLogo(size: 31),
+        leadingWidth: 49,
+        leading: Builder(builder: (ctx) => IconButton(
+          tooltip: 'Otvori izbornik',
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
+          icon: const VeldigoLogo(size: 25, showName: false),
+        )),
+        titleSpacing: 0,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('VELDIGO', style: TextStyle(fontSize: 14,
+              fontWeight: FontWeight.w800, letterSpacing: 2.6,
+              color: VColors.text)),
+            SizedBox(height: 1),
+            Text('VAŠE LOZINKE, UVIJEK SIGURNE',
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 7, letterSpacing: 1,
+                color: VColors.muted)),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Zaključaj trezor',
@@ -981,7 +1078,7 @@ class _VaultShellState extends State<VaultShell> {
               child: const Icon(Icons.add, size: 30))
           : null,
       bottomNavigationBar: keyboardVisible ? null : NavigationBar(
-        height: 70,
+        height: 64,
         backgroundColor: VColors.background,
         selectedIndex: switch (page) {
           'Generator' => 1, 'Sigurnost' => 2, 'Postavke' => 3, _ => 0,

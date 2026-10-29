@@ -68,92 +68,184 @@ class _GeneratorPageState extends State<GeneratorPage> {
     regenerate();
   }
 
+  Future<void> copyGenerated() async {
+    final copied = generated;
+    await Clipboard.setData(ClipboardData(text: copied));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
+    }
+    Future<void>.delayed(const Duration(seconds: 30), () async {
+      try {
+        final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+        if (clipboard?.text == copied) {
+          await Clipboard.setData(const ClipboardData(text: ''));
+        }
+      } catch (_) {
+        // Clipboard can be unavailable while the device is locked.
+      }
+    });
+  }
+
+  /// A full-row, accessible toggle: tapping its title or switch must work.
+  /// Keep SwitchListTile semantics for keyboard/assistive-technology users.
+  Widget _characterOption(String symbol, String name, String subtitle,
+      bool checked, ValueChanged<bool> onChanged) =>
+    SwitchListTile.adaptive(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 7),
+      secondary: SizedBox(width: 31, child: Center(
+        child: Text(symbol, style: const TextStyle(
+          fontSize: 12, color: VColors.accent,
+          fontWeight: FontWeight.w800)))),
+      title: Text(name, style: const TextStyle(
+        fontSize: 12, fontWeight: FontWeight.w600)),
+      subtitle: subtitle.isEmpty ? null : Text(subtitle,
+        style: const TextStyle(
+          color: VColors.muted, fontSize: 10)),
+      value: checked,
+      activeTrackColor: VColors.accent,
+      onChanged: onChanged,
+    );
+
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      const VSectionHeader(
-        title: 'Generator lozinki',
-        subtitle: 'Generirajte jake i jedinstvene lozinke.',
-      ),
-      VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-        const Text('GENERIRANA LOZINKA',
-          style: TextStyle(color: VColors.muted, letterSpacing: 1.5)),
-        const SizedBox(height: 12),
-        SelectableText(generated, style: const TextStyle(
-          color: VColors.accent, fontSize: 23,
-          fontWeight: FontWeight.bold, letterSpacing: 1)),
-        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          IconButton(tooltip: 'Kopiraj lozinku',
-            icon: const Icon(Icons.copy),
-            onPressed: () async {
-              final copied = generated;
-              await Clipboard.setData(ClipboardData(text: copied));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text(
-                    'Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
-              }
-              Future<void>.delayed(const Duration(seconds: 30), () async {
-                try {
-                  final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-                  if (clipboard?.text == copied) {
-                    await Clipboard.setData(const ClipboardData(text: ''));
-                  }
-                } catch (_) {
-                  // Clipboard may be inaccessible while the app is suspended.
-                }
-              });
-            }),
-          IconButton(tooltip: 'Nova lozinka',
-            icon: const Icon(Icons.refresh), onPressed: regenerate),
-        ]),
-        LinearProgressIndicator(
-          value: estimatedStrength,
-          color: VColors.accent, backgroundColor: VColors.border),
-        const SizedBox(height: 9),
-        Text('Procjena snage: ${estimatedStrength >= .85 ? 'Vrlo jaka' : estimatedStrength >= .55 ? 'Jaka' : 'Umjerena'} · nasumičan lokalni generator',
-          style: const TextStyle(color: VColors.muted, fontSize: 12)),
-      ])),
-      const SizedBox(height: 16),
-      VPanel(child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [const Text('Duljina lozinke'),
-            Text('$length', style: const TextStyle(
-              color: VColors.accent, fontWeight: FontWeight.bold))]),
-        Slider(min: 8, max: 128, divisions: 120, value: length.toDouble(),
-          activeColor: VColors.accent,
-          onChanged: (value) {
-            setState(() => length = value.toInt());
-            regenerate();
-          }),
-        SwitchListTile.adaptive(
-          title: const Text('Velika slova (A–Z)'), value: upper,
-          onChanged: (v) => changeCharacterSet('upper', v)),
-        SwitchListTile.adaptive(
-          title: const Text('Mala slova (a–z)'), value: lower,
-          onChanged: (v) => changeCharacterSet('lower', v)),
-        SwitchListTile.adaptive(
-          title: const Text('Brojevi (0–9)'), value: numbers,
-          onChanged: (v) => changeCharacterSet('numbers', v)),
-        SwitchListTile.adaptive(
-          title: const Text('Posebni znakovi'), value: symbols,
-          onChanged: (v) => changeCharacterSet('symbols', v)),
-        SwitchListTile.adaptive(
-          title: const Text('Izbjegni slične znakove'),
-          subtitle: const Text('Bez lako zamjenjivih znakova poput 0, 1, I i l.'),
-          value: avoidSimilar,
-          onChanged: (value) {
-            setState(() => avoidSimilar = value);
-            regenerate();
-          }),
-      ])),
-      const SizedBox(height: 16),
-      VPrimaryButton(label: 'Generiraj novu lozinku',
-        icon: Icons.refresh, onPressed: regenerate),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final strength = estimatedStrength;
+    final strengthName = strength >= .85
+        ? 'Vrlo jaka' : strength >= .55 ? 'Jaka' : 'Umjerena';
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      children: [
+        const VSectionHeader(
+          title: 'Generator lozinki',
+          subtitle: 'Izradite snažnu i jedinstvenu lozinku.',
+        ),
+        VPanel(padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('GENERIRANA LOZINKA', style: TextStyle(
+                color: VColors.muted, fontSize: 10, letterSpacing: 1.5)),
+              const SizedBox(height: 9),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF072B3D),
+                  border: Border.all(color: VColors.accent
+                    .withValues(alpha: .65)),
+                  borderRadius: BorderRadius.circular(10)),
+                child: Row(children: [
+                  Expanded(child: SelectableText(generated,
+                    style: const TextStyle(
+                      color: VColors.text,
+                      fontSize: 16,
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: .3))),
+                  IconButton(
+                    tooltip: 'Kopiraj lozinku',
+                    icon: const Icon(Icons.copy_outlined,
+                      color: VColors.accent),
+                    onPressed: copyGenerated),
+                  IconButton(
+                    tooltip: 'Nova lozinka',
+                    icon: const Icon(Icons.refresh,
+                      color: VColors.accent),
+                    onPressed: regenerate),
+                ]),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 11),
+        VPanel(padding: const EdgeInsets.all(13),
+          child: Column(children: [
+            Row(children: [
+              const Expanded(child: Text('DULJINA LOZINKE',
+                style: TextStyle(fontSize: 10, letterSpacing: 1.2,
+                  color: VColors.muted))),
+              Text('$length', style: const TextStyle(
+                color: VColors.text,
+                fontSize: 13, fontWeight: FontWeight.w800)),
+            ]),
+            Slider(
+              min: 8, max: 128, divisions: 120,
+              value: length.toDouble(),
+              activeColor: VColors.accent,
+              onChanged: (value) {
+                setState(() => length = value.toInt());
+                regenerate();
+              },
+            ),
+            const Row(children: [
+              Text('8', style: TextStyle(
+                fontSize: 10, color: VColors.muted)),
+              Spacer(),
+              Text('128', style: TextStyle(
+                fontSize: 10, color: VColors.muted)),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 11),
+        VPanel(padding: const EdgeInsets.symmetric(
+          horizontal: 11, vertical: 5),
+          child: Column(children: [
+            _characterOption('Aa', 'Velika slova (A–Z)', '',
+              upper, (v) => changeCharacterSet('upper', v)),
+            const Divider(height: 1),
+            _characterOption('aa', 'Mala slova (a–z)', '',
+              lower, (v) => changeCharacterSet('lower', v)),
+            const Divider(height: 1),
+            _characterOption('123', 'Brojevi (0–9)', '',
+              numbers, (v) => changeCharacterSet('numbers', v)),
+            const Divider(height: 1),
+            _characterOption('!#', 'Posebni znakovi', '(!, @, #, …)',
+              symbols, (v) => changeCharacterSet('symbols', v)),
+            const Divider(height: 1),
+            _characterOption('◉', 'Izbjegni slične znakove',
+              'Bez lako zamjenjivih 0, 1, I i l.',
+              avoidSimilar, (value) {
+                setState(() => avoidSimilar = value);
+                regenerate();
+              }),
+          ]),
+        ),
+        const SizedBox(height: 11),
+        VPanel(padding: const EdgeInsets.all(13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Expanded(child: Text('SNAGA LOZINKE',
+                  style: TextStyle(color: VColors.muted,
+                    fontSize: 10, letterSpacing: 1.2))),
+                Text(strengthName, style: const TextStyle(
+                  color: VColors.accent,
+                  fontWeight: FontWeight.w700, fontSize: 13)),
+              ]),
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: strength,
+                minHeight: 6,
+                color: VColors.accent,
+                backgroundColor: VColors.border,
+                borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 8),
+              const Text(
+                'Lokalna procjena na temelju duljine i skupa znakova.',
+                style: TextStyle(color: VColors.muted, fontSize: 10)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 11),
+        VPrimaryButton(
+          label: 'Generiraj novu lozinku',
+          icon: Icons.refresh,
+          onPressed: regenerate),
+      ],
+    );
+  }
 }
 
 class SecurityPage extends StatelessWidget {
@@ -182,22 +274,25 @@ class SecurityPage extends StatelessWidget {
         subtitle: 'Pregled sigurnosti vaših spremljenih lozinki.',
       ),
       VPanel(child: Row(children: [
-        SizedBox(width: 85, height: 85, child: Stack(
+        SizedBox(width: constraints.maxWidth < 360 ? 68 : 85,
+          height: constraints.maxWidth < 360 ? 68 : 85,
+          child: Stack(
           fit: StackFit.expand, children: [
             CircularProgressIndicator(value: score / 100, strokeWidth: 8,
               color: VColors.accent, backgroundColor: VColors.border),
             Center(child: Text('$score', style: const TextStyle(
               fontSize: 28, fontWeight: FontWeight.bold))),
           ])),
-        const SizedBox(width: 20),
-        const Expanded(child: Column(
+        SizedBox(width: constraints.maxWidth < 360 ? 12 : 20),
+        Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Sigurnosni rezultat',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 7),
-          Text('Lokalna procjena duljine i ponavljanja lozinki. '
+            style: TextStyle(fontSize: constraints.maxWidth < 360 ? 16 : 20,
+              fontWeight: FontWeight.bold)),
+          const SizedBox(height: 7),
+          const Text('Lokalna procjena duljine i ponavljanja lozinki. '
             'Ne provjerava stvarne proboje računa niti aktivnu 2FA zaštitu.',
-            style: TextStyle(color: VColors.muted)),
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
         ])),
       ])),
       const SizedBox(height: 14),
@@ -308,9 +403,19 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
           onPressed: widget.onAdd,
           icon: const Icon(Icons.add, color: VColors.accent)),
       ),
-      const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
-        'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
-        'Koristite vlastiti Base32 tajni ključ.')),
+      const VPanel(child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.verified_user_outlined,
+            size: 24, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Text(
+            'TOTP kodovi generiraju se lokalno i ne šalju na poslužitelj. '
+            'Dodajte vlastiti Base32 tajni ključ.',
+            style: TextStyle(color: VColors.muted, fontSize: 12,
+              height: 1.45))),
+        ],
+      )),
       const SizedBox(height: 15),
       for (final item in widget.items)
         Padding(padding: const EdgeInsets.only(bottom: 10),
@@ -441,37 +546,86 @@ class _BackupPageState extends State<BackupPage> {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(16), children: [
-    const VSectionHeader(
-      title: 'Sigurnosna kopija',
-      subtitle: 'Izvoz, vraćanje i prijenos šifriranog trezora.',
-    ),
-    VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-      const Icon(Icons.enhanced_encryption, color: VColors.accent, size: 40),
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+    children: [
+      const VSectionHeader(
+        title: 'Sigurnosna kopija',
+        subtitle: 'Sačuvajte svoje podatke i prenesite ih na drugi uređaj.',
+      ),
+      VPanel(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(Icons.file_download_outlined,
+              color: VColors.accent, size: 29)),
+          const SizedBox(height: 13),
+          const Text('Izradi šifriranu kopiju', style: TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 9),
+          const Text('Spremite lozinke, sigurne bilješke i ostale zapise '
+            'u zaštićenu datoteku.',
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
+          const SizedBox(height: 17),
+          VPrimaryButton(label: 'Izradi sigurnosnu kopiju',
+            onPressed: busy ? null : export),
+        ],
+      )),
       const SizedBox(height: 10),
-      const Text('Sigurnosna kopija i prijenos',
-        style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
+      VPanel(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(Icons.file_upload_outlined,
+              color: VColors.accent, size: 29)),
+          const SizedBox(height: 13),
+          const Text('Vrati trezor iz kopije', style: TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 9),
+          const Text('Odaberite šifriranu datoteku i potvrdite '
+            'njezinu pristupnu lozinku. Vraćanje zamjenjuje aktivni trezor.',
+            style: TextStyle(color: VColors.muted, fontSize: 12)),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: busy ? null : restore,
+            icon: const Icon(Icons.folder_open_outlined, size: 18),
+            label: const Text('Odaberi datoteku')),
+        ],
+      )),
       const SizedBox(height: 10),
-      const Text('Izvezite svoj trezor kao šifriranu .veldigo datoteku. '
-        'Datoteka se može otvoriti na Androidu i Windowsu pomoću '
-        'iste glavne lozinke.',
-        style: TextStyle(color: VColors.muted)),
-      const SizedBox(height: 18),
-      VPrimaryButton(label: 'Izradi sigurnosnu kopiju',
-        icon: Icons.file_download_outlined,
-        onPressed: busy ? null : export),
+      const VPanel(padding: EdgeInsets.all(13),
+        child: Row(children: [
+          Icon(Icons.devices_outlined, size: 23, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Prijenos između uređaja',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('Android ↔ Windows putem šifrirane .veldigo datoteke.',
+                style: TextStyle(color: VColors.muted, fontSize: 11)),
+            ],
+          )),
+        ])),
       const SizedBox(height: 10),
-      OutlinedButton.icon(
-        onPressed: busy ? null : restore,
-        icon: const Icon(Icons.restore),
-        label: const Text('Vrati trezor iz kopije')),
-      const SizedBox(height: 10),
-      const Text('Važno: vraćanje zamjenjuje postojeći trezor. '
-        'Spremite aktualnu kopiju prije vraćanja.',
-        style: TextStyle(color: VColors.muted, fontSize: 12)),
-    ])),
-  ]);
+      const VPanel(padding: EdgeInsets.all(13),
+        child: Row(children: [
+          Icon(Icons.shield_outlined, size: 23, color: VColors.accent),
+          SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Privatnost prije svega',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+              Text('Šifrirana datoteka ostaje pod vašom kontrolom. '
+                'Čuvajte njezinu lozinku i pohranite je na sigurno.',
+                style: TextStyle(color: VColors.muted, fontSize: 11)),
+            ],
+          )),
+        ])),
+    ],
+  );
 }
 
 class SettingsPage extends StatelessWidget {
@@ -532,6 +686,10 @@ class SettingsPage extends StatelessWidget {
       title: 'Postavke',
       subtitle: 'Sigurnost, privatnost i upravljanje aplikacijom.',
     ),
+    const Text('SIGURNOST', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     VPanel(child: Column(children: [
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),
@@ -553,6 +711,10 @@ class SettingsPage extends StatelessWidget {
         onTap: () => changePassword(context)),
     ])),
     const SizedBox(height: 16),
+    const Text('PODACI', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     VPanel(child: Column(children: [
       ListTile(
         leading: const Icon(Icons.backup_outlined, color: VColors.accent),
@@ -566,6 +728,10 @@ class SettingsPage extends StatelessWidget {
       ),
     ])),
     const SizedBox(height: 16),
+    const Text('APLIKACIJA', style: TextStyle(
+      color: VColors.accent, fontSize: 10, letterSpacing: 1.5,
+      fontWeight: FontWeight.w700)),
+    const SizedBox(height: 8),
     const VPanel(child: Column(children: [
       ListTile(
         leading: Icon(Icons.info_outline, color: VColors.accent),

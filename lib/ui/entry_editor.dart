@@ -92,11 +92,12 @@ class _EntryEditorState extends State<EntryEditor> {
     final label = isNote ? 'bilješku' : isCard ? 'karticu' :
         isTotp ? 'autentifikator' : 'lozinku';
     final mobile = MediaQuery.sizeOf(context).width < 650;
+    final fieldGap = mobile ? 11.0 : 14.0;
     return Dialog(
       backgroundColor: VColors.background,
       insetPadding: mobile ? EdgeInsets.zero : const EdgeInsets.all(16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(mobile ? 0 : 20),
+        borderRadius: BorderRadius.circular(mobile ? 0 : 13),
         side: const BorderSide(color: VColors.border)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -106,10 +107,10 @@ class _EntryEditorState extends State<EntryEditor> {
           mainAxisSize: mobile ? MainAxisSize.max : MainAxisSize.min,
           children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(22, 16, 10, 8),
+            padding: EdgeInsets.fromLTRB(mobile ? 16 : 22, 12, 10, 7),
             child: Row(children: [
               const Icon(Icons.shield_outlined, color: VColors.accent),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(child: Text(
                 widget.original == null
                     ? (mobile && widget.kind == ItemKind.password
@@ -132,7 +133,8 @@ class _EntryEditorState extends State<EntryEditor> {
               ),
             ),
           Flexible(child: SingleChildScrollView(
-            padding: const EdgeInsets.all(22),
+            padding: EdgeInsets.symmetric(
+              horizontal: mobile ? 16 : 22, vertical: mobile ? 12 : 22),
             child: Form(key: form, child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               TextFormField(
@@ -143,7 +145,7 @@ class _EntryEditorState extends State<EntryEditor> {
                 validator: (v) => v == null || v.trim().isEmpty
                     ? 'Naziv je obavezan.' : null),
               if (!isNote) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: fieldGap),
                 TextFormField(
                   controller: username,
                   decoration: InputDecoration(
@@ -152,7 +154,7 @@ class _EntryEditorState extends State<EntryEditor> {
                         : 'Korisničko ime / e-mail',
                     prefixIcon: const Icon(Icons.person_outline))),
               ],
-              const SizedBox(height: 14),
+              SizedBox(height: fieldGap),
               if (isNote)
                 TextFormField(controller: notes, maxLines: 7,
                   decoration: const InputDecoration(
@@ -186,13 +188,13 @@ class _EntryEditorState extends State<EntryEditor> {
                   validator: (v) => v == null || v.isEmpty
                       ? 'Unesite vrijednost.' : null),
               if (isCard) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: fieldGap),
                 TextFormField(controller: expiry,
                   keyboardType: TextInputType.datetime,
                   decoration: const InputDecoration(
                     labelText: 'Vrijedi do (MM/GG)',
                     prefixIcon: Icon(Icons.calendar_today_outlined))),
-                const SizedBox(height: 14),
+                SizedBox(height: fieldGap),
                 TextFormField(controller: cvv, obscureText: true,
                   autofillHints: const [],
                   keyboardType: TextInputType.number,
@@ -202,21 +204,21 @@ class _EntryEditorState extends State<EntryEditor> {
                     prefixIcon: Icon(Icons.lock_outline))),
               ],
               if (!isNote) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: fieldGap),
                 if (!isCard && !isTotp) TextFormField(
                   controller: website,
                   keyboardType: TextInputType.url,
                   decoration: const InputDecoration(
                     labelText: 'Web-adresa',
                     prefixIcon: Icon(Icons.link))),
-                if (!isTotp) const SizedBox(height: 14),
+                if (!isTotp) SizedBox(height: fieldGap),
                 if (!isTotp && !isNote)
                   TextFormField(controller: notes, maxLines: 3,
                     decoration: const InputDecoration(
                       labelText: 'Dodatna sigurna bilješka (neobavezno)',
                       alignLabelWithHint: true)),
               ],
-              const SizedBox(height: 14),
+              SizedBox(height: fieldGap),
               DropdownButtonFormField<String>(
                 initialValue: categories.contains(category) ? category : 'Ostalo',
                 decoration: const InputDecoration(
@@ -237,7 +239,8 @@ class _EntryEditorState extends State<EntryEditor> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(saveError!, style: const TextStyle(color: VColors.red))),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.fromLTRB(
+              mobile ? 16 : 20, 11, mobile ? 16 : 20, 14),
             child: Row(children: [
               Expanded(child: OutlinedButton(
                 onPressed: busy ? null : () => Navigator.pop(context),
