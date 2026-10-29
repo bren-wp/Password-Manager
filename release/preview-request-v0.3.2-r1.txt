@@ -1,0 +1,9 @@
+Veldigo v0.3.2 Preview 1 — Android + Windows gated release
+Version: 0.3.2+15
+Source: release/veldigo-v032-preview
+Changes: session-scoped vault operations and clipboard revocation on lock
+Platform artifacts: APK, AAB, Windows portable EXE, Setup EXE, ZIP, SHA256SUMS
+Required gates: flutter analyze, flutter test, offline AES-256-GCM/Argon2id regression test, Android & Windows release builds, SHA-256 verification.
+Signing: preview/debug-signed Android AAB only; Windows Authenticode not configured.
+Not a production certification and not full RGB 1:1 visual parity.
+Do not auto-merge into main.
