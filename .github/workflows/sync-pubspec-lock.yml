@@ -2,7 +2,7 @@ name: Update locked Flutter dependencies
 
 on:
   push:
-    branches: [fix/veldigo-recovery-consistency-v0.2.3]
+    branches: [feat/veldigo-v028-reference-pixel-parity]
     paths:
       - pubspec.yaml
       - .github/workflows/sync-pubspec-lock.yml
@@ -37,9 +37,9 @@ jobs:
             echo 'Dependencies already locked'
             exit 0
           fi
-          git commit -m 'build: lock file_picker 13 and updated Flutter dependencies'
+          git commit -m 'build: lock screenshot font testing dependencies'
           # Flutter pub get can modify tracked analysis metadata.
           git reset --hard HEAD
-          git fetch origin fix/veldigo-recovery-consistency-v0.2.3
-          git rebase origin/fix/veldigo-recovery-consistency-v0.2.3
-          git push origin HEAD:fix/veldigo-recovery-consistency-v0.2.3
+          git fetch origin feat/veldigo-v028-reference-pixel-parity
+          git rebase origin/feat/veldigo-v028-reference-pixel-parity
+          git push origin HEAD:feat/veldigo-v028-reference-pixel-parity

@@ -136,10 +136,17 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min, children: [
         if (!desktop) ...[
-          const Center(child: VeldigoLogo(size: 92, showName: false)),
-          const SizedBox(height: 16),
-          const Center(child: VeldigoLogo(size: 23)),
-          const SizedBox(height: 30),
+          const Center(child: VeldigoLogo(size: 136, showName: false)),
+          const SizedBox(height: 14),
+          const Center(child: Text('VELDIGO',
+            style: TextStyle(
+              fontSize: 27, color: VColors.text, letterSpacing: 6,
+              fontWeight: FontWeight.w800))),
+          const SizedBox(height: 4),
+          const Center(child: Text('PASSWORD MANAGER',
+            style: TextStyle(
+              color: VColors.muted, fontSize: 9, letterSpacing: 2.6))),
+          const SizedBox(height: 28),
         ],
         Text(widget.create ? 'Zaštitite svoj trezor' : 'Dobro došli natrag',
           textAlign: desktop ? TextAlign.start : TextAlign.center,
@@ -281,8 +288,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+        child: Align(
+          alignment: desktop ? Alignment.center : Alignment.topCenter,
+          child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24,
+            desktop ? 24 : (MediaQuery.sizeOf(context).height < 690 ? 18 : 52),
+            24, 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: desktop ? 980 : 460),
             child: desktop

@@ -21,13 +21,25 @@ class GeneratorPage extends StatefulWidget {
 class _GeneratorPageState extends State<GeneratorPage> {
   int length = 20;
   bool upper = true, lower = true, numbers = true, symbols = true;
+  bool avoidSimilar = true;
+
+  double get estimatedStrength {
+    final alphabet = (upper ? (avoidSimilar ? PasswordGenerator.upper.length : PasswordGenerator.fullUpper.length) : 0) +
+        (lower ? (avoidSimilar ? PasswordGenerator.lower.length : PasswordGenerator.fullLower.length) : 0) +
+        (numbers ? (avoidSimilar ? PasswordGenerator.digits.length : PasswordGenerator.fullDigits.length) : 0) +
+        (symbols ? PasswordGenerator.symbols.length : 0);
+    if (alphabet == 0) return 0;
+    final entropyBits = length * (log(alphabet) / ln2);
+    return (entropyBits / 110).clamp(0.0, 1.0).toDouble();
+  }
   late String generated = PasswordGenerator.generate(length: length);
 
   void regenerate() {
     try {
       final next = PasswordGenerator.generate(
         length: length, uppercase: upper,
-        lowercase: lower, numbers: numbers, special: symbols);
+        lowercase: lower, numbers: numbers, special: symbols,
+        avoidSimilar: avoidSimilar);
       setState(() => generated = next);
     } on ArgumentError {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -97,11 +109,12 @@ class _GeneratorPageState extends State<GeneratorPage> {
           IconButton(tooltip: 'Nova lozinka',
             icon: const Icon(Icons.refresh), onPressed: regenerate),
         ]),
-        const LinearProgressIndicator(
-          value: 1, color: VColors.accent, backgroundColor: VColors.border),
+        LinearProgressIndicator(
+          value: estimatedStrength,
+          color: VColors.accent, backgroundColor: VColors.border),
         const SizedBox(height: 9),
-        const Text('Nasumična lozinka iz sigurnog generatora',
-          style: TextStyle(color: VColors.muted, fontSize: 12)),
+        Text('Procjena snage: ${estimatedStrength >= .85 ? 'Vrlo jaka' : estimatedStrength >= .55 ? 'Jaka' : 'Umjerena'} · nasumičan lokalni generator',
+          style: const TextStyle(color: VColors.muted, fontSize: 12)),
       ])),
       const SizedBox(height: 16),
       VPanel(child: Column(children: [
@@ -109,7 +122,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
           children: [const Text('Duljina lozinke'),
             Text('$length', style: const TextStyle(
               color: VColors.accent, fontWeight: FontWeight.bold))]),
-        Slider(min: 8, max: 64, divisions: 56, value: length.toDouble(),
+        Slider(min: 8, max: 128, divisions: 120, value: length.toDouble(),
           activeColor: VColors.accent,
           onChanged: (value) {
             setState(() => length = value.toInt());
@@ -127,6 +140,14 @@ class _GeneratorPageState extends State<GeneratorPage> {
         SwitchListTile.adaptive(
           title: const Text('Posebni znakovi'), value: symbols,
           onChanged: (v) => changeCharacterSet('symbols', v)),
+        SwitchListTile.adaptive(
+          title: const Text('Izbjegni slične znakove'),
+          subtitle: const Text('Bez lako zamjenjivih znakova poput 0, 1, I i l.'),
+          value: avoidSimilar,
+          onChanged: (value) {
+            setState(() => avoidSimilar = value);
+            regenerate();
+          }),
       ])),
       const SizedBox(height: 16),
       VPrimaryButton(label: 'Generiraj novu lozinku',
@@ -245,6 +266,34 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   Future<String> code(String source, int epoch) =>
       Totp.generate(source, epoch);
 
+  Future<void> copyCurrentCode(VaultItem item) async {
+    try {
+      final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final currentCode = await code(item.secret, epoch);
+      await Clipboard.setData(ClipboardData(text: currentCode));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('TOTP kod je kopiran. Međuspremnik će se očistiti.')));
+      }
+      // Do not retain a one-time code beyond its current 30-second period.
+      Future<void>.delayed(Duration(seconds: 30 - epoch % 30), () async {
+        try {
+          final existing = await Clipboard.getData(Clipboard.kTextPlain);
+          if (existing?.text == currentCode) {
+            await Clipboard.setData(const ClipboardData(text: ''));
+          }
+        } catch (_) {
+          // A locked/background app may not have clipboard access.
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('TOTP ključ nije valjan. Provjerite unos.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -272,16 +321,22 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
             Text(item.username,
               style: const TextStyle(color: VColors.muted)),
             const SizedBox(height: 14),
-            FutureBuilder<String>(
-              future: code(item.secret, epoch),
-              builder: (ctx, snapshot) => Text(snapshot.hasError
-                  ? 'Neispravan TOTP ključ'
-                  : (snapshot.data == null ? '··· ···' :
-                    '${snapshot.data!.substring(0, 3)} '
-                    '${snapshot.data!.substring(3)}'),
-                style: const TextStyle(
-                  fontSize: 29, color: VColors.accent,
-                  fontWeight: FontWeight.bold, letterSpacing: 3))),
+            Row(children: [
+              Expanded(child: FutureBuilder<String>(
+                future: code(item.secret, epoch),
+                builder: (ctx, snapshot) => Text(snapshot.hasError
+                    ? 'Neispravan TOTP ključ'
+                    : (snapshot.data == null ? '··· ···' :
+                      '${snapshot.data!.substring(0, 3)} '
+                      '${snapshot.data!.substring(3)}'),
+                  style: const TextStyle(
+                    fontSize: 29, color: VColors.accent,
+                    fontWeight: FontWeight.bold, letterSpacing: 3)))),
+              IconButton(
+                tooltip: 'Kopiraj TOTP kod',
+                icon: const Icon(Icons.copy_outlined, color: VColors.muted),
+                onPressed: () => copyCurrentCode(item)),
+            ]),
             const SizedBox(height: 10),
             LinearProgressIndicator(
               value: (30 - epoch % 30) / 30,

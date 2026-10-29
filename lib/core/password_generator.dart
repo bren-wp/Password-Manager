@@ -6,17 +6,25 @@ class PasswordGenerator {
   static const digits = '23456789';
   static const symbols = '!@#\$%&*?-_+=';
 
+  static const fullUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  static const fullLower = 'abcdefghijklmnopqrstuvwxyz';
+  static const fullDigits = '0123456789';
+
   static String generate({
     int length = 20,
     bool uppercase = true,
     bool lowercase = true,
     bool numbers = true,
     bool special = true,
+    bool avoidSimilar = true,
   }) {
+    // Preserve the existing password defaults for backwards compatibility.
+    // The UI switch only expands the character alphabet; it never alters
+    // existing vault entries or any cryptographic persistence format.
     final pools = <String>[
-      if (uppercase) upper,
-      if (lowercase) lower,
-      if (numbers) digits,
+      if (uppercase) (avoidSimilar ? upper : fullUpper),
+      if (lowercase) (avoidSimilar ? lower : fullLower),
+      if (numbers) (avoidSimilar ? digits : fullDigits),
       if (special) symbols,
     ];
     if (pools.isEmpty) {
