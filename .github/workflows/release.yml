@@ -4,7 +4,7 @@ on:
   push:
     branches: [release/veldigo-v030-preview]
     paths:
-      - release/preview-request-v0.3.0-r1.txt
+      - release/preview-request-v0.3.0-r2.txt
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: veldigo-preview-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   android:
@@ -40,7 +40,7 @@ jobs:
         run: |
           grep -Fx 'version: 0.3.0+13' pubspec.yaml
           grep -Fx '        targetSdk = 36' android/app/build.gradle.kts
-          grep -Fx 'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.0-all.zip' android/gradle/wrapper/gradle-wrapper.properties
+          grep -F 'gradle-9.6.0-all.zip' android/gradle/wrapper/gradle-wrapper.properties
       - name: Build preview APK
         run: flutter build apk --release
       - name: Build preview AAB
