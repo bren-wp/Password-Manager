@@ -19,6 +19,7 @@ void main() {
     expect(find.text('Generator lozinki'), findsOneWidget);
     final slider = tester.widget<Slider>(find.byType(Slider));
     expect(slider.value, 20);
+    await tester.ensureVisible(find.text('Posebni znakovi'));
     await tester.tap(find.text('Posebni znakovi'));
     await tester.pump();
     expect(tester.widget<SwitchListTile>(
@@ -40,6 +41,7 @@ void main() {
     await tester.pumpAndSettle();
     for (final label in ['Velika slova (A–Z)', 'Mala slova (a–z)',
         'Brojevi (0–9)']) {
+      await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
       await tester.pump();
     }
