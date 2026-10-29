@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/sensitive_clipboard.dart';
 import 'core/vault_store.dart';
 import 'ui/auth_screen.dart';
 import 'ui/brand.dart';
@@ -56,6 +58,8 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   void _onStoreChanged() {
     final unlocked = store.isUnlocked;
     if (previouslyUnlocked && !unlocked) {
+      // Clear app-owned secrets immediately, not just after 30 seconds.
+      unawaited(SensitiveClipboard.clear());
       // A dialog is a separate Navigator route: rebuilding the home page on
       // lock does not remove an open editor, backup or password dialog.
       // Dismiss all routes after the frame, before showing any secrets again.
@@ -102,6 +106,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     store.removeListener(_onStoreChanged);
+    unawaited(SensitiveClipboard.clear());
     store.lock();
     store.dispose();
     super.dispose();
