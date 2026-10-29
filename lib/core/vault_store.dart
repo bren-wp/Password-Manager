@@ -57,6 +57,10 @@ class VaultStore extends ChangeNotifier {
     _sessionEpoch++;
     _externalPickerTimeout?.cancel();
     _externalPickerTimeout = null;
+    // A native picker from a disposed session must not grant background
+    // unlock grace to a later session or leave a stale pending depth.
+    _externalPickerDepth = 0;
+    _externalPickerStarted = null;
     _key = null;
     _salt = null;
     _items = [];
@@ -94,6 +98,7 @@ class VaultStore extends ChangeNotifier {
 
   Future<T> withExternalFilePicker<T>(Future<T> Function() action) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
+    final session = _sessionEpoch;
     if (_externalPickerDepth++ == 0) {
       _externalPickerStarted = DateTime.now();
       _externalPickerTimeout = Timer(externalPickerGrace, () {
@@ -101,13 +106,20 @@ class VaultStore extends ChangeNotifier {
       });
     }
     try {
-      return await action();
+      final result = await action();
+      // A result returned after lock/dispose (even if the vault has since
+      // been unlocked again) belongs to the old session and is not usable.
+      _assertUnlockedSession(session);
+      return result;
     } finally {
-      _externalPickerDepth--;
-      if (_externalPickerDepth == 0) {
-        _externalPickerTimeout?.cancel();
-        _externalPickerTimeout = null;
-        _externalPickerStarted = null;
+      // An old picker must not decrement or cancel a NEW session's grace.
+      if (!_disposed && session == _sessionEpoch) {
+        _externalPickerDepth--;
+        if (_externalPickerDepth == 0) {
+          _externalPickerTimeout?.cancel();
+          _externalPickerTimeout = null;
+          _externalPickerStarted = null;
+        }
       }
     }
   }
@@ -468,6 +480,10 @@ class VaultStore extends ChangeNotifier {
     _sessionEpoch++;
     _externalPickerTimeout?.cancel();
     _externalPickerTimeout = null;
+    // A native picker from a disposed session must not grant background
+    // unlock grace to a later session or leave a stale pending depth.
+    _externalPickerDepth = 0;
+    _externalPickerStarted = null;
     _key = null;
     _salt = null;
     _items = [];
