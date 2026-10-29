@@ -179,7 +179,8 @@ class VPrimaryButton extends StatelessWidget {
       shadowColor: Colors.transparent,
       minimumSize: const Size(0, 52),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-      textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: .1),
+      textStyle: const TextStyle(fontFamily: 'Roboto',
+        fontWeight: FontWeight.w800, letterSpacing: .1),
     );
     return DecoratedBox(
       decoration: BoxDecoration(
