@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../core/sensitive_clipboard.dart';
 
 import '../core/password_generator.dart';
 import '../core/totp.dart';
@@ -84,21 +84,11 @@ class _GeneratorPageState extends State<GeneratorPage> {
   Future<void> copyGenerated() => _copyPassword(generated);
 
   Future<void> _copyPassword(String copied) async {
-    await Clipboard.setData(ClipboardData(text: copied));
+    await SensitiveClipboard.copy(copied);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
     }
-    Future<void>.delayed(const Duration(seconds: 30), () async {
-      try {
-        final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-        if (clipboard?.text == copied) {
-          await Clipboard.setData(const ClipboardData(text: ''));
-        }
-      } catch (_) {
-        // Clipboard can be unavailable while the device is locked.
-      }
-    });
   }
 
   /// Five equal segments match the reference design on both platforms.
@@ -583,22 +573,13 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     try {
       final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final currentCode = await code(item.secret, epoch);
-      await Clipboard.setData(ClipboardData(text: currentCode));
+      if (!mounted) return;
+      await SensitiveClipboard.copy(
+        currentCode, expiry: Duration(seconds: 30 - epoch % 30));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('TOTP kod je kopiran. Međuspremnik će se očistiti.')));
       }
-      // Do not retain a one-time code beyond its current 30-second period.
-      Future<void>.delayed(Duration(seconds: 30 - epoch % 30), () async {
-        try {
-          final existing = await Clipboard.getData(Clipboard.kTextPlain);
-          if (existing?.text == currentCode) {
-            await Clipboard.setData(const ClipboardData(text: ''));
-          }
-        } catch (_) {
-          // A locked/background app may not have clipboard access.
-        }
-      });
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
