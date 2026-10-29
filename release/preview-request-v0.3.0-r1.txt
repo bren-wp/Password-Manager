@@ -1,0 +1,8 @@
+Veldigo v0.3.0 Preview 1 release request
+Version: 0.3.0+13
+Target branch: release/veldigo-v030-preview
+Requested: 2026-10-29
+Platforms: Android APK/AAB, Windows portable EXE, setup EXE, portable ZIP
+Signing: DEBUG-SIGNED ANDROID PREVIEW ONLY; Windows Authenticode not configured
+Conditions: Flutter analyze and test including local vault AES-GCM/Argon2id tamper checks; Android and Windows release builds; SHA-256 verification; no publish if any condition fails
+Do not merge into main.
