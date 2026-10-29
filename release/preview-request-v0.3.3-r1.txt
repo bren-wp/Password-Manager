@@ -1,0 +1,9 @@
+Veldigo v0.3.3 Preview 1 — gated cross-platform build
+Version: 0.3.3+16
+Branch: release/veldigo-v033-preview
+Changes: robust OS clipboard error handling, accurate TOTP errors, CI checkout Node 24
+Android: debug-signed PREVIEW APK/AAB, not production Play upload key
+Windows: portable exe, setup exe, portable zip (unsigned preview)
+Gates: Flutter analyze, all Flutter and vault-crypto tests, Windows and Android builds, SHA256 verification
+References: 26 Android and Windows actual Flutter captures; pixel-perfect 1:1 NOT yet confirmed
+Do not merge PR automatically.
