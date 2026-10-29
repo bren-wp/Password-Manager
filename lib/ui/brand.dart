@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 abstract final class VColors {
   // These are design tokens measured against the reference's dark navy
   // cards and cyan-green accents, shared by every Android/Windows screen.
-  static const background = Color(0xFF061220);
-  static const surface = Color(0xFF0A192A);
-  static const raised = Color(0xFF102338);
-  static const border = Color(0xFF193348);
-  static const accent = Color(0xFF2AE4CC);
-  static const text = Color(0xFFF4F7FC);
-  static const muted = Color(0xFF8A9EB9);
+  static const background = Color(0xFF051321);
+  static const surface = Color(0xFF091C2D);
+  static const raised = Color(0xFF0D293B);
+  static const border = Color(0xFF15364A);
+  static const accent = Color(0xFF22DCD4);
+  static const text = Color(0xFFF3FAFF);
+  static const muted = Color(0xFF92A9BF);
   static const red = Color(0xFFFF6479);
   static const warning = Color(0xFFFFB34F);
   static const blue = Color(0xFF66B6FF);
@@ -170,18 +170,37 @@ class VPrimaryButton extends StatelessWidget {
   final IconData? icon;
   const VPrimaryButton({super.key, required this.label, this.onPressed, this.icon});
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
-    style: FilledButton.styleFrom(
-      backgroundColor: VColors.accent,
+  Widget build(BuildContext context) {
+    final style = FilledButton.styleFrom(
+      backgroundColor: Colors.transparent,
+      disabledBackgroundColor: Colors.transparent,
       foregroundColor: VColors.background,
+      disabledForegroundColor: VColors.muted,
+      shadowColor: Colors.transparent,
       minimumSize: const Size(0, 52),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-      textStyle: const TextStyle(fontWeight: FontWeight.w800),
-    ),
-    onPressed: onPressed,
-    icon: Icon(icon ?? Icons.lock_outline),
-    label: Text(label),
-  );
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: .1),
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: onPressed == null ? VColors.raised : null,
+        gradient: onPressed == null ? null : const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF11CDBF), Color(0xFF4AEBD8)],
+        ),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: icon == null
+          ? FilledButton(style: style, onPressed: onPressed, child: Text(label))
+          : FilledButton.icon(
+              style: style,
+              onPressed: onPressed,
+              icon: Icon(icon, size: 18),
+              label: Text(label),
+            ),
+    );
+  }
 }
 
 /// Consistent reference-inspired heading for secondary Android and desktop
