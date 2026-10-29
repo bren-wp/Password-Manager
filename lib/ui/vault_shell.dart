@@ -10,14 +10,14 @@ import 'entry_editor.dart';
 import 'extra_pages.dart';
 
 const _navigation = <(String, IconData)>[
-  ('Trezor', Icons.lock_outline),
+  ('Trezor', Icons.home_outlined),
   ('Sve lozinke', Icons.list_alt),
   ('Favoriti', Icons.star_outline),
   ('Kategorije', Icons.grid_view_rounded),
   ('Sigurne bilješke', Icons.description_outlined),
   ('Kartice', Icons.credit_card_outlined),
   ('Autentifikator', Icons.verified_user_outlined),
-  ('Generator', Icons.auto_awesome_outlined),
+  ('Generator', Icons.casino_outlined),
   ('Sigurnost', Icons.shield_outlined),
   ('Sigurnosna kopija', Icons.cloud_upload_outlined),
   ('Koš', Icons.delete_outline),
@@ -184,11 +184,13 @@ class _VaultShellState extends State<VaultShell> {
 
   Widget navMenu({bool drawer = false}) {
     return Container(
-      width: drawer ? 280 : 244,
-      color: VColors.surface,
+      width: drawer ? 280 : 228,
+      decoration: const BoxDecoration(
+        color: VColors.surface,
+        border: Border(right: BorderSide(color: VColors.border))),
       child: Column(children: [
-        const Padding(padding: EdgeInsets.fromLTRB(20, 30, 12, 24),
-          child: VeldigoLogo(size: 43)),
+        const Padding(padding: EdgeInsets.fromLTRB(18, 26, 12, 30),
+          child: VeldigoLogo(size: 36)),
         Expanded(child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           children: [
@@ -199,11 +201,11 @@ class _VaultShellState extends State<VaultShell> {
                   dense: true,
                   selected: page == label,
                   selectedColor: VColors.accent,
-                  selectedTileColor: const Color(0xFF063C47),
+                  selectedTileColor: const Color(0xFF093846),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                   leading: Icon(icon, size: 20),
-                  title: Text(label),
+                  title: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   onTap: () {
                     if (drawer) { Navigator.of(context).pop(); }
                     navigate(label);
@@ -219,7 +221,7 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget titleBar(bool desktop) => Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 28 : 14, 23, 22, 14),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 18, desktop ? 25 : 14, 18, desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(page == 'Trezor' && !desktop
@@ -331,7 +333,7 @@ class _VaultShellState extends State<VaultShell> {
       bool trash = false}) {
     final items = filtered(kind: kind, favorites: favorites, trash: trash);
     return LayoutBuilder(builder: (context, constraints) {
-      final desktop = constraints.maxWidth >= 840;
+      final desktop = constraints.maxWidth >= 780;
       final selected = items.where((e) => e.id == selectedId).firstOrNull ??
           (desktop && items.isNotEmpty ? items.first : null);
       return Padding(
@@ -389,7 +391,7 @@ class _VaultShellState extends State<VaultShell> {
           ],
           Expanded(child: Row(children: [
             Expanded(child: VPanel(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: items.isEmpty
                 ? Center(child: Padding(
                     padding: const EdgeInsets.all(30),
@@ -437,7 +439,7 @@ class _VaultShellState extends State<VaultShell> {
             )),
             if (desktop) ...[
               const SizedBox(width: 14),
-              SizedBox(width: 340,
+              SizedBox(width: 342,
                 child: selected == null
                   ? const VPanel(child: Center(
                     child: Text('Odaberite zapis za detalje.',
@@ -613,7 +615,8 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Widget content() => switch (page) {
-    'Trezor' || 'Sve lozinke' => listPage(),
+    'Trezor' => listPage(),
+    'Sve lozinke' => listPage(kind: ItemKind.password),
     'Favoriti' => listPage(favorites: true),
     'Sigurne bilješke' => listPage(kind: ItemKind.note),
     'Kartice' => listPage(kind: ItemKind.card),
@@ -688,7 +691,8 @@ class _VaultShellState extends State<VaultShell> {
               child: const Icon(Icons.add, size: 30))
           : null,
       bottomNavigationBar: NavigationBar(
-        backgroundColor: VColors.surface,
+        height: 70,
+        backgroundColor: VColors.background,
         selectedIndex: switch (page) {
           'Generator' => 1, 'Sigurnost' => 2, 'Postavke' => 3, _ => 0,
         },
