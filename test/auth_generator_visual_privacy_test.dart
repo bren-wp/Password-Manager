@@ -40,23 +40,35 @@ void main() {
       (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    tester.view.physicalSize = const Size(393, 852);
     tester.view.devicePixelRatio = 1;
 
-    await tester.pumpWidget(MaterialApp(
-      theme: veldigoTheme(),
-      home: const Scaffold(
-        body: GeneratorPage(),
-        bottomNavigationBar: SizedBox(height: 72),
-      ),
-    ));
-    await tester.pumpAndSettle();
-    final button = find.text('Generiraj novu lozinku');
-    expect(button, findsOneWidget);
-    final position = tester.getRect(button);
-    expect(position.bottom, lessThanOrEqualTo(780),
-        reason: 'The primary action should not hide behind mobile navigation.');
-    expect(tester.takeException(), isNull);
+    // Cover compact and full-size Android viewports with a 72px nav bar.
+    for (final size in <Size>[
+      const Size(320, 640),
+      const Size(393, 852),
+      const Size(480, 900),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(MaterialApp(
+        theme: veldigoTheme(),
+        home: const Scaffold(
+          body: GeneratorPage(),
+          bottomNavigationBar: SizedBox(height: 72),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      final button = find.text('Generiraj novu lozinku');
+      expect(button, findsOneWidget);
+      final position = tester.getRect(button);
+      expect(position.bottom, lessThanOrEqualTo(size.height - 72),
+          reason: 'The generator action must stay above navigation at $size.');
+      expect(position.left, greaterThanOrEqualTo(0));
+      expect(position.right, lessThanOrEqualTo(size.width));
+      await tester.tap(button);
+      await tester.pump();
+      expect(tester.takeException(), isNull,
+          reason: 'The visible primary action must work at $size.');
+    }
   });
 
   testWidgets('Windows generator shares the five-segment meter',
