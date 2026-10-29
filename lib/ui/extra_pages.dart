@@ -85,10 +85,17 @@ class _GeneratorPageState extends State<GeneratorPage> {
   Future<void> copyGenerated() => _copyPassword(generated);
 
   Future<void> _copyPassword(String copied) async {
-    await SensitiveClipboard.copy(copied);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
+    try {
+      await SensitiveClipboard.copy(copied);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Kopirano. Međuspremnik se čisti nakon 30 sekundi.')));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Međuspremnik nije dostupan. Pokušajte ponovno.')));
+      }
     }
   }
 
@@ -582,10 +589,19 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
       Totp.generate(source, epoch);
 
   Future<void> copyCurrentCode(VaultItem item) async {
+    final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final String currentCode;
     try {
-      final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final currentCode = await code(item.secret, epoch);
-      if (!mounted) return;
+      currentCode = await code(item.secret, epoch);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('TOTP ključ nije valjan. Provjerite unos.')));
+      }
+      return;
+    }
+    if (!mounted) return;
+    try {
       await SensitiveClipboard.copy(
         currentCode, expiry: Duration(seconds: 30 - epoch % 30));
       if (mounted) {
@@ -595,7 +611,7 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('TOTP ključ nije valjan. Provjerite unos.')));
+          content: Text('Međuspremnik nije dostupan. Pokušajte ponovno.')));
       }
     }
   }
