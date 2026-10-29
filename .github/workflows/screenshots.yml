@@ -2,7 +2,7 @@ name: Capture real Veldigo screen gallery
 
 on:
   push:
-    branches: [main, 'feat/veldigo-*']
+    branches: [main, 'feat/veldigo-*', 'release/veldigo-v030-preview']
     paths:
       - tool/marketing_screenshots_test.dart
       - tool/flutter_test_config.dart
@@ -32,6 +32,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.8'
           cache: true
       - name: Prepare actual Veldigo Flutter application
         run: flutter pub get
