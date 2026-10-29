@@ -2,9 +2,9 @@ name: Veldigo preview release
 
 on:
   push:
-    branches: [feat/veldigo-pixel-parity-v0.2.5]
+    branches: [feat/veldigo-v026-stability-visual-audit]
     paths:
-      - release/preview-request-v0.2.5-r1.txt
+      - release/preview-request-v0.2.6-r1.txt
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/Veldigo-Android.apk
           cp build/app/outputs/bundle/release/app-release.aab dist/Veldigo-Android.aab
-          sha256sum dist/Veldigo-Android.apk dist/Veldigo-Android.aab > dist/Android-SHA256.txt
+          (cd dist && sha256sum Veldigo-Android.apk Veldigo-Android.aab > Android-SHA256.txt)
       - uses: actions/upload-artifact@v4
         with:
           name: veldigo-android-release
@@ -74,7 +74,11 @@ jobs:
           foreach ($file in $files) {
             if (!(Test-Path $file)) { throw "Missing release artifact $file" }
           }
-          $files | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash + '  ' + $_ } | Set-Content dist/Windows-SHA256.txt
+          $files | ForEach-Object {
+            $digest = (Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant()
+            $filename = Split-Path $_ -Leaf
+            "$digest  $filename"
+          } | Set-Content dist/Windows-SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
           name: veldigo-windows-release
@@ -102,12 +106,13 @@ jobs:
           test -s release-assets/Veldigo-portable.exe
           test -s release-assets/Veldigo-Setup.exe
           test -s release-assets/Veldigo-Windows-portable.zip
+          (cd release-assets && sha256sum -c Android-SHA256.txt && sha256sum -c Windows-SHA256.txt)
       - name: Publish explicitly labeled preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.5-preview.1 release-assets/* \
-            --title "Veldigo v0.2.5 Preview 1" \
+          gh release create v0.2.6-preview.1 release-assets/* \
+            --title "Veldigo v0.2.6 Preview 1" \
             --target "$GITHUB_SHA" \
             --notes-file release/RELEASE_NOTES.md \
             --prerelease

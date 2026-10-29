@@ -29,6 +29,10 @@ jobs:
           flutter pub get
       - run: dart format lib test
       - run: flutter analyze
+      - name: Strict visual comparison regression tests
+        run: |
+          python -m pip install Pillow
+          python tools/test_visual_parity_audit.py
       - run: flutter test
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4

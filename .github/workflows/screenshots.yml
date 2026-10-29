@@ -2,7 +2,7 @@ name: Capture real Veldigo screen gallery
 
 on:
   push:
-    branches: [main, feat/veldigo-pixel-parity-v0.2.5]
+    branches: [main, feat/veldigo-v026-stability-visual-audit]
     paths:
       - tool/marketing_screenshots_test.dart
       - tools/publish_real_screenshots.py

@@ -367,7 +367,8 @@ class _VaultShellState extends State<VaultShell> {
               prefixIcon: Icon(Icons.search)),
           ),
           const SizedBox(height: 14),
-          if (kind == null && !favorites && page == 'Trezor')
+          if (kind == null && !favorites && page == 'Trezor' &&
+              constraints.maxHeight > 380)
             Row(children: [
               _stat('Lozinke', widget.store.items.where(
                 (e) => !e.trashed && e.kind == ItemKind.password).length,
@@ -777,6 +778,9 @@ class _VaultShellState extends State<VaultShell> {
   @override
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 860;
+    // When the soft keyboard is visible, prioritize the editing/search area.
+    // Keep the desktop navigation unchanged; only the mobile chrome collapses.
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     if (desktop) { return Scaffold(
       body: Row(children: [
         navMenu(),
@@ -805,8 +809,9 @@ class _VaultShellState extends State<VaultShell> {
       drawer: Drawer(backgroundColor: VColors.surface,
         child: SafeArea(child: navMenu(drawer: true))),
       body: Column(children: [
-        titleBar(false),
-        if (page == 'Sigurne bilješke' || page == 'Kartice')
+        if (!keyboardVisible) titleBar(false),
+        if (!keyboardVisible &&
+            (page == 'Sigurne bilješke' || page == 'Kartice'))
           Padding(padding: const EdgeInsets.only(bottom: 10),
             child: extraButton()),
         Expanded(child: content()),
@@ -819,7 +824,7 @@ class _VaultShellState extends State<VaultShell> {
               onPressed: () => edit(),
               child: const Icon(Icons.add, size: 30))
           : null,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: keyboardVisible ? null : NavigationBar(
         height: 70,
         backgroundColor: VColors.background,
         selectedIndex: switch (page) {

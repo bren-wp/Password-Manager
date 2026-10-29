@@ -39,3 +39,7 @@
 - As a follow-up, consider removing obsolete release-request trigger files once release provenance/history is archived; do not rewrite or delete published Git tags.
 
 **Outcome:** identified orphaned generated files and visual mockups were removed; high-value shared logic was deduplicated; no claims of exhaustive binary-level dead-code elimination are made without linked native release analysis.
+
+## v0.2.6 follow-up — 29 October 2026
+
+The additional audit retains deliberately reachable security and recovery paths. In particular `recoveryCandidates()` and legacy checkpoint discovery are not dead code: they support vault unlock, explicit recovery and post-rotation storage. The new navigator lock listener is reachable through the application lifecycle, and the strict parity comparison is exercised by its own Python regression tests. No retained encrypted recovery format or repository history was deleted merely to reduce file counts. A full fresh tree-shaking/binary audit and third-party dependency vulnerability scan remain outstanding for production signoff; Flutter analyzer and PR build results must be checked from GitHub Actions.

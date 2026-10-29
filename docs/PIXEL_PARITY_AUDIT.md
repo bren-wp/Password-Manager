@@ -56,3 +56,11 @@ The script reports original and capture dimensions, mean absolute RGB pixel erro
 Every screen must show the **correct functional state**, no duplicate or missing shots, native resolution matching references, no clipping/overlap at the target size and tested Android/Windows navigation. Exact 1:1 can only be reported for an image when dimensions match and pixel error is zero. Independent testing must separately verify gesture interactions, platform fonts, accessibility, scrolling and soft keyboards.
 
 **Status:** Screenshot workflow passed on the current PR with **26 distinct files**, verified exact reference PNG physical dimensions and correct Android create/unlock/details navigation. The visual pixel-difference report against the original artwork is still pending; matching screenshot size and a non-duplicated capture are not proof of visual 1:1 parity.
+
+## v0.2.6 strict-measurement update — 29 October 2026
+
+- The visual audit no longer uses rounded mean RGB error to assert equality. A single channel differing by one unit is now counted, even when the rounded RGB MAE is `0.000`. Exact parity requires identical physical dimensions **and zero changed pixels**.
+- Per-screen diagnostics now include RGB MAE, edge MAE, changed-pixel count and percentage, bounding rectangle of differences, maximum channel deviation, and a ranked list of the closest captures.
+- `tools/test_visual_parity_audit.py` covers single-channel differences, same-color images of different dimensions, and ambiguous duplicate reference filenames. This Python suite is wired into the PR's quality workflow.
+- The reference ZIP archives are **not checked into this repository and were not available in the current session**; therefore no per-screen RGB comparison against the original artworks has been executed here. All 26 existing Flutter screenshots remain useful rendering baselines, **not a completed pixel-perfect certification**.
+- The Android UI now collapses nonessential vault chrome while the soft keyboard is visible and hides vault statistics at small available heights. Such responsive changes preserve the reference-sized layout, but should still be visually compared after capture.

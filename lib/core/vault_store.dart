@@ -319,11 +319,7 @@ class VaultStore extends ChangeNotifier {
         await _commitDigest(bytes, session);
       } else {
         bool restored = false;
-        for (final candidate in [
-          files.recoveryStage, files.swap, files.previous, files.older,
-          files.previousRetired, files.olderRetired,
-          files.quarantine, files.pending,
-        ]) {
+        for (final candidate in await files.recoveryCandidates()) {
           if (!await candidate.exists()) continue;
           try {
             final bytes = await _readFile(candidate);
@@ -387,11 +383,7 @@ class VaultStore extends ChangeNotifier {
     }
     final initialPrimary = await primary.exists()
         ? await _hash(await _readFile(primary)) : null;
-    for (final candidate in [
-      files.swap, files.previous, files.older,
-      files.previousRetired, files.olderRetired,
-      files.quarantine, files.pending,
-    ]) {
+    for (final candidate in await files.recoveryCandidates()) {
       if (!await candidate.exists()) continue;
       try {
         final bytes = await _readFile(candidate);
