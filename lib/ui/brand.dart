@@ -76,6 +76,15 @@ ThemeData veldigoTheme() => ThemeData(
         behavior: SnackBarBehavior.floating),
       dividerTheme: const DividerThemeData(
         color: VColors.border, thickness: 1, space: 1),
+      listTileTheme: const ListTileThemeData(
+        dense: true,
+        minVerticalPadding: 7,
+        minLeadingWidth: 24,
+        horizontalTitleGap: 12,
+        iconColor: VColors.accent,
+        textColor: VColors.text,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: VColors.background,
         elevation: 0,
