@@ -30,13 +30,16 @@ Future<void> main() async {
 }
 
 class VeldigoApp extends StatefulWidget {
-  const VeldigoApp({super.key});
+  final VaultStore? storeOverride;
+  const VeldigoApp({super.key, this.storeOverride});
   @override
   State<VeldigoApp> createState() => _VeldigoAppState();
 }
 
 class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
-  final VaultStore store = VaultStore();
+  late final VaultStore store = widget.storeOverride ?? VaultStore();
+  final navigatorKey = GlobalKey<NavigatorState>();
+  bool previouslyUnlocked = false;
   bool loading = true;
   bool welcomeCompleted = false;
   String? error;
@@ -45,7 +48,24 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    previouslyUnlocked = store.isUnlocked;
+    store.addListener(_onStoreChanged);
     _init();
+  }
+
+  void _onStoreChanged() {
+    final unlocked = store.isUnlocked;
+    if (previouslyUnlocked && !unlocked) {
+      // A dialog is a separate Navigator route: rebuilding the home page on
+      // lock does not remove an open editor, backup or password dialog.
+      // Dismiss all routes after the frame, before showing any secrets again.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !store.isUnlocked) {
+          navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        }
+      });
+    }
+    previouslyUnlocked = unlocked;
   }
 
   Future<void> _init() async {
@@ -81,6 +101,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    store.removeListener(_onStoreChanged);
     store.lock();
     store.dispose();
     super.dispose();
@@ -88,6 +109,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    navigatorKey: navigatorKey,
     title: 'Veldigo',
     debugShowCheckedModeBanner: false,
     theme: veldigoTheme(),
