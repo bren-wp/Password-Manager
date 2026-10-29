@@ -327,9 +327,13 @@ class _GeneratorPageState extends State<GeneratorPage> {
     if (MediaQuery.sizeOf(context).width >= 850) {
       return _desktopGenerator(strength, strengthName);
     }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+    // Keep the primary action visible above Android bottom navigation.
+    // Only the settings and strength cards scroll on compact screens.
+    return Column(
       children: [
+        Expanded(child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          children: [
         const VSectionHeader(
           title: 'Generator lozinki',
           subtitle: 'Izradite snažnu i jedinstvenu lozinku.',
@@ -447,11 +451,18 @@ class _GeneratorPageState extends State<GeneratorPage> {
             ],
           ),
         ),
-        const SizedBox(height: 11),
-        VPrimaryButton(
-          label: 'Generiraj novu lozinku',
-          icon: Icons.refresh,
-          onPressed: regenerate),
+          ],
+        )),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: VPrimaryButton(
+              label: 'Generiraj novu lozinku',
+              icon: Icons.refresh,
+              onPressed: regenerate),
+          ),
+        ),
       ],
     );
   }
