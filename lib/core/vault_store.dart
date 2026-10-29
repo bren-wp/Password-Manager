@@ -195,6 +195,20 @@ class VaultStore extends ChangeNotifier {
     }
   }
 
+  /// Bind operations requiring an unlocked vault to the session at invocation,
+  /// not when the queue eventually executes. A command issued while locked
+  /// must not become authorized just because an unlock was queued earlier.
+  Future<T> _serialUnlocked<T>(Future<T> Function(int epoch) operation) {
+    if (!isUnlocked || _disposed) {
+      return Future<T>.error(StateError('Trezor je zaključan.'));
+    }
+    final epoch = _sessionEpoch;
+    return _serial(() async {
+      _assertUnlockedSession(epoch);
+      return await operation(epoch);
+    });
+  }
+
   Future<void> initialize() async {
     final File target;
     if (vaultFileOverride != null) {
@@ -535,13 +549,14 @@ class VaultStore extends ChangeNotifier {
     });
   }
 
-  Future<void> save() => _serial(() async {
+  Future<void> save() => _serialUnlocked((session) async {
     await _persist(List<VaultItem>.of(_items));
+    _assertUnlockedSession(session);
     _exists = true;
     _notify();
   });
 
-  Future<void> put(VaultItem item) => _serial(() async {
+  Future<void> put(VaultItem item) => _serialUnlocked((session) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
     final next = List<VaultItem>.of(_items);
     final at = next.indexWhere((record) => record.id == item.id);
@@ -551,12 +566,13 @@ class VaultStore extends ChangeNotifier {
       next[at] = item;
     }
     await _persist(next);
-    if (isUnlocked) _items = next;
+    _assertUnlockedSession(session);
+    _items = next;
     _notify();
   });
 
   /// Delete is reversible: encrypted contents stay in the local trash.
-  Future<void> remove(String id) => _serial(() async {
+  Future<void> remove(String id) => _serialUnlocked((session) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
     final next = List<VaultItem>.of(_items);
     final index = next.indexWhere((record) => record.id == id);
@@ -565,11 +581,12 @@ class VaultStore extends ChangeNotifier {
     next[index] = next[index].copyWith(
       trashed: true, updatedAt: DateTime.now().toUtc());
     await _persist(next);
-    if (isUnlocked) _items = next;
+    _assertUnlockedSession(session);
+    _items = next;
     _notify();
   });
 
-  Future<void> restoreTrashed(String id) => _serial(() async {
+  Future<void> restoreTrashed(String id) => _serialUnlocked((session) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
     final next = List<VaultItem>.of(_items);
     final index = next.indexWhere((record) => record.id == id);
@@ -579,13 +596,14 @@ class VaultStore extends ChangeNotifier {
     next[index] = next[index].copyWith(
       trashed: false, updatedAt: DateTime.now().toUtc());
     await _persist(next);
-    if (isUnlocked) _items = next;
+    _assertUnlockedSession(session);
+    _items = next;
     _notify();
   });
 
   /// Irreversible in the active vault, but encrypted historic copies may
   /// retain prior data until deliberately removed by the user.
-  Future<void> permanentlyRemove(String id) => _serial(() async {
+  Future<void> permanentlyRemove(String id) => _serialUnlocked((session) async {
     if (!isUnlocked) throw StateError('Trezor je zaključan.');
     final existing = _items.where((record) => record.id == id).firstOrNull;
     if (existing == null || !existing.trashed) {
@@ -593,11 +611,12 @@ class VaultStore extends ChangeNotifier {
     }
     final next = _items.where((record) => record.id != id).toList();
     await _persist(next);
-    if (isUnlocked) _items = next;
+    _assertUnlockedSession(session);
+    _items = next;
     _notify();
   });
 
-  Future<List<int>> encryptedBackup() => _serial(() async {
+  Future<List<int>> encryptedBackup() => _serialUnlocked((session) async {
     if (!isUnlocked || _file == null) {
       throw StateError('Otključajte trezor prije izvoza.');
     }
@@ -605,6 +624,8 @@ class VaultStore extends ChangeNotifier {
     if (!await _canDecrypt(bytes)) {
       throw const FormatException('Trezor nije valjan — izvoz prekinut.');
     }
+    // Even encrypted export data belongs to the requesting unlocked session.
+    _assertUnlockedSession(session);
     return bytes;
   });
 
@@ -677,8 +698,8 @@ class VaultStore extends ChangeNotifier {
   }
 
   Future<void> changeMasterPassword(
-      String currentPassword, String newPassword) => _serial(() async {
-    final session = _sessionEpoch;
+      String currentPassword, String newPassword) =>
+      _serialUnlocked((session) async {
     final file = _file;
     if (!isUnlocked || file == null) {
       throw StateError('Trezor je zaključan.');
@@ -689,6 +710,7 @@ class VaultStore extends ChangeNotifier {
     // Authentication is required even while the current vault is unlocked.
     final current = await _decode(
       utf8.decode(await _readFile(file)), currentPassword);
+    _assertUnlockedSession(session);
     if (current.items.length != _items.length) {
       throw StateError('Trezor je izmijenjen izvan aplikacije.');
     }
@@ -717,8 +739,7 @@ class VaultStore extends ChangeNotifier {
   /// User confirmation happens in the UI. Original primary is also saved
   /// separately to protect against an accidentally imported older backup.
   Future<void> restore(List<int> bytes, String backupPassword) =>
-      _serial(() async {
-    final session = _sessionEpoch;
+      _serialUnlocked((session) async {
     final files = _files;
     final target = _file;
     if (files == null || target == null || !isUnlocked) {
