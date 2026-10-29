@@ -220,7 +220,28 @@ class _VaultShellState extends State<VaultShell> {
     );
   }
 
-  Widget titleBar(bool desktop) => Padding(
+  bool get pageHasOwnHeading => const {
+    'Generator', 'Sigurnost', 'Autentifikator',
+    'Sigurnosna kopija', 'Postavke', 'Kategorije',
+  }.contains(page);
+
+  Widget titleBar(bool desktop) {
+    if (pageHasOwnHeading && !desktop) return const SizedBox.shrink();
+    if (pageHasOwnHeading && desktop) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(26, 16, 18, 0),
+        child: Row(children: [
+          const Expanded(child: Text('VELDIGO  /  PASSWORD MANAGER',
+            style: TextStyle(color: VColors.muted, fontSize: 10,
+              letterSpacing: 2, fontWeight: FontWeight.w700))),
+          IconButton(
+            tooltip: 'Zaključaj trezor',
+            icon: const Icon(Icons.lock_outline, color: VColors.accent),
+            onPressed: widget.store.lock),
+        ]),
+      );
+    }
+    return Padding(
     padding: EdgeInsets.fromLTRB(desktop ? 26 : 18, desktop ? 25 : 14, 18, desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -249,6 +270,7 @@ class _VaultShellState extends State<VaultShell> {
       ],
     ]),
   );
+  }
 
   void selectItem(VaultItem item, bool desktop) {
     setState(() => selectedId = item.id);
@@ -341,7 +363,9 @@ class _VaultShellState extends State<VaultShell> {
         child: Column(children: [
           if (!desktop && constraints.maxHeight > 460 &&
               page == 'Trezor' && !favorites && kind == null) ...[
-            VPanel(child: Row(children: [
+            VPanel(child: InkWell(
+              onTap: () => navigate('Sigurnost'),
+              child: Row(children: [
               const Icon(Icons.verified_user_outlined,
                 size: 38, color: VColors.accent),
               const SizedBox(width: 14),
@@ -356,7 +380,7 @@ class _VaultShellState extends State<VaultShell> {
                 ],
               )),
               const Icon(Icons.chevron_right, color: VColors.muted),
-            ])),
+            ]))),
             const SizedBox(height: 12),
           ],
           if (kind != ItemKind.totp) TextField(
