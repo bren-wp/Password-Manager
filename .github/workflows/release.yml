@@ -2,9 +2,9 @@ name: Veldigo preview release
 
 on:
   push:
-    branches: [main]
+    branches: [release/veldigo-v030-preview]
     paths:
-      - release/preview-request-v0.2.9-r1.txt
+      - release/preview-request-v0.3.0-r1.txt
   workflow_dispatch:
 
 permissions:
@@ -17,11 +17,15 @@ concurrency:
 jobs:
   android:
     runs-on: ubuntu-latest
+    env:
+      # This is a clearly labeled PREVIEW, never a Play-signed production AAB.
+      VELDIGO_ALLOW_DEBUG_SIGNED_PREVIEW: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.8'
           cache: true
       - name: Configure Android
         run: |
@@ -30,6 +34,13 @@ jobs:
           flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - name: Verify local encryption/decryption and tamper rejection
+        run: dart run tool/verify_local_crypto.dart
+      - name: Verify preview release metadata and signing scope
+        run: |
+          grep -Fx 'version: 0.3.0+13' pubspec.yaml
+          grep -Fx '        targetSdk = 36' android/app/build.gradle.kts
+          grep -Fx 'distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.0-all.zip' android/gradle/wrapper/gradle-wrapper.properties
       - name: Build preview APK
         run: flutter build apk --release
       - name: Build preview AAB
@@ -53,6 +64,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.8'
           cache: true
       - uses: actions/setup-dotnet@v4
         with:
@@ -107,12 +119,16 @@ jobs:
           test -s release-assets/Veldigo-Setup.exe
           test -s release-assets/Veldigo-Windows-portable.zip
           (cd release-assets && sha256sum -c Android-SHA256.txt && sha256sum -c Windows-SHA256.txt)
+      - name: Verify release source revision
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/release/veldigo-v030-preview'
+          grep -Fx 'version: 0.3.0+13' pubspec.yaml
       - name: Publish explicitly labeled preview
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v0.2.9-preview.1 release-assets/* \
-            --title "Veldigo v0.2.9 Preview 1" \
+          gh release create v0.3.0-preview.1 release-assets/* \
+            --title "Veldigo v0.3.0 Preview 1" \
             --target "$GITHUB_SHA" \
             --notes-file release/RELEASE_NOTES.md \
             --prerelease
