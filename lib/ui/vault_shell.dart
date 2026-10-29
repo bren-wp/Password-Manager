@@ -226,7 +226,7 @@ class _VaultShellState extends State<VaultShell> {
   }.contains(page);
 
   Widget titleBar(bool desktop) {
-    if (pageHasOwnHeading && !desktop) return const SizedBox.shrink();
+    if ((pageHasOwnHeading || page == 'Kartice') && !desktop) return const SizedBox.shrink();
     if (pageHasOwnHeading && desktop) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(26, 16, 18, 0),
@@ -788,12 +788,123 @@ class _VaultShellState extends State<VaultShell> {
     });
   }
 
+  /// An encrypted payment-card overview. Only the last four digits are ever
+  /// rendered on the list; the full number and CVV remain behind the detail
+  /// view, which is dismissed automatically when the vault is locked.
+  Widget cardsPage() {
+    final cards = filtered(kind: ItemKind.card);
+    if (MediaQuery.sizeOf(context).width >= 860) {
+      return listPage(kind: ItemKind.card);
+    }
+    final featured = cards.firstOrNull;
+    return ListView(padding: const EdgeInsets.all(16), children: [
+      const VSectionHeader(
+        title: 'Kartice',
+        subtitle: 'Pohranjene osjetljive podatke kartica čuvamo u trezoru.'),
+      TextField(
+        controller: search,
+        onChanged: (value) => setState(() => query = value),
+        decoration: const InputDecoration(
+          hintText: 'Pretraži spremljene kartice…',
+          prefixIcon: Icon(Icons.search)),
+      ),
+      const SizedBox(height: 16),
+      if (featured != null) ...[
+        Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => selectItem(featured, false),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 175),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF05646C), Color(0xFF0B3556),
+                    Color(0xFF081C32)]),
+                border: Border.all(
+                  color: VColors.accent.withValues(alpha: .40)),
+                borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(children: [
+                    Text('VELDIGO', style: TextStyle(
+                      letterSpacing: 2, fontWeight: FontWeight.w800,
+                      color: VColors.text)),
+                    Spacer(),
+                    Icon(Icons.credit_card_outlined, color: VColors.text),
+                  ]),
+                  const SizedBox(height: 35),
+                  Text('••••  ••••  ••••  ${_lastFour(featured.secret)}',
+                    style: const TextStyle(
+                      fontSize: 20, letterSpacing: 2.0,
+                      fontWeight: FontWeight.w700, color: VColors.text)),
+                  const SizedBox(height: 20),
+                  Row(children: [
+                    Expanded(child: Text(
+                      featured.username.isEmpty ? featured.title
+                          : featured.username,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: VColors.muted, fontSize: 12))),
+                    if (featured.expiry.isNotEmpty)
+                      Text(featured.expiry,
+                        style: const TextStyle(
+                          color: VColors.muted, fontSize: 12)),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+      if (cards.isEmpty)
+        const VPanel(child: Text(
+          'Nema spremljenih kartica. Dodajte prvu karticu u šifrirani trezor.',
+          style: TextStyle(color: VColors.muted))),
+      for (final card in cards)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 9),
+          child: Material(color: VColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            child: ListTile(
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: VColors.border),
+                borderRadius: BorderRadius.circular(12)),
+              leading: const Icon(Icons.credit_card_outlined,
+                color: VColors.accent),
+              title: Text(card.title, maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+              subtitle: Text('Samo zadnje četiri znamenke: ${_lastFour(card.secret)}'),
+              trailing: const Icon(Icons.chevron_right,
+                color: VColors.muted),
+              onTap: () => selectItem(card, false),
+            ))),
+      const SizedBox(height: 10),
+      VPrimaryButton(label: 'Dodaj karticu', icon: Icons.add,
+        onPressed: () => edit(kind: ItemKind.card)),
+    ]);
+  }
+
+  String _lastFour(String secret) {
+    final numbers = secret.replaceAll(RegExp(r'[^0-9]'), '');
+    return numbers.isEmpty
+        ? '••••'
+        : numbers.substring(numbers.length > 4 ? numbers.length - 4 : 0)
+            .padLeft(4, '•');
+  }
+
   Widget content() => switch (page) {
     'Trezor' => listPage(),
     'Sve lozinke' => listPage(kind: ItemKind.password),
     'Favoriti' => listPage(favorites: true),
     'Sigurne bilješke' => listPage(kind: ItemKind.note),
-    'Kartice' => listPage(kind: ItemKind.card),
+    'Kartice' => cardsPage(),
     'Kategorije' => categoriesPage(),
     'Autentifikator' => AuthenticatorPage(
       items: filtered(kind: ItemKind.totp),
@@ -854,8 +965,7 @@ class _VaultShellState extends State<VaultShell> {
         child: SafeArea(child: navMenu(drawer: true))),
       body: Column(children: [
         if (!keyboardVisible) titleBar(false),
-        if (!keyboardVisible &&
-            (page == 'Sigurne bilješke' || page == 'Kartice'))
+        if (!keyboardVisible && page == 'Sigurne bilješke')
           Padding(padding: const EdgeInsets.only(bottom: 10),
             child: extraButton()),
         Expanded(child: content()),
