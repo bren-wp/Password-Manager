@@ -6,10 +6,15 @@ import 'package:veldigo/core/vault_store.dart';
 import 'package:veldigo/main.dart';
 import 'package:veldigo/ui/auth_screen.dart';
 import 'package:veldigo/ui/entry_editor.dart';
+import 'package:veldigo/ui/vault_shell.dart';
 
 void main() {
   testWidgets('locking vault removes every sensitive editor route',
       (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(393, 852);
     final prepared = await tester.runAsync(() async {
       final temp = await Directory.systemTemp.createTemp('veldigo-lock-ui-');
       final store = VaultStore(
@@ -31,6 +36,7 @@ void main() {
 
     await tester.pumpWidget(VeldigoApp(storeOverride: store));
     await tester.pumpAndSettle();
+    expect(find.byType(VaultShell), findsOneWidget);
     await tester.tap(find.byTooltip('Dodaj novu lozinku'));
     await tester.pumpAndSettle();
     expect(find.byType(EntryEditor), findsOneWidget);
