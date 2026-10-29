@@ -86,6 +86,7 @@ void main() {
     });
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
     tester.view.devicePixelRatio = 1;
     for (final size in <Size>[
       const Size(320, 640),
@@ -103,6 +104,22 @@ void main() {
       expect(find.text('GitHub'), findsWidgets);
       // Flutter's widget tester reports RenderFlex overflow as a test failure.
     }
+
+    // On small Android phones the virtual keyboard must not consume the
+    // navigation and heading space needed to search/edit vault records.
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    await tester.pumpWidget(MaterialApp(
+      theme: veldigoTheme(),
+      home: VaultShell(store: store),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.enterText(find.byType(TextField).first, 'Git');
+    await tester.pump();
+    expect(find.text('GitHub'), findsWidgets);
+    expect(tester.takeException(), isNull);
+
     store.lock();
   }, timeout: const Timeout(Duration(minutes: 4)));
 }
