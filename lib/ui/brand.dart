@@ -50,9 +50,9 @@ ThemeData veldigoTheme() => ThemeData(
         scrolledUnderElevation: 0,
         centerTitle: false,
         toolbarHeight: 56,
-        titleTextStyle: const TextStyle(fontFamily: 'Roboto',
+        titleTextStyle: TextStyle(fontFamily: 'Roboto',
           color: VColors.text, fontSize: 16, fontWeight: FontWeight.w700),
-        iconTheme: const IconThemeData(color: VColors.accent, size: 21),
+        iconTheme: IconThemeData(color: VColors.accent, size: 21),
       ),
       iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(
         foregroundColor: VColors.muted,
