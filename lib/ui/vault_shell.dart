@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../core/sensitive_clipboard.dart';
 
 import '../core/vault_item.dart';
 import '../core/vault_store.dart';
@@ -145,17 +145,11 @@ class _VaultShellState extends State<VaultShell> {
   }
 
   Future<void> copySecret(String text) async {
-    if (text.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: text));
-    notifyUser('Kopirano. Međuspremnik se čisti nakon 30 sekundi.');
-    // Clear only if it still contains the same value.
-    Future<void>.delayed(const Duration(seconds: 30), () async {
-      try {
-        final current = await Clipboard.getData(Clipboard.kTextPlain);
-        if (current?.text == text) { await Clipboard.setData(
-          const ClipboardData(text: '')); }
-      } catch (_) { /* Clipboard is unavailable while suspended. */ }
-    });
+    if (text.isEmpty || !widget.store.isUnlocked) return;
+    await SensitiveClipboard.copy(text);
+    if (mounted && widget.store.isUnlocked) {
+      notifyUser('Kopirano. Međuspremnik se čisti nakon 30 sekundi.');
+    }
   }
 
   List<VaultItem> filtered({ItemKind? kind,
