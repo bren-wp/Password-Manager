@@ -6,6 +6,10 @@ class PasswordGenerator {
   static const digits = '23456789';
   static const symbols = '!@#\$%&*?-_+=';
 
+  static const fullUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  static const fullLower = 'abcdefghijklmnopqrstuvwxyz';
+  static const fullDigits = '0123456789';
+
   static String generate({
     int length = 20,
     bool uppercase = true,
