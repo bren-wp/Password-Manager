@@ -15,7 +15,7 @@ Verzija aplikacije: `0.3.0+13`. Autor i izdavač: Brendigo.
 
 - Očuvan je postojeći lokalni format trezora: **AES-256-GCM**, Argon2id (19 MiB, t=2, p=1), jedinstvena sol i slučajni nonce te autentifikacija šifriranog sadržaja.
 - Nije uvedena nova vlastita kriptografija, mrežna sinkronizacija, telemetrija ili potreba za slanjem lozinki vanjskom servisu.
-- Novi lokalni test `dart run tool/verify_local_crypto.dart` provjerava šifriranje/dešifriranje, šifrirani prijenos, odbijanje pogrešne glavne lozinke te izmjenu autentifikacijske oznake.
+- Novi lokalni test `flutter test test/local_crypto_smoke_test.dart` provjerava šifriranje/dešifriranje, šifrirani prijenos, odbijanje pogrešne glavne lozinke te izmjenu autentifikacijske oznake.
 - Android build skripta više ne prepisuje `MainActivity.kt`; provjerava primjenu `FLAG_SECURE` i SDK razine.
 - Provjere `flutter analyze`, `flutter test`, lokalni crypto smoke test i debug/release buildovi uvjetuju objavu.
 
