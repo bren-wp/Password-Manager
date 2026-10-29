@@ -401,7 +401,7 @@ class _VaultShellState extends State<VaultShell> {
                 : ListView.separated(
                     itemCount: items.length,
                     padding: const EdgeInsets.symmetric(vertical: 5),
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (_, i) => _accountTile(
                       items[i], desktop, selected?.id == items[i].id),
                   ),
