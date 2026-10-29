@@ -266,6 +266,34 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   Future<String> code(String source, int epoch) =>
       Totp.generate(source, epoch);
 
+  Future<void> copyCurrentCode(VaultItem item) async {
+    try {
+      final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final currentCode = await code(item.secret, epoch);
+      await Clipboard.setData(ClipboardData(text: currentCode));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('TOTP kod je kopiran. Međuspremnik će se očistiti.')));
+      }
+      // Do not retain a one-time code beyond its current 30-second period.
+      Future<void>.delayed(Duration(seconds: 30 - epoch % 30), () async {
+        try {
+          final existing = await Clipboard.getData(Clipboard.kTextPlain);
+          if (existing?.text == currentCode) {
+            await Clipboard.setData(const ClipboardData(text: ''));
+          }
+        } catch (_) {
+          // A locked/background app may not have clipboard access.
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('TOTP ključ nije valjan. Provjerite unos.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -293,16 +321,22 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
             Text(item.username,
               style: const TextStyle(color: VColors.muted)),
             const SizedBox(height: 14),
-            FutureBuilder<String>(
-              future: code(item.secret, epoch),
-              builder: (ctx, snapshot) => Text(snapshot.hasError
-                  ? 'Neispravan TOTP ključ'
-                  : (snapshot.data == null ? '··· ···' :
-                    '${snapshot.data!.substring(0, 3)} '
-                    '${snapshot.data!.substring(3)}'),
-                style: const TextStyle(
-                  fontSize: 29, color: VColors.accent,
-                  fontWeight: FontWeight.bold, letterSpacing: 3))),
+            Row(children: [
+              Expanded(child: FutureBuilder<String>(
+                future: code(item.secret, epoch),
+                builder: (ctx, snapshot) => Text(snapshot.hasError
+                    ? 'Neispravan TOTP ključ'
+                    : (snapshot.data == null ? '··· ···' :
+                      '${snapshot.data!.substring(0, 3)} '
+                      '${snapshot.data!.substring(3)}'),
+                  style: const TextStyle(
+                    fontSize: 29, color: VColors.accent,
+                    fontWeight: FontWeight.bold, letterSpacing: 3)))),
+              IconButton(
+                tooltip: 'Kopiraj TOTP kod',
+                icon: const Icon(Icons.copy_outlined, color: VColors.muted),
+                onPressed: () => copyCurrentCode(item)),
+            ]),
             const SizedBox(height: 10),
             LinearProgressIndicator(
               value: (30 - epoch % 30) / 30,
