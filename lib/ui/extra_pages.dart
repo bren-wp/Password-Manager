@@ -150,7 +150,8 @@ class SecurityPage extends StatelessWidget {
       counts[item.secret] = (counts[item.secret] ?? 0) + 1;
     }
     final repeated = passwords.where((e) => (counts[e.secret] ?? 0) > 1).length;
-    final score = passwords.isEmpty ? 100 :
+    // An empty vault is not a verified 100/100 security result.
+    final score = passwords.isEmpty ? 0 :
       max(0, 100 - (weak.length * 12 + repeated * 8));
     return LayoutBuilder(builder: (context, constraints) {
       final metricWidth = (constraints.maxWidth - 44) / 2;
@@ -170,7 +171,7 @@ class SecurityPage extends StatelessWidget {
         const SizedBox(width: 20),
         const Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Sigurnosni centar',
+          Text('Sigurnosni rezultat',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           SizedBox(height: 7),
           Text('Lokalna procjena duljine i ponavljanja lozinki. '
@@ -248,6 +249,16 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
   Widget build(BuildContext context) {
     final epoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     return ListView(padding: const EdgeInsets.all(16), children: [
+      VSectionHeader(
+        title: 'Autentifikator',
+        subtitle: widget.items.isEmpty
+            ? 'Dodajte prvi račun s vlastitim TOTP tajnim ključem.'
+            : 'Jednokratni kodovi generiraju se lokalno.',
+        trailing: IconButton(
+          tooltip: 'Dodaj autentifikator',
+          onPressed: widget.onAdd,
+          icon: const Icon(Icons.add, color: VColors.accent)),
+      ),
       const VPanel(child: Text('Jednokratni TOTP kodovi generiraju se lokalno. '
         'Račun možete dodati ručnim unosom Base32 tajnog ključa. '
         'Koristite vlastiti Base32 tajni ključ.')),
@@ -271,6 +282,15 @@ class _AuthenticatorPageState extends State<AuthenticatorPage> {
                 style: const TextStyle(
                   fontSize: 29, color: VColors.accent,
                   fontWeight: FontWeight.bold, letterSpacing: 3))),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: (30 - epoch % 30) / 30,
+              backgroundColor: VColors.border,
+              color: VColors.accent,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(height: 8),
             Text('Novi kod za ${30 - epoch % 30} s',
               style: const TextStyle(color: VColors.muted)),
           ]))),
@@ -367,6 +387,10 @@ class _BackupPageState extends State<BackupPage> {
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16), children: [
+    const VSectionHeader(
+      title: 'Sigurnosna kopija',
+      subtitle: 'Izvoz, vraćanje i prijenos šifriranog trezora.',
+    ),
     VPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
       const Icon(Icons.enhanced_encryption, color: VColors.accent, size: 40),
@@ -449,6 +473,10 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16), children: [
+    const VSectionHeader(
+      title: 'Postavke',
+      subtitle: 'Sigurnost, privatnost i upravljanje aplikacijom.',
+    ),
     VPanel(child: Column(children: [
       const ListTile(
         leading: Icon(Icons.lock_clock, color: VColors.accent),
