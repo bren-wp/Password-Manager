@@ -1,31 +1,36 @@
-# Veldigo v0.2.9 Preview 1 — Android + Windows
+# Veldigo v0.3.0 Preview 1 — Android + Windows
 
-Veldigo Password Manager za Android i Windows. Ovo je **predizdanje za provjeru** s najnovijim izmjenama uključenima u spojene PR-ove #8 i #9.
+**Preview izdanje; nije certificirani proizvod niti Google Play produkcijski potpisan AAB.**
+Verzija aplikacije: `0.3.0+13`. Autor i izdavač: Brendigo.
 
-## Vizualni identitet i funkcionalnost
-- Zajednička tipografija Roboto i usklađeni stilovi gumba, kartica, ikona, margina, zaglavlja i navigacije.
-- Android: uređeno zaglavlje s logotipom, donja navigacija, raspored trezora na manjim ekranima, pregled kartica s maskiranim brojem i početni zaslon s dostupnim glavnim akcijama.
-- Windows: kompaktniji trezor i tablični prikaz s kategorijama, datumima i funkcionalnim panelom detalja.
-- Generator lozinki: odvojeni paneli za generirani rezultat, duljinu 8–128 znakova, skupine znakova, isključivanje sličnih znakova i procjenu jačine.
-- Autentifikator: prikaz lokalno generiranog TOTP koda i vremenski ograničen clipboard.
-- Sigurnosna kopija: odvojene cjeline za izvoz, vraćanje, prijenos podataka i informacije o privatnosti; format šifrirane `.veldigo` kopije ostaje kompatibilan.
-- Detalji zapisa, uređivanje, postavke i sigurnosni centar imaju poboljšana poravnanja, kontrole i responzivnost.
+## Platforme i build
 
-## Sigurnost i pouzdanost
-- Zadržan postojeći **AES-256-GCM / Argon2id** format trezora.
-- Serijalizirani konkurentni upisi štite od istodobnog prvog stvaranja trezora.
-- Regresijski testovi štite od prikaza tajnih podataka nakon zaključavanja i od gubitka nespremljenih unosa.
-- Android aplikacija isključuje OS backup podataka trezora i postavlja FLAG_SECURE te minimalni API 24.
+- Android: Google Play target API 36, minSdk 24, Gradle 9.6.0 i Android Gradle Plugin 9.5.0, JDK 17.
+- Flutter 3.47.8 postavljen kao provjerena CI verzija.
+- Android nema nešifrirani promet aplikacije, OS backup trezora je isključen i `FLAG_SECURE` štiti osjetljive zaslone od uobičajenog snimanja.
+- Release signing: testno/pregledno potpisivanje **izričito označeno preview**. Za Play upload potreban je izdavačev zasebni upload ključ; testni AAB se ne smije slati u produkciju.
+- Windows: release desktop izvršna datoteka, prenosivi samostalni program, instalacijski paket i ZIP, bez potvrđenog Authenticode potpisa.
 
-## Distribucija
-- **Veldigo-Android.apk** — instalacijski APK za Android.
-- **Veldigo-Android.aab** — App Bundle, nije potpisan produkcijskim Google Play upload ključem.
-- **Veldigo-portable.exe** — Windows prijenosna aplikacija.
-- **Veldigo-Setup.exe** — Windows instalacijski program.
-- **Veldigo-Windows-portable.zip** — Windows prijenosni paket.
-- **Android-SHA256.txt / Windows-SHA256.txt** — kontrolni zbrojevi za provjeru preuzimanja.
+## Sigurnost, stabilnost i privatnost
 
-## Poznata ograničenja
-**Predizdanje.** Sva 26 UI snimka testiraju se na referentnim dimenzijama, ali nije postignuta potpuna pixel-perfect 1:1 podudarnost s referentnim nacrtima. Nema potvrde neovisnog penetracijskog testiranja ili testiranja na fizičkim Android i Windows uređajima. Android AAB nije spreman za distribuciju na Google Playu bez odgovarajućeg izdavačkog potpisa, a nepotpisani Windows izvršni programi mogu aktivirati SmartScreen upozorenja. Ovo izdanje nije certificirana sigurnosna aplikacija.
+- Očuvan je postojeći lokalni format trezora: **AES-256-GCM**, Argon2id (19 MiB, t=2, p=1), jedinstvena sol i slučajni nonce te autentifikacija šifriranog sadržaja.
+- Nije uvedena nova vlastita kriptografija, mrežna sinkronizacija, telemetrija ili potreba za slanjem lozinki vanjskom servisu.
+- Novi lokalni test `flutter test test/local_crypto_smoke_test.dart` provjerava šifriranje/dešifriranje, šifrirani prijenos, odbijanje pogrešne glavne lozinke te izmjenu autentifikacijske oznake.
+- Android build skripta više ne prepisuje `MainActivity.kt`; provjerava primjenu `FLAG_SECURE` i SDK razine.
+- Provjere `flutter analyze`, `flutter test`, lokalni crypto smoke test i debug/release buildovi uvjetuju objavu.
 
-Nije dodana udaljena sinkronizacija; korisnički trezor i dalje ostaje lokalno šifriran.
+## UI/UX
+
+- Nastavljene dorade Android i Windows dizajna iz prethodnih spojenih PR-ova #10 i #11, uključujući Windows generator i privatnu, maskiranu povijest generiranja.
+- Objavljene Flutter snimke zaslona nisu dokaz stvarnog prikaza u nativnom Windows/Android runtimeu.
+- **Nije potvrđeno pixel-perfect RGB 1:1 za 26 referenci.** Preostaju precizni vizualni diffovi, tipografija, različiti DPI-ovi i testovi na fizičkim uređajima.
+
+## Datoteke izdanja
+
+- `Veldigo-Android.apk`, `Veldigo-Android.aab`
+- `Veldigo-portable.exe`, `Veldigo-Setup.exe`, `Veldigo-Windows-portable.zip`
+- `Android-SHA256.txt`, `Windows-SHA256.txt`
+
+## Preostala ograničenja
+
+Nije izveden nezavisni sigurnosni audit, napadno testiranje, dokaz potpune otpornosti na gubitak napajanja, ni provjera svih Android uređaja i Windows DPI postavki. Rukovanje tajnama u memoriji i sigurnost međuspremnika ovise i o operacijskom sustavu. Nije zajamčena apsolutna sigurnost niti "vojna certifikacija". Neovjereni Windows izvršni programi mogu prikazati SmartScreen upozorenje. Korisnici trebaju čuvati neovisne šifrirane sigurnosne kopije.

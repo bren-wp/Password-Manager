@@ -1,0 +1,7 @@
+Veldigo v0.3.0 Preview 1 — second gated release request.
+Version: 0.3.0+13
+Build from release/veldigo-v030-preview, 2026-10-29.
+Fixes the CI-only Gradle wrapper text validation failure in request r1.
+Critical gates: flutter analyze, flutter test, local AES-GCM/Argon2id tamper check, Android APK/AAB and Windows EXE/ZIP builds, checksum verification.
+Signing: Android development PREVIEW only; Windows Authenticode unavailable.
+Do not merge into main.

@@ -4,9 +4,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Only the release pipeline may opt into preview debug signing.
+// Production builds require a real upload keystore and separate credentials.
+val veldigoKeyFile = System.getenv("VELDIGO_ANDROID_KEYSTORE_PATH")
+val veldigoStorePassword = System.getenv("VELDIGO_ANDROID_STORE_PASSWORD")
+val veldigoKeyAlias = System.getenv("VELDIGO_ANDROID_KEY_ALIAS")
+val veldigoKeyPassword = System.getenv("VELDIGO_ANDROID_KEY_PASSWORD")
+val veldigoHasUploadKey = listOf(
+    veldigoKeyFile, veldigoStorePassword, veldigoKeyAlias, veldigoKeyPassword
+).all { !it.isNullOrBlank() }
+
+
 android {
     namespace = "com.brendigo.veldigo"
-    compileSdk = flutter.compileSdkVersion
+    // Google Play 2026 requires Android 16 (API 36) for new releases.
+    compileSdk = maxOf(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,7 +32,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
@@ -29,11 +41,27 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (veldigoHasUploadKey) {
+            create("veldigoUpload") {
+                storeFile = file(veldigoKeyFile!!)
+                storePassword = veldigoStorePassword
+                keyAlias = veldigoKeyAlias
+                keyPassword = veldigoKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Preview artifacts may use the debug key ONLY when explicitly
+            // authorized in CI. Never silently debug-sign a production AAB.
+            signingConfig = when {
+                veldigoHasUploadKey -> signingConfigs.getByName("veldigoUpload")
+                System.getenv("VELDIGO_ALLOW_DEBUG_SIGNED_PREVIEW") == "true" ->
+                    signingConfigs.getByName("debug")
+                else -> null // Unsigned; never implicitly use the debug key.
+            }
         }
     }
 }

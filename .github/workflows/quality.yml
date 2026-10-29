@@ -21,6 +21,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.8'
           cache: true
       - name: Configure Veldigo platform assets
         run: |
@@ -34,6 +35,8 @@ jobs:
           python -m pip install Pillow
           python tools/test_visual_parity_audit.py
       - run: flutter test
+      - name: Offline encrypted vault round-trip and tamper checks
+        run: flutter test test/local_crypto_smoke_test.dart
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
@@ -47,6 +50,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: '3.47.8'
           cache: true
       - name: Configure Veldigo platform assets
         run: |
