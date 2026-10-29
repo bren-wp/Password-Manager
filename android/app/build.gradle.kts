@@ -1,3 +1,9 @@
+plugins {
+    id("com.android.application")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
 // Only the release pipeline may opt into preview debug signing.
 // Production builds require a real upload keystore and separate credentials.
 val veldigoKeyFile = System.getenv("VELDIGO_ANDROID_KEYSTORE_PATH")
@@ -8,15 +14,11 @@ val veldigoHasUploadKey = listOf(
     veldigoKeyFile, veldigoStorePassword, veldigoKeyAlias, veldigoKeyPassword
 ).all { !it.isNullOrBlank() }
 
-plugins {
-    id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id("dev.flutter.flutter-gradle-plugin")
-}
 
 android {
     namespace = "com.brendigo.veldigo"
-    // Google Play 2026 requires Android 16 (API 36) for new releases.\n    compileSdk = maxOf(flutter.compileSdkVersion, 36)
+    // Google Play 2026 requires Android 16 (API 36) for new releases.
+    compileSdk = maxOf(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
