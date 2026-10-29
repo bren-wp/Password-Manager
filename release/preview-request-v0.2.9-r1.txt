@@ -1,0 +1,5 @@
+Release request v0.2.9-preview.1
+Source: merged PR #9 plus real screenshot refresh on main
+Target: latest main commit containing version 0.2.9+12
+Assets: APK, AAB, Windows portable EXE, Windows Setup EXE, Windows portable ZIP, SHA-256 files
+Publish: GitHub prerelease only after both platform jobs and checksum validation succeed.
