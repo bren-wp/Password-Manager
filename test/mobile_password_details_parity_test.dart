@@ -83,7 +83,11 @@ void main() {
 
     // Sharing must not silently exfiltrate credentials to a third party.
     final share = find.text('Podijeli');
-    await tester.ensureVisible(share);
+    await tester.scrollUntilVisible(share, 170,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('mobile-password-details')),
+        matching: find.byType(Scrollable),
+      ));
     final button = tester.widget<InkWell>(find.ancestor(
       of: share, matching: find.byType(InkWell)).first);
     expect(button.onTap, isNull,
@@ -127,7 +131,11 @@ void main() {
       expect(tester.takeException(), isNull,
         reason: 'Password details should not overflow at $size');
       final delete = find.text('Obriši');
-      await tester.ensureVisible(delete);
+      await tester.scrollUntilVisible(delete, 170,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('mobile-password-details')),
+          matching: find.byType(Scrollable),
+        ));
       await tester.pumpAndSettle();
       final rect = tester.getRect(delete);
       expect(rect.left, greaterThanOrEqualTo(0));
