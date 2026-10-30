@@ -11,7 +11,7 @@
 
 | Zaslon | V0.3.1 RGB MAE | Status u iteraciji v0.3.4 |
 |---|---:|---|
-| 01 Glavni trezor | 18.57 | Sljedeći |
+| 01 Glavni trezor | 18.57 | Dorađene mobilne kartice, zaglavlje i sortiranje; ponoviti ROI mjerenje |
 | 02 Postavljanje glavne lozinke | 28.84 | Dorađeno – provjera u CI |
 | 03 Otkljucavanje | 31.20 | Dorađeno – provjera u CI |
 | 04 Dodavanje lozinke | 23.70 | Sljedeći |
@@ -62,3 +62,12 @@
 ## Trenutna ograničenja
 
 Ne postoji valjano dokazano stanje "svih 26 1:1". Tridesetak piksela ukupne pogreške mogu dominirati OS pozadina i različiti primjerci podataka, a stvarne boje/razmaci moraju se zasebno mjeriti po regijama. Ovaj tracker omogućuje obraditi svaki zaslon bez skrivanja nepreostalih razlika.
+
+## Iteracija 2 — Android 01 Glavni trezor (PR #18)
+
+- Na mobilnom prikazu uklonjena je zajednička uokvirena ploča oko svih zapisa; svaki zapis ima samostalan okvir i maskiranu lozinku. Desktop raspored i detalji ostaju odvojeni.
+- Zaglavlje koristi veći Veldigo simbol, natpis usklađen s Android referencom i gumb za stvarno zaključavanje trezora. Primarni gumb za dodavanje je kružnog oblika.
+- Pretraživanje ima kraću mobilnu uputu i funkcionalno sortiranje `Nedavno dodano`, `Po nazivu`, `Najstarije`. Jednaka radnja dostupna je iz ikone uz polje pretraživanja i naslova liste.
+- Boje statistike razlikuju lozinke, bilješke i upozorenja; oznake nekoliko poznatih servisa crtaju se lokalnim Flutter elementima, **bez slanja naziva trezora vanjskim favicon poslužiteljima**.
+- Novi testovi `test/android_vault_home_parity_test.dart` provjeravaju zasebne zapise, sortiranje, filtriranje, neotkrivanje tajni i raspored na 320×640, 393×852, 480×900.
+- Brojka 18.57/255 u tablici i dalje je **stara bazna vrijednost v0.3.1**, a ne rezultat ovog prolaza. Screenshot CI je generirao nove stvarne Flutter snimke, ali nova potpuna RGB/ROI usporedba s privatnim originalom još nije potvrđena.
