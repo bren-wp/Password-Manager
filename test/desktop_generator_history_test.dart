@@ -18,6 +18,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Povijest generiranih lozinki'), findsOneWidget);
+    final desktopSlider = tester.widget<Slider>(find.byType(Slider));
+    expect(desktopSlider.min, 8);
+    expect(desktopSlider.max, 64,
+      reason: 'Windows reference uses an 8–64-character generator range.');
+    expect(find.text('64'), findsOneWidget);
     expect(find.text('Povijest je prazna. Generirajte novu lozinku.'),
         findsOneWidget);
 
@@ -57,6 +62,10 @@ void main() {
 
     expect(find.text('Generator lozinki'), findsOneWidget);
     expect(find.byType(SwitchListTile), findsWidgets);
+    final androidSlider = tester.widget<Slider>(find.byType(Slider));
+    expect(androidSlider.min, 8);
+    expect(androidSlider.max, 128,
+      reason: 'The Android reference retains its 8–128-character range.');
     expect(find.text('Povijest generiranih lozinki'), findsNothing);
     expect(tester.takeException(), isNull);
   });
