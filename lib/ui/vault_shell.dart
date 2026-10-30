@@ -37,6 +37,7 @@ class VaultShell extends StatefulWidget {
 class _VaultShellState extends State<VaultShell> {
   late String page = widget.initialPage;
   String query = '';
+  String sortMode = 'recent';
   String? selectedId;
   String? categoryFilter;
   final search = TextEditingController();
@@ -168,8 +169,31 @@ class _VaultShellState extends State<VaultShell> {
           item.title.toLowerCase().contains(q) ||
           item.username.toLowerCase().contains(q) ||
           item.category.toLowerCase().contains(q))).toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      ..sort((a, b) => switch (sortMode) {
+        'name' => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        'oldest' => a.updatedAt.compareTo(b.updatedAt),
+        _ => b.updatedAt.compareTo(a.updatedAt),
+      });
   }
+
+  Widget sortMenu({bool compact = false}) => PopupMenuButton<String>(
+    key: ValueKey(compact ? 'veldigo-search-sort' : 'veldigo-list-sort'),
+    tooltip: compact ? 'Filtriraj i poredaj zapise' : 'Poredaj zapise',
+    icon: Icon(compact ? Icons.tune_rounded : Icons.keyboard_arrow_down,
+      size: compact ? 22 : 18, color: VColors.muted),
+    onSelected: (value) => setState(() => sortMode = value),
+    itemBuilder: (context) => [
+      CheckedPopupMenuItem(
+        value: 'recent', checked: sortMode == 'recent',
+        child: const Text('Nedavno dodano')),
+      CheckedPopupMenuItem(
+        value: 'name', checked: sortMode == 'name',
+        child: const Text('Po nazivu')),
+      CheckedPopupMenuItem(
+        value: 'oldest', checked: sortMode == 'oldest',
+        child: const Text('Najstarije')),
+    ],
+  );
 
   IconData iconFor(VaultItem item) {
     if (item.kind == ItemKind.note) return Icons.description_outlined;
@@ -393,13 +417,22 @@ class _VaultShellState extends State<VaultShell> {
             ]))),
             const SizedBox(height: 12),
           ],
-          if (kind != ItemKind.totp) TextField(
-            controller: search,
-            onChanged: (value) => setState(() => query = value),
-            decoration: const InputDecoration(
-              hintText: 'Pretraži zapise, korisnička imena i kategorije…',
-              prefixIcon: Icon(Icons.search)),
-          ),
+          if (kind != ItemKind.totp)
+            Row(children: [
+              Expanded(child: TextField(
+                controller: search,
+                onChanged: (value) => setState(() => query = value),
+                decoration: InputDecoration(
+                  hintText: !desktop && page == 'Trezor'
+                    ? 'Pretraži lozinke...' :
+                    'Pretraži zapise, korisnička imena i kategorije…',
+                  prefixIcon: const Icon(Icons.search)),
+              )),
+              if (!desktop && page == 'Trezor') ...[
+                const SizedBox(width: 6),
+                sortMenu(compact: true),
+              ],
+            ]),
           const SizedBox(height: 14),
           if (kind == null && !favorites && page == 'Trezor' &&
               constraints.maxHeight > 380)
@@ -419,10 +452,18 @@ class _VaultShellState extends State<VaultShell> {
           if (kind == null && !favorites && page == 'Trezor') ...[
             const SizedBox(height: 14),
             if (constraints.maxHeight > 550 && !desktop)
-              const Align(alignment: Alignment.centerLeft,
-                child: Padding(padding: EdgeInsets.only(bottom: 10),
-                  child: Text('Moje lozinke', style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)))),
+              Row(children: [
+                const Expanded(child: Text('Moje lozinke',
+                  style: TextStyle(fontSize: 18,
+                    fontWeight: FontWeight.bold))),
+                Text(switch (sortMode) {
+                  'name' => 'Po nazivu',
+                  'oldest' => 'Najstarije',
+                  _ => 'Nedavno dodano',
+                }, style: const TextStyle(color: VColors.muted,
+                  fontSize: 10)),
+                sortMenu(),
+              ]),
           ],
           Expanded(child: Row(children: [
             Expanded(child: VPanel(
