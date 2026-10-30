@@ -172,6 +172,20 @@ void main() {
         pixelRatio: 2, prepare: prepare);
 
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
+    // The reference for Android 05 contains a populated GitHub account,
+    // unlike the generic demo listing. All values are test-only, committed
+    // to the disposable in-memory/local fixture, not a user's vault.
+    await tester.runAsync(() async {
+      final current = demo.store.items.firstWhere(
+        (item) => item.id == '01-github');
+      await demo.store.put(current.copyWith(
+        username: 'developer@example.com',
+        notes: 'Glavni račun za razvojne projekte. '
+          'Koristiti 2FA, sigurnosni ključ je aktivan.',
+        updatedAt: DateTime.utc(2026, 10, 24, 12),
+      ));
+    });
+    await tester.pump();
     // Details are opened exactly as in the running Android UI.
     await tester.tap(find.text('GitHub').first);
     await tester.pumpAndSettle();
