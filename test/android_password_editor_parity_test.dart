@@ -59,9 +59,15 @@ void main() {
     final password = tester.widget<TextFormField>(
       find.byKey(const ValueKey('editor-secret')));
     expect(password.controller!.text, isEmpty);
-    expect(password.autocorrect, isFalse);
-    expect(password.enableSuggestions, isFalse);
-    expect(password.enableIMEPersonalizedLearning, isFalse);
+    final nativePasswordField = tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('editor-secret')),
+        matching: find.byType(TextField),
+      ),
+    );
+    expect(nativePasswordField.autocorrect, isFalse);
+    expect(nativePasswordField.enableSuggestions, isFalse);
+    expect(nativePasswordField.enableIMEPersonalizedLearning, isFalse);
 
     await tester.ensureVisible(find.byKey(const ValueKey('editor-secret')));
     await tester.enterText(find.byKey(const ValueKey('editor-secret')),
@@ -78,8 +84,12 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('editor-notes')));
     await tester.enterText(find.byKey(const ValueKey('editor-notes')),
       'Local-only sample note');
-    final notes = tester.widget<TextFormField>(
-      find.byKey(const ValueKey('editor-notes')));
+    final notes = tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('editor-notes')),
+        matching: find.byType(TextField),
+      ),
+    );
     expect(notes.maxLength, 500);
 
     await tester.ensureVisible(find.byKey(const ValueKey('editor-favorite')));
