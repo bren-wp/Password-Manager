@@ -63,12 +63,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Nova lozinka'), findsOneWidget);
-    expect(find.text('Odustani'), findsOneWidget);
-    expect(find.text('Spremi'), findsOneWidget);
-    final saveRect = tester.getRect(find.text('Spremi'));
+    // Mobile now follows the reference's single bottom save CTA and
+    // a top-left back control. Both remain reachable at 320dp width.
+    expect(find.byTooltip('Natrag'), findsOneWidget);
+    expect(find.text('Spremi lozinku'), findsOneWidget);
+    final saveRect = tester.getRect(find.text('Spremi lozinku'));
     expect(saveRect.right, lessThanOrEqualTo(320));
     expect(saveRect.bottom, lessThanOrEqualTo(640));
-    await tester.tap(find.text('Odustani'));
+    await tester.tap(find.byTooltip('Natrag'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
