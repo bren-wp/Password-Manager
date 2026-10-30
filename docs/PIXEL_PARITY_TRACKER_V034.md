@@ -14,7 +14,7 @@
 | 01 Glavni trezor | 18.57 | Dorađene mobilne kartice, zaglavlje i sortiranje; ponoviti ROI mjerenje |
 | 02 Postavljanje glavne lozinke | 28.84 | Dorađeno – provjera u CI |
 | 03 Otkljucavanje | 31.20 | Dorađeno – provjera u CI |
-| 04 Dodavanje lozinke | 23.70 | Sljedeći |
+| 04 Dodavanje lozinke | 23.70 | Novi Flutter mobilni editor; ponovno izmjeren RGB MAE **18.36/255**, nije 1:1 |
 | 05 Detalji lozinke | 25.08 | Sljedeći |
 | 06 Generator lozinki | 27.55 | Prethodna dorada + novi logo |
 | 07 Sigurnosni centar | 25.68 | Sljedeći |
@@ -71,3 +71,13 @@ Ne postoji valjano dokazano stanje "svih 26 1:1". Tridesetak piksela ukupne pogr
 - Boje statistike razlikuju lozinke, bilješke i upozorenja; oznake nekoliko poznatih servisa crtaju se lokalnim Flutter elementima, **bez slanja naziva trezora vanjskim favicon poslužiteljima**.
 - Novi testovi `test/android_vault_home_parity_test.dart` provjeravaju zasebne zapise, sortiranje, filtriranje, neotkrivanje tajni i raspored na 320×640, 393×852, 480×900.
 - Brojka 18.57/255 u tablici i dalje je **stara bazna vrijednost v0.3.1**, a ne rezultat ovog prolaza. Screenshot CI je generirao nove stvarne Flutter snimke, ali nova potpuna RGB/ROI usporedba s privatnim originalom još nije potvrđena.
+
+## Iteracija 3 — Android 04 Dodavanje lozinke (PR #18)
+
+- Izvorni screenshot korisnika `Android/04_Dodavanje_lozinke.png` (864×1821) uspoređen je s **novom stvarnom Flutter snimkom iste fizičke veličine** iz `Capture real Veldigo screen gallery` runa **41130041224**, temeljenog na commit-u `34b8ec2931ee4baa7fdea5ca0a389315ee3714d8`.
+- Polazna v0.3.1 snimka dala je RGB MAE **23.7047/255**. Nakon implementacije i dodatne vertikalne korekcije ekran je na **18.3572/255** (~22.6 % manje odstupanje). Postotak točno identičnih RGB piksela iznosi samo **0.4372 %** (uključuje sistemski dio referentne slike). Ovo **nije** dokaz 1:1 ni rezultata na fizičkom uređaju.
+- Mobilni editor koristi stvaran odabir lokalnog predloška usluge koji ispunjava samo naziv i URL; nikada ne generira ili preuzima pristupne podatke s mreže. Polja za korisničko ime, skrivenu lozinku, kategoriju i privatnu bilješku koriste zadržane `TextEditingController` objekte.
+- Dodani su indikator **lokalne procjene** jačine, osvježavanje kriptografski generirane lozinke, promjena vidljivosti tajne, favorite switch, limit bilješke od 500 znakova i stalno dostupan gumb **Spremi lozinku**.
+- Kompaktni raspored s lokalnim vektorskim ikonama omogućuje vodoravno pomicanje izbora usluge na 320dp uređajima i proširivanje bilješke pri unosu. Android editor ne mijenja Windows kartice, bilješke ili TOTP urednike.
+- Regresije u `test/android_password_editor_parity_test.dart` pokrivaju odabir usluge, zaštitu polja lozinke, favorite, spremanje, pogreške pohrane i tri mobilne širine. Ažuriran stari `v029_visual_layout_regression_test.dart` jer mobilni editor sada ima gumb **Natrag** umjesto zastarjele kontrole **Odustani**.
+- Sljedeća vizualna provjera: upariti sadržajni ROI bez statusne trake; obraditi preostale razlike logotipa, fontova, profila servisa i stanja kategorije/favorita te potvrditi dostupnost na fizičkim uređajima. Korisnički izvornici ostaju privatni.
