@@ -1,0 +1,93 @@
+# Veldigo Android + Windows — matrica pixel-parity provjere
+
+## Što znači 1:1
+
+- **Pixel-perfect nije subjektivna oznaka.** Potrebne su identične fizičke dimenzije, identičan RGB rezultat u sadržaju aplikacije, funkcionalni gumbi te provjeren raspored na uređajima i DPI postavkama. Android status/navigacijske trake i Windows radna površina/prikaz prozora su OS sadržaj; ti se dijelovi analiziraju zasebno.
+- Referentne izvorne PNG slike korisnika **nisu u javnom GitHub repozitoriju** i ne smiju se objaviti. Alat `tools/visual_parity_audit.py` lokalno uspoređuje stvarne snimke i originalne ZIP-ove.
+- Sljedeće vrijednosti su **stara mjerena polazna točka** iz stvarnih Flutter snimki **v0.3.1**; nisu izmjerene nakon promjena ovog PR-a. Vrijednost je RGB MAE u rasponu 0–255, manje je bolje. Sve 26 snimki imaju odgovarajuće dimenzije, **0/26 su bili točno RGB-identični**.
+- Oznaka "Dorađeno" označava da je kod promijenjen, **ne** da je rezultat 1:1. Nakon svakog UI commita potreban je novi rezultat na stvarnim Flutter snimkama i pregled funkcionalnosti.
+
+## Android (15/15)
+
+| Zaslon | V0.3.1 RGB MAE | Status u iteraciji v0.3.4 |
+|---|---:|---|
+| 01 Glavni trezor | 18.57 | Dorađene mobilne kartice, zaglavlje i sortiranje; ponoviti ROI mjerenje |
+| 02 Postavljanje glavne lozinke | 28.84 | Dorađeno – provjera u CI |
+| 03 Otkljucavanje | 31.20 | Dorađeno – provjera u CI |
+| 04 Dodavanje lozinke | 23.70 | Novi Flutter mobilni editor; ponovno izmjeren RGB MAE **18.36/255**, nije 1:1 |
+| 05 Detalji lozinke | 25.08 | Dorađen mobilni prikaz, nova snimka **21.56/255** (još nije 1:1) |
+| 06 Generator lozinki | 27.55 | Prethodna dorada + novi logo |
+| 07 Sigurnosni centar | 25.68 | Sljedeći |
+| 08 Sigurne biljeske | 23.98 | Sljedeći |
+| 09 Autentifikator TOTP | 24.07 | Sljedeći |
+| 10 Postavke | 17.66 | Sljedeći |
+| 11 Kategorije | 13.01 | Sljedeći |
+| 12 Sigurnosna kopija | 23.50 | Sljedeći |
+| 13 Kartice | 26.38 | Sljedeći |
+| 14 Uvodni ekran | 7.97 | Sljedeći |
+| 15 Dobrodoslica | 16.79 | Sljedeći |
+
+## Windows (11/11)
+
+| Zaslon | V0.3.1 RGB MAE | Status u iteraciji v0.3.4 |
+|---|---:|---|
+| 01 Glavni trezor | 22.30 | Sljedeći |
+| 02 Otkljucavanje | 34.73 | Dorađeno – provjera u CI |
+| 03 Dodavanje lozinke | 14.97 | Sljedeći |
+| 04 Generator lozinki | 33.57 | Dorađeno – raspon 8–64 |
+| 05 Sigurnosni centar | 15.63 | Sljedeći |
+| 06 Sigurne biljeske | 14.43 | Sljedeći |
+| 07 Postavke | 13.64 | Sljedeći |
+| 08 Sigurnosna kopija | 20.63 | Sljedeći |
+| 09 Autentifikator | 18.50 | Sljedeći |
+| 10 Kategorije | 18.88 | Sljedeći |
+| 11 Prvo postavljanje | 20.05 | Isti auth widget – za mjerenje |
+
+## Aktualna iteracija
+
+1. **Android postavljanje trezora, Android prijava, Windows otključavanje i prvo postavljanje:** revidirani razmaci, tipografija, logo, informacije o sigurnosti i layout. Funkcionalna pomoć za zaboravljenu lozinku jasno objašnjava ograničenja i ne nudi lažni reset.
+2. **Windows generator:** slider 8–64, Android generator ostaje 8–128. Osnovni generator lozinki i AES-256-GCM/Argon2id strukture nisu promijenjeni.
+3. **Zajednički logo:** za Android i Windows uveden je vektorski štit s punim V i sjenčanjem, bez vanjske slike i bez mrežne ovisnosti.
+4. **Regresije:** Android 320×640, 393×852 i 480×900; Windows 1200×800. Provjeravaju se gumbi, semantika i Flutter iznimke.
+
+## Kriteriji za stvarnu prihvaćenost svakog zaslona
+
+1. Izraditi **novu** stvarnu Flutter snimku iz točno istog Git commita kao UI promjena (bez zastarjelih PNG-ova).
+2. Lokalno usporediti PNG reference i snimku **bez rastezanja**, isključiti samo sistemsku traku/podlogu iz ocjene samog sučelja te navesti ROI koordinate.
+3. Provjeriti font, boje, margine, dimenzije, logo, ikonice, gradijente, boje obruba, redoslijed elemenata i tekst.
+4. Testirati fizički Android s različitim gustoćama i Windows s 100%, 125% i 150% DPI.
+5. Potvrditi stvarni rad svake kontrole, navigacije, stanja praznog trezora, pristupačnosti i oporavka pogrešaka.
+6. **Ne prikazivati neimplementirane biometrijske/Windows Hello radnje** samo radi podudaranja s referentnom slikom. Sigurnost je preduvjet funkcionalnosti.
+
+## Trenutna ograničenja
+
+Ne postoji valjano dokazano stanje "svih 26 1:1". Tridesetak piksela ukupne pogreške mogu dominirati OS pozadina i različiti primjerci podataka, a stvarne boje/razmaci moraju se zasebno mjeriti po regijama. Ovaj tracker omogućuje obraditi svaki zaslon bez skrivanja nepreostalih razlika.
+
+## Iteracija 2 — Android 01 Glavni trezor (PR #18)
+
+- Na mobilnom prikazu uklonjena je zajednička uokvirena ploča oko svih zapisa; svaki zapis ima samostalan okvir i maskiranu lozinku. Desktop raspored i detalji ostaju odvojeni.
+- Zaglavlje koristi veći Veldigo simbol, natpis usklađen s Android referencom i gumb za stvarno zaključavanje trezora. Primarni gumb za dodavanje je kružnog oblika.
+- Pretraživanje ima kraću mobilnu uputu i funkcionalno sortiranje `Nedavno dodano`, `Po nazivu`, `Najstarije`. Jednaka radnja dostupna je iz ikone uz polje pretraživanja i naslova liste.
+- Boje statistike razlikuju lozinke, bilješke i upozorenja; oznake nekoliko poznatih servisa crtaju se lokalnim Flutter elementima, **bez slanja naziva trezora vanjskim favicon poslužiteljima**.
+- Novi testovi `test/android_vault_home_parity_test.dart` provjeravaju zasebne zapise, sortiranje, filtriranje, neotkrivanje tajni i raspored na 320×640, 393×852, 480×900.
+- Brojka 18.57/255 u tablici i dalje je **stara bazna vrijednost v0.3.1**, a ne rezultat ovog prolaza. Screenshot CI je generirao nove stvarne Flutter snimke, ali nova potpuna RGB/ROI usporedba s privatnim originalom još nije potvrđena.
+
+## Iteracija 3 — Android 04 Dodavanje lozinke (PR #18)
+
+- Izvorni screenshot korisnika `Android/04_Dodavanje_lozinke.png` (864×1821) uspoređen je s **novom stvarnom Flutter snimkom iste fizičke veličine** iz `Capture real Veldigo screen gallery` runa **41130041224**, temeljenog na commit-u `34b8ec2931ee4baa7fdea5ca0a389315ee3714d8`.
+- Polazna v0.3.1 snimka dala je RGB MAE **23.7047/255**. Nakon implementacije i dodatne vertikalne korekcije ekran je na **18.3572/255** (~22.6 % manje odstupanje). Postotak točno identičnih RGB piksela iznosi samo **0.4372 %** (uključuje sistemski dio referentne slike). Ovo **nije** dokaz 1:1 ni rezultata na fizičkom uređaju.
+- Mobilni editor koristi stvaran odabir lokalnog predloška usluge koji ispunjava samo naziv i URL; nikada ne generira ili preuzima pristupne podatke s mreže. Polja za korisničko ime, skrivenu lozinku, kategoriju i privatnu bilješku koriste zadržane `TextEditingController` objekte.
+- Dodani su indikator **lokalne procjene** jačine, osvježavanje kriptografski generirane lozinke, promjena vidljivosti tajne, favorite switch, limit bilješke od 500 znakova i stalno dostupan gumb **Spremi lozinku**.
+- Kompaktni raspored s lokalnim vektorskim ikonama omogućuje vodoravno pomicanje izbora usluge na 320dp uređajima i proširivanje bilješke pri unosu. Android editor ne mijenja Windows kartice, bilješke ili TOTP urednike.
+- Regresije u `test/android_password_editor_parity_test.dart` pokrivaju odabir usluge, zaštitu polja lozinke, favorite, spremanje, pogreške pohrane i tri mobilne širine. Ažuriran stari `v029_visual_layout_regression_test.dart` jer mobilni editor sada ima gumb **Natrag** umjesto zastarjele kontrole **Odustani**.
+- Sljedeća vizualna provjera: upariti sadržajni ROI bez statusne trake; obraditi preostale razlike logotipa, fontova, profila servisa i stanja kategorije/favorita te potvrditi dostupnost na fizičkim uređajima. Korisnički izvornici ostaju privatni.
+
+## Iteracija 4 — Android 05 Detalji lozinke (isti PR #18)
+
+- Originalna privatna referenca: `Android/05_Detalji_lozinke.png`, **862×1824 fizičkih piksela**. Izmjerena postojeća Flutter snimka prije izmjena: **25.1009/255 RGB MAE**.
+- Novi zasebni `lib/ui/mobile_password_details.dart` (stvarni Android full-screen modal) ima vektorski lokalni znak usluge, tirkizni val i kategoriju, zasebne kartice korisničkog imena, skrivene lozinke, web-adrese, bilješke i datuma, glavni gumb za kopiranje, stvarne kontrole uređivanja/kopiranja te izravno dostupno brisanje u Koš.
+- Sva kopiranja idu kroz postojeći lokalni sigurnosno ograničen međuspremnik; korisnik uvijek mora svjesno pritisnuti `Prikaži` za otkrivanje lozinke. Kad se zapis promijeni, lozinka se ponovno skriva; kad se trezor zaključa, roditeljski modal se prazni i zatvara. Dijeljenje je jasno **onemogućeno**, ne implementira se neprovjeren prijenos tajni.
+- Za vizualni test koriste se samo privremeni GitHub demo podaci koji odgovaraju referentnom izgledu. Te vrijednosti ne ulaze u korisnikov trezor niti se objavljuju privatni screenshot izvornici.
+- Prva nova snimka iz `Capture real Veldigo screen gallery` runa **41131590860**: **21.1992/255 globalni RGB MAE**. Nakon dodatnog vektorskog znaka i suptilnijeg vala, run **41131904952**: **21.5627/255 globalni MAE**. Vizualni napredak u odnosu na početnu verziju potvrđen je, no posljednja mikroiteracija je **malo povećala** globalnu pogrešku. U glavnom sadržajnom području s primijenjenim poravnanjem Y pomaka (prethodna verzija 58 px, nova 28 px) pogreška se smanjila s **26.373 na 19.849/255**; ovo NIJE dokaz točne 1:1 podudarnosti.
+- UI se i dalje razlikuje od reference u sistemskoj Android statusnoj traci, fontovima, nijansama, oblicima ikona i valnoj dekoraciji. Automatski Flutter screenshotovi ne uključuju stvarni status-bar OS-a, pa ga ne treba umjetno crtati u samoj aplikaciji.
+- Novi `test/mobile_password_details_parity_test.dart` provjerava maskiranje/otkrivanje, nepodržano dijeljenje i tri mobilna viewporta, uz postojeći test zatvaranja kada se trezor zaključa. Status Android/Windows CI-a obavezno provjeriti prije spajanja.

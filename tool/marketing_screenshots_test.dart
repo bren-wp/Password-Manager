@@ -96,7 +96,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> snap(WidgetTester tester, String platform, String file,
-      Widget screen, Size size, {double pixelRatio = 1}) async {
+      Widget screen, Size size, {
+        double pixelRatio = 1,
+        Future<void> Function()? prepare,
+      }) async {
     // Golden screenshots use logical pixels even when view DPR > 1.
     // Capture a real full-size PNG using a constrained logical app viewport,
     // then let Flutter paint that viewport into the physical reference size.
@@ -144,6 +147,10 @@ void main() {
       }),
     ));
     await tester.pump(const Duration(milliseconds: 350));
+    if (prepare != null) {
+      await prepare();
+      await tester.pump(const Duration(milliseconds: 250));
+    }
     await expectLater(find.byKey(captureKey),
       matchesGoldenFile('goldens/marketing/$platform/$file.png'));
   }
@@ -158,11 +165,27 @@ void main() {
       demo.store.lock();
       if (await demo.dir.exists()) await demo.dir.delete(recursive: true);
     });
-    Future<void> shot(String filename, Widget screen) =>
+    Future<void> shot(String filename, Widget screen,
+        {Future<void> Function()? prepare}) =>
       snap(tester, 'android', filename, screen,
-        androidReferencePixels[filename]!, pixelRatio: 2);
+        androidReferencePixels[filename]!,
+        pixelRatio: 2, prepare: prepare);
 
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
+    // The reference for Android 05 contains a populated GitHub account,
+    // unlike the generic demo listing. All values are test-only, committed
+    // to the disposable in-memory/local fixture, not a user's vault.
+    await tester.runAsync(() async {
+      final current = demo.store.items.firstWhere(
+        (item) => item.id == '01-github');
+      await demo.store.put(current.copyWith(
+        username: 'developer@example.com',
+        notes: 'Glavni račun za razvojne projekte. '
+          'Koristiti 2FA, sigurnosni ključ je aktivan.',
+        updatedAt: DateTime.utc(2026, 10, 24, 12),
+      ));
+    });
+    await tester.pump();
     // Details are opened exactly as in the running Android UI.
     await tester.tap(find.text('GitHub').first);
     await tester.pumpAndSettle();
@@ -183,9 +206,23 @@ void main() {
     await shot('03_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));
     expect(find.text('Dobro došli natrag'), findsOneWidget);
+    // Fill the real password editor only in this golden test. These
+    // demonstrational details are never part of a user's actual vault.
     await shot('04_Dodavanje_lozinke',
       const Scaffold(body: Center(child:
-        EntryEditor(kind: ItemKind.password))));
+        EntryEditor(kind: ItemKind.password))),
+      prepare: () async {
+        await tester.tap(find.byKey(const ValueKey('service-github')));
+        final username = tester.widget<TextFormField>(
+          find.byKey(const ValueKey('editor-username')));
+        final password = tester.widget<TextFormField>(
+          find.byKey(const ValueKey('editor-secret')));
+        final notes = tester.widget<TextFormField>(
+          find.byKey(const ValueKey('editor-notes')));
+        username.controller!.text = 'developer@example.test';
+        password.controller!.text = 'demo-only-strong-password-2026!';
+        notes.controller!.text = 'Razvojni račun za privatne projekte.';
+      });
     await shot('06_Generator_lozinki',
       VaultShell(store: demo.store, initialPage: 'Generator'));
     await shot('07_Sigurnosni_centar',

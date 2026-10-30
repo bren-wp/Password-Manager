@@ -8,6 +8,7 @@ import '../core/vault_store.dart';
 import 'brand.dart';
 import 'entry_editor.dart';
 import 'extra_pages.dart';
+import 'mobile_password_details.dart';
 
 const _navigation = <(String, IconData)>[
   ('Trezor', Icons.home_outlined),
@@ -37,6 +38,7 @@ class VaultShell extends StatefulWidget {
 class _VaultShellState extends State<VaultShell> {
   late String page = widget.initialPage;
   String query = '';
+  String sortMode = 'recent';
   String? selectedId;
   String? categoryFilter;
   final search = TextEditingController();
@@ -168,8 +170,31 @@ class _VaultShellState extends State<VaultShell> {
           item.title.toLowerCase().contains(q) ||
           item.username.toLowerCase().contains(q) ||
           item.category.toLowerCase().contains(q))).toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      ..sort((a, b) => switch (sortMode) {
+        'name' => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        'oldest' => a.updatedAt.compareTo(b.updatedAt),
+        _ => b.updatedAt.compareTo(a.updatedAt),
+      });
   }
+
+  Widget sortMenu({bool compact = false}) => PopupMenuButton<String>(
+    key: ValueKey(compact ? 'veldigo-search-sort' : 'veldigo-list-sort'),
+    tooltip: compact ? 'Filtriraj i poredaj zapise' : 'Poredaj zapise',
+    icon: Icon(compact ? Icons.tune_rounded : Icons.keyboard_arrow_down,
+      size: compact ? 22 : 18, color: VColors.muted),
+    onSelected: (value) => setState(() => sortMode = value),
+    itemBuilder: (context) => [
+      CheckedPopupMenuItem(
+        value: 'recent', checked: sortMode == 'recent',
+        child: const Text('Nedavno dodano')),
+      CheckedPopupMenuItem(
+        value: 'name', checked: sortMode == 'name',
+        child: const Text('Po nazivu')),
+      CheckedPopupMenuItem(
+        value: 'oldest', checked: sortMode == 'oldest',
+        child: const Text('Najstarije')),
+    ],
+  );
 
   IconData iconFor(VaultItem item) {
     if (item.kind == ItemKind.note) return Icons.description_outlined;
@@ -242,7 +267,9 @@ class _VaultShellState extends State<VaultShell> {
       );
     }
     return Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 26 : 16, desktop ? 25 : 14, 18, desktop ? 16 : 12),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 22,
+      desktop ? 25 : 14, desktop ? 18 : 22,
+      desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (page == 'Trezor' && !desktop)
@@ -334,7 +361,32 @@ class _VaultShellState extends State<VaultShell> {
                   tooltip: 'Natrag',
                   onPressed: () => Navigator.of(dialogContext).pop(),
                 ),
-                title: const VeldigoLogo(size: 29),
+                centerTitle: live.kind == ItemKind.password,
+                title: live.kind == ItemKind.password
+                  ? const Row(children: [
+                      VeldigoLogo(size: 35, showName: false),
+                      SizedBox(width: 10),
+                      Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('V E L D I G O',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 14,
+                              color: VColors.text,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.1)),
+                          Text('VAŠE LOZINKE. UVIJEK SIGURNE.',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 7,
+                              color: VColors.muted,
+                              letterSpacing: .65)),
+                        ],
+                      )),
+                    ])
+                  : const VeldigoLogo(size: 29),
                 actions: [
                   if (!live.trashed)
                     IconButton(
@@ -345,14 +397,25 @@ class _VaultShellState extends State<VaultShell> {
                 ],
               ),
               body: SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  children: [
-                    Text(heading, style: Theme.of(ctx).textTheme.headlineMedium),
-                    const SizedBox(height: 18),
-                    detail(live),
-                  ],
-                ),
+                child: live.kind == ItemKind.password
+                  ? MobilePasswordDetails(
+                      key: ValueKey('mobile-password-${live.id}'),
+                      item: live,
+                      onCopy: copySecret,
+                      onEdit: () => edit(original: live),
+                      onRemove: () => remove(live),
+                      onRestore: () => recoverItem(live),
+                      onErase: () => eraseItem(live),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                      children: [
+                        Text(heading,
+                          style: Theme.of(ctx).textTheme.headlineMedium),
+                        const SizedBox(height: 18),
+                        detail(live),
+                      ],
+                    ),
               ),
             );
           },
@@ -373,12 +436,21 @@ class _VaultShellState extends State<VaultShell> {
         child: Column(children: [
           if (!desktop && constraints.maxHeight > 460 &&
               page == 'Trezor' && !favorites && kind == null) ...[
-            VPanel(child: InkWell(
+            VPanel(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 13, vertical: 15),
+              child: InkWell(
               onTap: () => navigate('Sigurnost'),
               child: Row(children: [
-              const Icon(Icons.verified_user_outlined,
-                size: 38, color: VColors.accent),
-              const SizedBox(width: 14),
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: VColors.accent.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.shield_outlined,
+                  size: 39, color: VColors.accent)),
+              const SizedBox(width: 13),
               const Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -393,13 +465,22 @@ class _VaultShellState extends State<VaultShell> {
             ]))),
             const SizedBox(height: 12),
           ],
-          if (kind != ItemKind.totp) TextField(
-            controller: search,
-            onChanged: (value) => setState(() => query = value),
-            decoration: const InputDecoration(
-              hintText: 'Pretraži zapise, korisnička imena i kategorije…',
-              prefixIcon: Icon(Icons.search)),
-          ),
+          if (kind != ItemKind.totp)
+            Row(children: [
+              Expanded(child: TextField(
+                controller: search,
+                onChanged: (value) => setState(() => query = value),
+                decoration: InputDecoration(
+                  hintText: !desktop && page == 'Trezor'
+                    ? 'Pretraži lozinke...' :
+                    'Pretraži zapise, korisnička imena i kategorije…',
+                  prefixIcon: const Icon(Icons.search)),
+              )),
+              if (!desktop && page == 'Trezor') ...[
+                const SizedBox(width: 6),
+                sortMenu(compact: true),
+              ],
+            ]),
           const SizedBox(height: 14),
           if (kind == null && !favorites && page == 'Trezor' &&
               constraints.maxHeight > 380)
@@ -419,14 +500,29 @@ class _VaultShellState extends State<VaultShell> {
           if (kind == null && !favorites && page == 'Trezor') ...[
             const SizedBox(height: 14),
             if (constraints.maxHeight > 550 && !desktop)
-              const Align(alignment: Alignment.centerLeft,
-                child: Padding(padding: EdgeInsets.only(bottom: 10),
-                  child: Text('Moje lozinke', style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)))),
+              Row(children: [
+                const Expanded(child: Text('Moje lozinke',
+                  style: TextStyle(fontSize: 18,
+                    fontWeight: FontWeight.bold))),
+                Text(switch (sortMode) {
+                  'name' => 'Po nazivu',
+                  'oldest' => 'Najstarije',
+                  _ => 'Nedavno dodano',
+                }, style: const TextStyle(color: VColors.muted,
+                  fontSize: 10)),
+                sortMenu(),
+              ]),
           ],
           Expanded(child: Row(children: [
-            Expanded(child: VPanel(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            Expanded(child: Container(
+              decoration: desktop ? BoxDecoration(
+                color: VColors.surface,
+                border: Border.all(color: VColors.border),
+                borderRadius: BorderRadius.circular(13),
+              ) : null,
+              padding: EdgeInsets.symmetric(
+                horizontal: desktop ? 6 : 0,
+                vertical: desktop ? 4 : 0),
               child: items.isEmpty
                 ? Center(child: Padding(
                     padding: const EdgeInsets.all(30),
@@ -478,6 +574,47 @@ class _VaultShellState extends State<VaultShell> {
     });
   }
 
+  /// Render locally from vector/icons. Never load remote account favicons:
+  /// private vault service names must not leave the device through image URLs.
+  Widget _serviceMark(VaultItem item, {required double iconSize}) {
+    if (item.kind != ItemKind.password) {
+      return Icon(iconFor(item), color: VColors.accent, size: iconSize);
+    }
+    final service = item.title.toLowerCase();
+    if (service.contains('netflix')) {
+      return Text('N', style: TextStyle(
+        color: const Color(0xFFE50914), fontSize: iconSize + 6,
+        fontWeight: FontWeight.w900, height: 1));
+    }
+    if (service.contains('google')) {
+      return Text('G', style: TextStyle(
+        color: const Color(0xFF4285F4), fontSize: iconSize + 4,
+        fontWeight: FontWeight.w900, height: 1));
+    }
+    if (service.contains('microsoft')) {
+      return SizedBox(width: iconSize, height: iconSize,
+        child: Column(children: [
+          Expanded(child: Row(children: [
+            Expanded(child: ColoredBox(color: Color(0xFFF25022))),
+            const SizedBox(width: 2),
+            Expanded(child: ColoredBox(color: Color(0xFF7FBA00))),
+          ])),
+          const SizedBox(height: 2),
+          Expanded(child: Row(children: [
+            Expanded(child: ColoredBox(color: Color(0xFF00A4EF))),
+            const SizedBox(width: 2),
+            Expanded(child: ColoredBox(color: Color(0xFFFFB900))),
+          ])),
+        ]));
+    }
+    if (service.contains('github')) {
+      return Icon(Icons.code_rounded, color: VColors.text,
+        size: iconSize);
+    }
+    return Icon(Icons.key_rounded, color: VColors.accent,
+      size: iconSize);
+  }
+
   /// Shared reference-style account card. Only masks are drawn for secrets.
   Widget _accountTile(VaultItem item, bool desktop, bool selected) {
     final compact = !desktop && MediaQuery.sizeOf(context).width < 365;
@@ -518,7 +655,7 @@ class _VaultShellState extends State<VaultShell> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: wideDesktop ? 8 : 10,
-            vertical: wideDesktop ? 4 : 9),
+            vertical: wideDesktop ? 4 : (desktop ? 9 : 12)),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: selected
@@ -532,8 +669,8 @@ class _VaultShellState extends State<VaultShell> {
                 color: VColors.raised,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconFor(item), color: VColors.accent,
-                  size: compact ? 21 : wideDesktop ? 19 : 25),
+              child: Center(child: _serviceMark(item,
+                iconSize: compact ? 21 : wideDesktop ? 19 : 25)),
             ),
             const SizedBox(width: 11),
             Expanded(child: Column(
@@ -613,6 +750,8 @@ class _VaultShellState extends State<VaultShell> {
   Widget _stat(String label, int value, IconData icon) =>
     Expanded(child: LayoutBuilder(builder: (context, bounds) {
       final compact = bounds.maxWidth < 110;
+      final indicatorColor = label == 'Bilješke' ? VColors.blue
+        : label == 'Upozorenja' ? VColors.warning : VColors.accent;
       return VPanel(
         padding: EdgeInsets.symmetric(
           horizontal: compact ? 5 : 10, vertical: compact ? 9 : 12),
@@ -620,9 +759,9 @@ class _VaultShellState extends State<VaultShell> {
           Container(
             width: compact ? 25 : 32, height: compact ? 25 : 32,
             decoration: BoxDecoration(
-              color: VColors.accent.withValues(alpha: .10),
+              color: indicatorColor.withValues(alpha: .10),
               shape: BoxShape.circle),
-            child: Icon(icon, color: VColors.accent,
+            child: Icon(icon, color: indicatorColor,
               size: compact ? 16 : 20)),
           SizedBox(width: compact ? 4 : 8),
           Expanded(child: Column(
@@ -1030,33 +1169,39 @@ class _VaultShellState extends State<VaultShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
-        leadingWidth: 49,
+        toolbarHeight: 67,
+        leadingWidth: 60,
         leading: Builder(builder: (ctx) => IconButton(
           tooltip: 'Otvori izbornik',
           onPressed: () => Scaffold.of(ctx).openDrawer(),
-          icon: const VeldigoLogo(size: 25, showName: false),
+          icon: const VeldigoLogo(size: 35, showName: false),
         )),
         titleSpacing: 0,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('VELDIGO', style: TextStyle(fontSize: 14,
-              fontWeight: FontWeight.w800, letterSpacing: 2.6,
+            Text('V E L D I G O', style: TextStyle(fontSize: 15,
+              fontWeight: FontWeight.w800, letterSpacing: 1.9,
               color: VColors.text)),
-            SizedBox(height: 1),
-            Text('VAŠE LOZINKE, UVIJEK SIGURNE',
+            SizedBox(height: 3),
+            Text('SIGURNIJI DIGITALNI TI',
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 7, letterSpacing: 1,
+              style: TextStyle(fontSize: 8, letterSpacing: 1.35,
                 color: VColors.muted)),
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Zaključaj trezor',
-            icon: const Icon(Icons.lock_outline, color: VColors.accent),
-            onPressed: widget.store.lock,
-          ),
+          Padding(padding: const EdgeInsets.only(right: 9),
+            child: IconButton(
+              tooltip: 'Zaključaj trezor',
+              icon: const CircleAvatar(
+                radius: 17,
+                backgroundColor: VColors.raised,
+                child: Icon(Icons.lock_outline,
+                  color: VColors.text, size: 17)),
+              onPressed: widget.store.lock,
+            )),
         ]),
       drawer: Drawer(backgroundColor: VColors.surface,
         child: SafeArea(child: navMenu(drawer: true))),
@@ -1070,8 +1215,10 @@ class _VaultShellState extends State<VaultShell> {
       floatingActionButton: (page == 'Trezor' || page == 'Sve lozinke')
           ? FloatingActionButton(
               tooltip: 'Dodaj novu lozinku',
+              elevation: 0,
               backgroundColor: VColors.accent,
               foregroundColor: VColors.background,
+              shape: const CircleBorder(),
               onPressed: () => edit(),
               child: const Icon(Icons.add, size: 30))
           : null,

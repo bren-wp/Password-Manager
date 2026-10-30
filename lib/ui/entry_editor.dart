@@ -32,6 +32,7 @@ class _EntryEditorState extends State<EntryEditor> {
   late String category = widget.original?.category ?? 'Osobno';
   late bool favorite = widget.original?.favorite ?? false;
   bool showSecret = false;
+  late String selectedService = _guessService(widget.original?.title ?? '');
   bool busy = false;
   String? saveError;
   List<String> get categories => <String>{
@@ -93,6 +94,11 @@ class _EntryEditorState extends State<EntryEditor> {
         isTotp ? 'autentifikator' : 'lozinku';
     final mobile = MediaQuery.sizeOf(context).width < 650;
     final fieldGap = mobile ? 11.0 : 14.0;
+    // The Android password editor follows the original phone reference.
+    // Preserve the existing desktop/card/note/TOTP editors unchanged.
+    if (mobile && widget.kind == ItemKind.password) {
+      return _mobilePasswordEditor();
+    }
     return Dialog(
       backgroundColor: VColors.background,
       insetPadding: mobile ? EdgeInsets.zero : const EdgeInsets.all(16),
@@ -268,4 +274,377 @@ class _EntryEditorState extends State<EntryEditor> {
       ),
     );
   }
+  String _guessService(String name) {
+    final lower = name.toLowerCase();
+    for (final key in ['github', 'google', 'microsoft', 'apple', 'discord']) {
+      if (lower.contains(key)) return key;
+    }
+    return 'web';
+  }
+
+  void _chooseService(String key) {
+    if (busy) return;
+    const preset = <String, (String, String)>{
+      'github': ('GitHub', 'https://github.com'),
+      'google': ('Google', 'https://accounts.google.com'),
+      'microsoft': ('Microsoft', 'https://account.microsoft.com'),
+      'apple': ('Apple', 'https://account.apple.com'),
+      'discord': ('Discord', 'https://discord.com'),
+    };
+    setState(() => selectedService = key);
+    final suggestion = preset[key];
+    // Presets assist entry and are not separate accounts or remote lookups.
+    // The generic options never erase text the user has already entered.
+    if (suggestion != null) {
+      title.text = suggestion.$1;
+      website.text = suggestion.$2;
+    }
+  }
+
+  Widget _mobileSection({
+    required String title,
+    required IconData icon,
+    required Widget content,
+  }) => Container(
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: VColors.border),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF0C293C), VColors.surface],
+      ),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(
+          fontSize: 11, fontWeight: FontWeight.w600,
+          color: VColors.muted)),
+        const SizedBox(height: 3),
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(
+            width: 31, height: 31,
+            decoration: BoxDecoration(
+              color: VColors.raised,
+              borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, color: VColors.text, size: 18),
+          ),
+          const SizedBox(width: 9),
+          Expanded(child: content),
+        ]),
+      ]),
+  );
+
+  Widget _mobilePasswordEditor() {
+    const services = <(String, String, IconData)>[
+      ('github', 'GitHub', Icons.code),
+      ('google', 'Google', Icons.g_mobiledata),
+      ('microsoft', 'Microsoft', Icons.window),
+      ('apple', 'Apple', Icons.apple),
+      ('discord', 'Discord', Icons.sports_esports_outlined),
+      ('web', 'Web', Icons.language),
+      ('other', 'Ostalo', Icons.more_horiz),
+    ];
+    const compactField = InputDecoration(
+      isDense: true,
+      contentPadding: EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+    );
+    return Dialog(
+      backgroundColor: VColors.background,
+      insetPadding: EdgeInsets.zero,
+      shape: const RoundedRectangleBorder(),
+      child: SizedBox(
+        width: MediaQuery.sizeOf(context).width,
+        height: MediaQuery.sizeOf(context).height -
+          MediaQuery.viewInsetsOf(context).bottom,
+        child: SafeArea(child: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 7, 12, 5),
+          child: Row(children: [
+            IconButton(
+              tooltip: 'Natrag',
+              onPressed: busy ? null : () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back, color: VColors.text)),
+            Expanded(child: Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const VeldigoLogo(size: 31),
+                const SizedBox(height: 2),
+                Text('YOUR SECRETS. SECURE.',
+                  style: TextStyle(color: VColors.muted,
+                    fontSize: 7, letterSpacing: 1.5)),
+              ],
+            ))),
+            const SizedBox(width: 48),
+          ]),
+        ),
+        Expanded(child: SingleChildScrollView(
+          key: const ValueKey('editor-mobile-scroll'),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+          child: Form(
+            key: form,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(widget.original == null
+                    ? 'Nova lozinka' : 'Uredi lozinku',
+                  style: const TextStyle(
+                    color: VColors.text,
+                    fontSize: 25, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
+                const Text('Spremite podatke za novi račun ili uslugu.',
+                  style: TextStyle(color: VColors.muted, fontSize: 12)),
+                const SizedBox(height: 10),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: VColors.surface,
+                    border: Border.all(color: VColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Odaberite ikonu', style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 12)),
+                      const SizedBox(height: 3),
+                      const Text('Pomaže vam brže prepoznati uslugu.',
+                        style: TextStyle(
+                          color: VColors.muted, fontSize: 11)),
+                      const SizedBox(height: 9),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
+                          for (final service in services)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: Tooltip(
+                              message: 'Odaberi ${service.$2}',
+                              child: InkWell(
+                                key: ValueKey('service-${service.$1}'),
+                                onTap: () => _chooseService(service.$1),
+                                borderRadius: BorderRadius.circular(14),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 120),
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(
+                                    color: selectedService == service.$1
+                                      ? VColors.raised : VColors.surface,
+                                    border: Border.all(
+                                      color: selectedService == service.$1
+                                          ? VColors.accent : VColors.border,
+                                      width: selectedService == service.$1
+                                          ? 1.5 : 1),
+                                    borderRadius: BorderRadius.circular(14)),
+                                  child: Icon(service.$3, size: 23,
+                                    color: selectedService == service.$1
+                                      ? VColors.accent : VColors.text)),
+                              ),
+                            )),
+                        ])),
+                    ]),
+                ),
+                _mobileSection(
+                  title: 'Usluga / naziv *',
+                  icon: Icons.label_rounded,
+                  content: TextFormField(
+                    key: const ValueKey('editor-title'),
+                    controller: title,
+                    decoration: compactField.copyWith(
+                      hintText: 'Naziv usluge'),
+                    validator: (value) =>
+                      value == null || value.trim().isEmpty
+                        ? 'Naziv je obavezan.' : null,
+                  ),
+                ),
+                _mobileSection(
+                  title: 'Web-adresa',
+                  icon: Icons.link,
+                  content: TextFormField(
+                    key: const ValueKey('editor-website'),
+                    controller: website,
+                    keyboardType: TextInputType.url,
+                    decoration: compactField.copyWith(
+                      hintText: 'https://primjer.hr'),
+                  ),
+                ),
+                _mobileSection(
+                  title: 'Korisničko ime',
+                  icon: Icons.person,
+                  content: TextFormField(
+                    key: const ValueKey('editor-username'),
+                    controller: username,
+                    decoration: compactField.copyWith(
+                      hintText: 'Korisničko ime / e-mail'),
+                  ),
+                ),
+                _mobileSection(
+                  title: 'Lozinka *',
+                  icon: Icons.lock,
+                  content: Column(children: [
+                    TextFormField(
+                      key: const ValueKey('editor-secret'),
+                      controller: secret,
+                      obscureText: !showSecret,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      enableIMEPersonalizedLearning: false,
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
+                      autofillHints: const [],
+                      decoration: compactField.copyWith(
+                        hintText: 'Lozinka',
+                        suffixIconConstraints:
+                          const BoxConstraints(minHeight: 38),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: showSecret ? 'Sakrij' : 'Prikaži',
+                              icon: Icon(showSecret
+                                ? Icons.visibility_off : Icons.visibility,
+                                size: 19),
+                              onPressed: () => setState(
+                                () => showSecret = !showSecret),
+                            ),
+                            IconButton(
+                              tooltip: 'Generiraj lozinku',
+                              icon: const Icon(
+                                Icons.casino_outlined, size: 19),
+                              onPressed: busy ? null : () {
+                                secret.text = PasswordGenerator.generate();
+                              },
+                            ),
+                          ]),
+                      ),
+                      validator: (value) =>
+                        value == null || value.isEmpty
+                          ? 'Unesite vrijednost.' : null,
+                    ),
+                    const SizedBox(height: 7),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: secret,
+                      builder: (context, text, _) {
+                        final value = text.text;
+                        final groups = [
+                          RegExp(r'[A-Z]').hasMatch(value),
+                          RegExp(r'[a-z]').hasMatch(value),
+                          RegExp(r'[0-9]').hasMatch(value),
+                          RegExp(r'[^A-Za-z0-9]').hasMatch(value),
+                        ].where((match) => match).length;
+                        final score = value.isEmpty ? 0
+                          : value.runes.length >= 16 && groups >= 3 ? 4
+                          : value.runes.length >= 12 && groups >= 2 ? 3
+                          : value.runes.length >= 8 ? 2 : 1;
+                        return Row(children: [
+                          for (var i = 0; i < 4; i++) ...[
+                            if (i > 0) const SizedBox(width: 3),
+                            Expanded(child: Container(
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: i < score
+                                  ? VColors.accent : VColors.border,
+                                borderRadius: BorderRadius.circular(5)),
+                            )),
+                          ],
+                          const SizedBox(width: 9),
+                          Text(value.isEmpty ? 'Unesite lozinku'
+                            : score >= 4 ? 'Procjena: vrlo jaka'
+                            : score >= 3 ? 'Procjena: jaka'
+                            : 'Procjena: slaba',
+                            style: const TextStyle(
+                              color: VColors.accent, fontSize: 10)),
+                        ]);
+                      },
+                    ),
+                  ]),
+                ),
+                _mobileSection(
+                  title: 'Kategorija',
+                  icon: Icons.folder_open,
+                  content: DropdownButtonFormField<String>(
+                    key: const ValueKey('editor-category'),
+                    initialValue: categories.contains(category)
+                      ? category : 'Ostalo',
+                    decoration: compactField,
+                    isExpanded: true,
+                    items: categories.map((cat) => DropdownMenuItem(
+                      value: cat, child: Text(cat))).toList(),
+                    onChanged: busy ? null : (value) =>
+                      setState(() => category = value!),
+                  ),
+                ),
+                _mobileSection(
+                  title: 'Sigurna bilješka (neobavezno)',
+                  icon: Icons.description,
+                  content: TextFormField(
+                    key: const ValueKey('editor-notes'),
+                    controller: notes,
+                    maxLength: 500,
+                    minLines: 1,
+                    maxLines: 2,
+                    enableIMEPersonalizedLearning: false,
+                    smartDashesType: SmartDashesType.disabled,
+                    smartQuotesType: SmartQuotesType.disabled,
+                    decoration: compactField.copyWith(
+                      hintText: 'Dodajte privatnu bilješku',
+                      alignLabelWithHint: true),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 3),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  decoration: BoxDecoration(
+                    color: VColors.surface,
+                    border: Border.all(color: VColors.border),
+                    borderRadius: BorderRadius.circular(12)),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile.adaptive(
+                    key: const ValueKey('editor-favorite'),
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.star,
+                      color: VColors.text, size: 22),
+                    title: const Text('Dodaj u favorite',
+                      style: TextStyle(fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Brži pristup ovoj lozinci.',
+                      style: TextStyle(fontSize: 10,
+                        color: VColors.muted)),
+                    activeTrackColor: VColors.accent,
+                    value: favorite,
+                    onChanged: busy ? null :
+                      (value) => setState(() => favorite = value),
+                  )),
+                ),
+              ],
+            ),
+          ),
+        )),
+        if (saveError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(saveError!,
+              style: const TextStyle(color: VColors.red, fontSize: 11)),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 7, 12, 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: VPrimaryButton(
+              label: busy ? 'Spremanje…' :
+                widget.original == null ? 'Spremi lozinku' : 'Spremi promjene',
+              icon: Icons.lock_outline,
+              onPressed: busy ? null : save,
+            ),
+          ),
+        ),
+      ]))),
+    );
+  }
+
 }
