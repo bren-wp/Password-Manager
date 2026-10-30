@@ -415,10 +415,13 @@ class _EntryEditorState extends State<EntryEditor> {
                         style: TextStyle(
                           color: VColors.muted, fontSize: 11)),
                       const SizedBox(height: 9),
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: [
                           for (final service in services)
-                            Tooltip(
+                            Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: Tooltip(
                               message: 'Odaberi ' + service.$2,
                               child: InkWell(
                                 key: ValueKey('service-' + service.$1),
@@ -440,8 +443,8 @@ class _EntryEditorState extends State<EntryEditor> {
                                     color: selectedService == service.$1
                                       ? VColors.accent : VColors.text)),
                               ),
-                            ),
-                        ]),
+                            )),
+                        ])),
                     ]),
                 ),
                 _mobileSection(
