@@ -116,9 +116,9 @@ class _MobilePasswordDetailsState extends State<MobilePasswordDetails> {
                   color: VColors.background,
                 ),
                 child: Center(child: item.title.toLowerCase().contains('github')
-                    ? const Text('GH', style: TextStyle(
-                        fontSize: 29, fontWeight: FontWeight.w900,
-                        color: VColors.text, letterSpacing: -3))
+                    ? const SizedBox(
+                        width: 67, height: 67,
+                        child: CustomPaint(painter: _CatMarkPainter()))
                     : _icon(Icons.key_rounded,
                         color: VColors.accent, size: 34)),
               ),
@@ -349,19 +349,82 @@ class _AccountWavePainter extends CustomPainter {
         colors: [Color(0xFF092539), Color(0xFF104354),
           Color(0xFF071C2C)],
       ).createShader(bounds));
-    final path = Path()
+    final underWave = Path()
       ..moveTo(size.width * .55, size.height)
-      ..cubicTo(size.width * .78, size.height * .60,
-        size.width * .88, size.height * .94,
-        size.width, size.height * .15)
+      ..cubicTo(size.width * .73, size.height * .78,
+        size.width * .90, size.height * .90,
+        size.width, size.height * .18)
       ..lineTo(size.width, size.height)
       ..close();
-    canvas.drawPath(path, Paint()
+    canvas.drawPath(underWave, Paint()
       ..shader = const LinearGradient(
         begin: Alignment.bottomLeft, end: Alignment.topRight,
-        colors: [Color(0x0006E5DC), Color(0xAA05B5B6),
-          Color(0x0022DCD4)],
+        colors: [Color(0x0002BEB7), Color(0x8A087D85),
+          Color(0x0007AFA7)],
       ).createShader(bounds));
+    final lightRibbon = Path()
+      ..moveTo(size.width * .61, size.height)
+      ..cubicTo(size.width * .77, size.height * .78,
+        size.width * .86, size.height * .92,
+        size.width, size.height * .27);
+    canvas.drawPath(lightRibbon, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.4
+      ..shader = const LinearGradient(
+        begin: Alignment.bottomLeft, end: Alignment.topRight,
+        colors: [Color(0x0008D7D3), Color(0x6613C9C9),
+          Color(0x0031F0E7)],
+      ).createShader(bounds));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// A compact vector cat mark composed exclusively from local paths. The
+/// identity tile never loads a third-party favicon or contacts any host.
+class _CatMarkPainter extends CustomPainter {
+  const _CatMarkPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final side = size.shortestSide;
+    canvas.save();
+    canvas.translate(
+      (size.width - side) / 2, (size.height - side) / 2);
+    canvas.scale(side / 100);
+    canvas.drawCircle(const Offset(50, 50), 46,
+      Paint()..color = const Color(0xFFF5F8FA));
+    final cat = Path()
+      ..moveTo(23, 46)
+      ..quadraticBezierTo(19, 34, 27, 26)
+      ..lineTo(30, 14)
+      ..quadraticBezierTo(40, 17, 43, 24)
+      ..quadraticBezierTo(50, 21, 58, 24)
+      ..quadraticBezierTo(64, 17, 76, 14)
+      ..lineTo(76, 30)
+      ..quadraticBezierTo(82, 40, 79, 51)
+      ..quadraticBezierTo(78, 63, 67, 69)
+      ..quadraticBezierTo(63, 73, 63, 80)
+      ..lineTo(62, 92)
+      ..lineTo(37, 92)
+      ..lineTo(36, 79)
+      ..quadraticBezierTo(35, 73, 30, 69)
+      ..quadraticBezierTo(23, 64, 23, 46)
+      ..close();
+    canvas.drawPath(cat, Paint()..color = const Color(0xFF091321));
+    // Curved tail/shoulder detail within the white disk.
+    final tail = Path()
+      ..moveTo(37, 80)
+      ..cubicTo(26, 84, 21, 75, 18, 70)
+      ..cubicTo(15, 65, 11, 66, 13, 70)
+      ..cubicTo(17, 85, 28, 93, 40, 88);
+    canvas.drawPath(tail, Paint()
+      ..color = const Color(0xFF091321)
+      ..strokeWidth = 5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round);
+    canvas.restore();
   }
 
   @override
