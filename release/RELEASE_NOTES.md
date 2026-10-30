@@ -1,31 +1,42 @@
-# Veldigo v0.3.3 Preview 1 — Android & Windows
+# Veldigo v0.3.4 Preview 1 — Android & Windows
 
-**Izdavač:** Brendigo. **Verzija aplikacije:** `0.3.3+16`.
-**Status:** Preview, nije produkcijsko sigurnosno certificirano izdanje.
+**Verzija aplikacije:** `0.3.4+17`. **Izdanje:** `v0.3.4-preview.1`.
+**Status:** Testno Preview izdanje. Ova verzija nije produkcijski potpisana ni sigurnosno certificirana.
 
-## Popravci funkcionalnosti
+## Android — poboljšanja sučelja
 
-- Ispravljena pogreška u UI rukovanju kada operacijski sustav odbije pristup međuspremniku: kopiranje spremljenih lozinki i generiranih lozinki ne uzrokuje neobrađenu grešku.
-- Autentifikator razlikuje **nevaljan Base32 TOTP ključ** od **neuspjelog kopiranja u međuspremnik**. Ispravan TOTP ne prikazuje obmanjujuću poruku o ključu ako je OS međuspremnik nedostupan.
-- Novi Flutter widget testovi simuliraju OS odbijanje pristupa međuspremniku za generator i TOTP; provjeravaju prikaz korisne poruke i nastavak rada generatora.
-- Zadržan je raniji popravak Android generatora: primarni gumb je iznad donje navigacije, postavke su scrollabilne, provjereno na 320×640, 393×852 i 480×900.
-- Zadržani su sigurnosni popravci trezora: radnje su vezane za izvornu otključanu sesiju, a lokalno kopirane tajne imaju vremensko ograničenje te se pokušavaju očistiti pri zaključavanju.
+- **Glavni trezor (01):** odvojene kartice zapisa, lokalno crtane oznake poznatih usluga, sigurnosna kartica, preglednije zaglavlje i funkcionalno sortiranje po nedavnom datumu, nazivu ili najstarijim zapisima.
+- **Postavljanje i otključavanje (02–03):** prilagođene veličine logotipa, razmaci, sigurnosne informacije i pomoć kod zaboravljene glavne lozinke. Pomoć izričito ne obećava nesiguran reset lozinke.
+- **Dodavanje lozinke (04):** redizajn mobilnog obrasca s lokalnim predlošcima usluge, urednijim poljima, procjenom jačine, generiranjem i prikazom lozinke, kategorijom, sigurnom bilješkom i favoritima. Primarni gumb za spremanje ostaje dostupan pri dnu.
+- **Detalji lozinke (05):** zasebne kartice, lokalno nacrtana oznaka usluge, maskirana lozinka, kontrole za kopiranje i uređivanje, podaci o zapisu te premještanje u Koš. Radnja dijeljenja nije uključena jer ne postoji verificiran siguran protokol.
+- Ispravljen uski Android AppBar (`RenderFlex overflow`) na zaslonu detalja. Dodani testovi izvanredno malih zaslona te testovi koji ciljaju sadržaj detalja, a ne statistiku na početnom zaslonu.
 
-## Build, privatnost i kompatibilnost
+## Windows i zajednički brending
 
-- Ažuriran GitHub Actions checkout na sigurniju verziju koja koristi Node 24 i ne pohranjuje vjerodajnice u Git konfiguraciju. Android i Windows CI buildovi ostaju odvojeni.
-- Flutter CI: 3.47.8; Gradle 9.6.0; AGP 9.5.0; Android target SDK 36, min SDK 24.
-- AES-256-GCM + Argon2id i `.veldigo` format ostaju nepromijenjeni: **nije potrebna migracija trezora**.
-- Bez vanjskog servisa za lozinke ili izmjena u politici lokalnog spremanja.
+- Prilagođen split-screen prikaz postavljanja i otključavanja, pozadinski gradijent, raspored i informativne sigurnosne stavke.
+- Windows generator lozinki prati referentni raspon **8–64** znaka, dok Android i dalje podržava **8–128**.
+- Zajednički lokalni vektorski znak Veldigo: zaobljeni osvijetljeni štit s ispunjenim slovom V.
+- Windows instalacijski paket sada ima ispravnu oznaku verzije **0.3.4-preview.1**, umjesto zastarjelog metapodatka 0.2.5.
 
-## Artefakti
+## Sigurnost i testovi
 
-`Veldigo-Android.apk`, `Veldigo-Android.aab`, `Veldigo-portable.exe`, `Veldigo-Setup.exe`, `Veldigo-Windows-portable.zip`, `Android-SHA256.txt`, `Windows-SHA256.txt`.
+- AES-256-GCM, Argon2id i postojeći `.veldigo` format trezora **nisu mijenjani**; migracija nije potrebna.
+- Sva korisnička imena, lozinke i lokalne kopije ostaju u postojećoj privatnoj pohrani. Ne dohvaćaju se ikone servisa putem interneta.
+- Proširen skup Flutter widget testova: skrivanje/prikaz tajni, sigurno kopiranje, neuspjelo spremanje, sortiranje i traženje, odgovarajuće veličine Android ekrana te zatvaranje prikaza pri zaključavanju.
+- Objava je uvjetovana punom Flutter analizom i testovima, Android APK/AAB i Windows buildovima te SHA-256 provjerama svih binarnih datoteka.
 
-## Ograničenja za produkciju
+## Datoteke za preuzimanje
 
-- Android AAB koristi razvojni Preview potpis; za Google Play treba izvorni upload keystore, kojega release workflow nema.
-- Windows EXE i instalacijski paket nemaju Authenticode potpis.
-- 26 od 26 referentnih zaslona ima uparene fizičke dimenzije, ali **0 od 26 nije dokazano potpuno RGB pixel-identično**. Flutter widget snimke nisu zamjena za nativne uređaje i provjeru DPI-ja.
-- Međuspremnik je kontroliran od operacijskog sustava pa se apsolutno automatsko brisanje ne može jamčiti.
-- Izdanje se objavljuje samo nakon uspješne analize, testova, Android/Windows buildova i provjere SHA-256 kontrolnih zbrojeva.
+- `Veldigo-Android.apk`
+- `Veldigo-Android.aab`
+- `Veldigo-portable.exe`
+- `Veldigo-Setup.exe`
+- `Veldigo-Windows-portable.zip`
+- `Android-SHA256.txt`, `Windows-SHA256.txt`
+
+## Važna ograničenja
+
+- Android APK/AAB u ovom Preview workflowu koristi **razvojni potpis**. AAB **nije spreman za nadogradnju na Google Playu** bez odgovarajućeg privatnog upload keystorea. Nemojte pokušati zamijeniti postojeće instalacije drugačijim potpisom.
+- Windows EXE i Setup nisu Authenticode-potpisani; Windows može pokazati sigurnosno upozorenje.
+- Dizajn se razvija zaslon po zaslon. Postoje stvarne Flutter snimke 15 Android i 11 Windows prikaza, ali **pixel-perfect 1:1 podudarnost nije dokazana**. Veličina PNG-a ne dokazuje podudarnost boja, tipografije i elemenata; dio odstupanja odnosi se na OS chrome.
+- Izdanje je namijenjeno testiranju, a ne tvrdnji o certificiranoj produkcijskoj sigurnosti.
