@@ -8,6 +8,7 @@ import '../core/vault_store.dart';
 import 'brand.dart';
 import 'entry_editor.dart';
 import 'extra_pages.dart';
+import 'mobile_password_details.dart';
 
 const _navigation = <(String, IconData)>[
   ('Trezor', Icons.home_outlined),
@@ -360,7 +361,28 @@ class _VaultShellState extends State<VaultShell> {
                   tooltip: 'Natrag',
                   onPressed: () => Navigator.of(dialogContext).pop(),
                 ),
-                title: const VeldigoLogo(size: 29),
+                centerTitle: live.kind == ItemKind.password,
+                title: live.kind == ItemKind.password
+                  ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                      VeldigoLogo(size: 35, showName: false),
+                      SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('V E L D I G O',
+                            style: TextStyle(fontSize: 14,
+                              color: VColors.text,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.1)),
+                          Text('VAŠE LOZINKE. UVIJEK SIGURNE.',
+                            style: TextStyle(fontSize: 7,
+                              color: VColors.muted,
+                              letterSpacing: .65)),
+                        ],
+                      ),
+                    ])
+                  : const VeldigoLogo(size: 29),
                 actions: [
                   if (!live.trashed)
                     IconButton(
@@ -371,14 +393,25 @@ class _VaultShellState extends State<VaultShell> {
                 ],
               ),
               body: SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  children: [
-                    Text(heading, style: Theme.of(ctx).textTheme.headlineMedium),
-                    const SizedBox(height: 18),
-                    detail(live),
-                  ],
-                ),
+                child: live.kind == ItemKind.password
+                  ? MobilePasswordDetails(
+                      key: ValueKey('mobile-password-${live.id}'),
+                      item: live,
+                      onCopy: copySecret,
+                      onEdit: () => edit(original: live),
+                      onRemove: () => remove(live),
+                      onRestore: () => recoverItem(live),
+                      onErase: () => eraseItem(live),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                      children: [
+                        Text(heading,
+                          style: Theme.of(ctx).textTheme.headlineMedium),
+                        const SizedBox(height: 18),
+                        detail(live),
+                      ],
+                    ),
               ),
             );
           },
