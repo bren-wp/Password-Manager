@@ -1,28 +1,31 @@
-# Veldigo v0.3.2 Preview 1 — Android + Windows
+# Veldigo v0.3.3 Preview 1 — Android & Windows
 
-Verzija aplikacije: **0.3.2+15**. Autor i izdavač: Brendigo.
+**Izdavač:** Brendigo. **Verzija aplikacije:** `0.3.3+16`.
+**Status:** Preview, nije produkcijsko sigurnosno certificirano izdanje.
 
-**Predizdanje.** Nije sigurnosno certificirano ni 100% RGB pixel-perfect. Android APK/AAB se za preview potpisuju razvojnim ključem; nisu namijenjeni produkcijskom Google Play ažuriranju. Windows EXE nema Authenticode potpis.
+## Popravci funkcionalnosti
 
-## Sigurnost i privatnost
+- Ispravljena pogreška u UI rukovanju kada operacijski sustav odbije pristup međuspremniku: kopiranje spremljenih lozinki i generiranih lozinki ne uzrokuje neobrađenu grešku.
+- Autentifikator razlikuje **nevaljan Base32 TOTP ključ** od **neuspjelog kopiranja u međuspremnik**. Ispravan TOTP ne prikazuje obmanjujuću poruku o ključu ako je OS međuspremnik nedostupan.
+- Novi Flutter widget testovi simuliraju OS odbijanje pristupa međuspremniku za generator i TOTP; provjeravaju prikaz korisne poruke i nastavak rada generatora.
+- Zadržan je raniji popravak Android generatora: primarni gumb je iznad donje navigacije, postavke su scrollabilne, provjereno na 320×640, 393×852 i 480×900.
+- Zadržani su sigurnosni popravci trezora: radnje su vezane za izvornu otključanu sesiju, a lokalno kopirane tajne imaju vremensko ograničenje te se pokušavaju očistiti pri zaključavanju.
 
-- Osam ključnih operacija trezora veže se uz otključanu sesiju **u trenutku poziva**, a ne tek kada dođu na red u asinkronom izvršavanju. Stare ili zaključane radnje ne nasljeđuju prava kasnijeg otključavanja.
-- Uklonjena je utrka zastarjelih upisa, brisanja, izvoza, vraćanja kopije i promjene glavne lozinke nakon zaključavanja.
-- Jedinstveno upravljanje međuspremnikom za lozinke, generator i TOTP: ograničeno trajanje, čišćenje nakon zaključavanja, zaštita od završetka asinkronog kopiranja nakon zaključavanja.
-- Kopiranje tajne ne bi smjelo brisati naknadno promijenjen, nepovezan međuspremnik.
-- Zadržani su lokalni **AES-256-GCM** i **Argon2id** te postojeći format .veldigo datoteke. Bez online sinkronizacije i promjena u shemi trezora.
-- Dodani automatizirani regresijski testovi za svih osam radnji i utrke međuspremnika.
+## Build, privatnost i kompatibilnost
 
-## UI i platforme
+- Ažuriran GitHub Actions checkout na sigurniju verziju koja koristi Node 24 i ne pohranjuje vjerodajnice u Git konfiguraciju. Android i Windows CI buildovi ostaju odvojeni.
+- Flutter CI: 3.47.8; Gradle 9.6.0; AGP 9.5.0; Android target SDK 36, min SDK 24.
+- AES-256-GCM + Argon2id i `.veldigo` format ostaju nepromijenjeni: **nije potrebna migracija trezora**.
+- Bez vanjskog servisa za lozinke ili izmjena u politici lokalnog spremanja.
 
-- Zadržane prethodne Android/Windows dorade generatora, zaključavanja, tipografije i zaštite tipkovnice.
-- Android: target API 36, minSdk 24, Gradle 9.6.0, Android Gradle Plugin 9.5.0.
-- Sadržaj: Android APK/AAB, Windows portable EXE, Setup EXE i ZIP, SHA256 kontrolni zbrojevi.
+## Artefakti
 
-## Kontrola kvalitete
+`Veldigo-Android.apk`, `Veldigo-Android.aab`, `Veldigo-portable.exe`, `Veldigo-Setup.exe`, `Veldigo-Windows-portable.zip`, `Android-SHA256.txt`, `Windows-SHA256.txt`.
 
-Izdanje se objavljuje samo ako uspiju analizator, Flutter testovi (uključujući lokalnu enkripciju), Android i Windows release build, te SHA-256 provjera.
+## Ograničenja za produkciju
 
-## Preostala ograničenja
-
-**26/26 izvornih referentnih dimenzija odgovaralo je testnim snimkama, ali 0/26 zaslona nije potvrđeno RGB-identično.** Za kompletan vizualni 1:1 trebaju pojedinačne dorade, nativni screenshotovi, više DPI postavki i testiranje na stvarnim uređajima. Operacijski sustav može ograničiti pristup međuspremniku u pozadini pa automatsko čišćenje nije apsolutno jamstvo.
+- Android AAB koristi razvojni Preview potpis; za Google Play treba izvorni upload keystore, kojega release workflow nema.
+- Windows EXE i instalacijski paket nemaju Authenticode potpis.
+- 26 od 26 referentnih zaslona ima uparene fizičke dimenzije, ali **0 od 26 nije dokazano potpuno RGB pixel-identično**. Flutter widget snimke nisu zamjena za nativne uređaje i provjeru DPI-ja.
+- Međuspremnik je kontroliran od operacijskog sustava pa se apsolutno automatsko brisanje ne može jamčiti.
+- Izdanje se objavljuje samo nakon uspješne analize, testova, Android/Windows buildova i provjere SHA-256 kontrolnih zbrojeva.
