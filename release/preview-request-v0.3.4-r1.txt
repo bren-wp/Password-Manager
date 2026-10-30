@@ -1,0 +1,11 @@
+Veldigo v0.3.4 Preview 1 — gated release request
+App version: 0.3.4+17
+Release tag: v0.3.4-preview.1
+Branch: release/veldigo-v034-preview
+Source: latest merged main (including PR #18), updated with release-only metadata
+Android: APK and AAB, preview debug signing ONLY, not Play production upload key
+Windows: x64 portable.exe, setup.exe, portable ZIP, no Authenticode
+Quality: flutter analyze, flutter test, encrypted vault smoke, Android + Windows release builds
+Integrity: validate nonempty outputs and SHA-256 checksums before publishing
+UI parity: continuing 15 Android + 11 Windows screen comparison; 1:1 is NOT yet proven
+No automatic merge of another development PR.
