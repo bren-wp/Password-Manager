@@ -306,8 +306,8 @@ class _EntryEditorState extends State<EntryEditor> {
     required IconData icon,
     required Widget content,
   }) => Container(
-    margin: const EdgeInsets.only(bottom: 9),
-    padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+    margin: const EdgeInsets.only(bottom: 6),
+    padding: const EdgeInsets.fromLTRB(12, 7, 12, 7),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: VColors.border),
@@ -322,10 +322,10 @@ class _EntryEditorState extends State<EntryEditor> {
         Text(title, style: const TextStyle(
           fontSize: 11, fontWeight: FontWeight.w600,
           color: VColors.muted)),
-        const SizedBox(height: 5),
+        const SizedBox(height: 3),
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Container(
-            width: 35, height: 35,
+            width: 31, height: 31,
             decoration: BoxDecoration(
               color: VColors.raised,
               borderRadius: BorderRadius.circular(9)),
@@ -349,7 +349,7 @@ class _EntryEditorState extends State<EntryEditor> {
     ];
     const compactField = InputDecoration(
       isDense: true,
-      contentPadding: EdgeInsets.symmetric(horizontal: 11, vertical: 12),
+      contentPadding: EdgeInsets.symmetric(horizontal: 11, vertical: 8),
     );
     return Dialog(
       backgroundColor: VColors.background,
@@ -396,10 +396,10 @@ class _EntryEditorState extends State<EntryEditor> {
                 const SizedBox(height: 3),
                 const Text('Spremite podatke za novi račun ili uslugu.',
                   style: TextStyle(color: VColors.muted, fontSize: 12)),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Container(
-                  margin: const EdgeInsets.only(bottom: 9),
-                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 7),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: VColors.surface,
                     border: Border.all(color: VColors.border),
@@ -422,9 +422,9 @@ class _EntryEditorState extends State<EntryEditor> {
                             Padding(
                               padding: const EdgeInsets.only(right: 7),
                               child: Tooltip(
-                              message: 'Odaberi ' + service.$2,
+                              message: 'Odaberi ${service.$2}',
                               child: InkWell(
-                                key: ValueKey('service-' + service.$1),
+                                key: ValueKey('service-${service.$1}'),
                                 onTap: () => _chooseService(service.$1),
                                 borderRadius: BorderRadius.circular(14),
                                 child: AnimatedContainer(
