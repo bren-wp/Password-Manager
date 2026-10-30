@@ -266,7 +266,9 @@ class _VaultShellState extends State<VaultShell> {
       );
     }
     return Padding(
-    padding: EdgeInsets.fromLTRB(desktop ? 26 : 16, desktop ? 25 : 14, 18, desktop ? 16 : 12),
+    padding: EdgeInsets.fromLTRB(desktop ? 26 : 22,
+      desktop ? 25 : 14, desktop ? 18 : 22,
+      desktop ? 16 : 12),
     child: Row(children: [
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (page == 'Trezor' && !desktop)
@@ -397,12 +399,21 @@ class _VaultShellState extends State<VaultShell> {
         child: Column(children: [
           if (!desktop && constraints.maxHeight > 460 &&
               page == 'Trezor' && !favorites && kind == null) ...[
-            VPanel(child: InkWell(
+            VPanel(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 13, vertical: 15),
+              child: InkWell(
               onTap: () => navigate('Sigurnost'),
               child: Row(children: [
-              const Icon(Icons.verified_user_outlined,
-                size: 38, color: VColors.accent),
-              const SizedBox(width: 14),
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: VColors.accent.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.shield_outlined,
+                  size: 39, color: VColors.accent)),
+              const SizedBox(width: 13),
               const Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -466,8 +477,15 @@ class _VaultShellState extends State<VaultShell> {
               ]),
           ],
           Expanded(child: Row(children: [
-            Expanded(child: VPanel(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            Expanded(child: Container(
+              decoration: desktop ? BoxDecoration(
+                color: VColors.surface,
+                border: Border.all(color: VColors.border),
+                borderRadius: BorderRadius.circular(13),
+              ) : null,
+              padding: EdgeInsets.symmetric(
+                horizontal: desktop ? 6 : 0,
+                vertical: desktop ? 4 : 0),
               child: items.isEmpty
                 ? Center(child: Padding(
                     padding: const EdgeInsets.all(30),
@@ -519,6 +537,47 @@ class _VaultShellState extends State<VaultShell> {
     });
   }
 
+  /// Render locally from vector/icons. Never load remote account favicons:
+  /// private vault service names must not leave the device through image URLs.
+  Widget _serviceMark(VaultItem item, {required double iconSize}) {
+    if (item.kind != ItemKind.password) {
+      return Icon(iconFor(item), color: VColors.accent, size: iconSize);
+    }
+    final service = item.title.toLowerCase();
+    if (service.contains('netflix')) {
+      return Text('N', style: TextStyle(
+        color: const Color(0xFFE50914), fontSize: iconSize + 6,
+        fontWeight: FontWeight.w900, height: 1));
+    }
+    if (service.contains('google')) {
+      return Text('G', style: TextStyle(
+        color: const Color(0xFF4285F4), fontSize: iconSize + 4,
+        fontWeight: FontWeight.w900, height: 1));
+    }
+    if (service.contains('microsoft')) {
+      return SizedBox(width: iconSize, height: iconSize,
+        child: Column(children: [
+          Expanded(child: Row(children: [
+            Expanded(child: ColoredBox(color: Color(0xFFF25022))),
+            const SizedBox(width: 2),
+            Expanded(child: ColoredBox(color: Color(0xFF7FBA00))),
+          ])),
+          const SizedBox(height: 2),
+          Expanded(child: Row(children: [
+            Expanded(child: ColoredBox(color: Color(0xFF00A4EF))),
+            const SizedBox(width: 2),
+            Expanded(child: ColoredBox(color: Color(0xFFFFB900))),
+          ])),
+        ]));
+    }
+    if (service.contains('github')) {
+      return Icon(Icons.code_rounded, color: VColors.text,
+        size: iconSize);
+    }
+    return Icon(Icons.key_rounded, color: VColors.accent,
+      size: iconSize);
+  }
+
   /// Shared reference-style account card. Only masks are drawn for secrets.
   Widget _accountTile(VaultItem item, bool desktop, bool selected) {
     final compact = !desktop && MediaQuery.sizeOf(context).width < 365;
@@ -559,7 +618,7 @@ class _VaultShellState extends State<VaultShell> {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: wideDesktop ? 8 : 10,
-            vertical: wideDesktop ? 4 : 9),
+            vertical: wideDesktop ? 4 : (desktop ? 9 : 12)),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(13),
             border: Border.all(color: selected
@@ -573,8 +632,8 @@ class _VaultShellState extends State<VaultShell> {
                 color: VColors.raised,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(iconFor(item), color: VColors.accent,
-                  size: compact ? 21 : wideDesktop ? 19 : 25),
+              child: Center(child: _serviceMark(item,
+                iconSize: compact ? 21 : wideDesktop ? 19 : 25)),
             ),
             const SizedBox(width: 11),
             Expanded(child: Column(
@@ -654,6 +713,8 @@ class _VaultShellState extends State<VaultShell> {
   Widget _stat(String label, int value, IconData icon) =>
     Expanded(child: LayoutBuilder(builder: (context, bounds) {
       final compact = bounds.maxWidth < 110;
+      final indicatorColor = label == 'Bilješke' ? VColors.blue
+        : label == 'Upozorenja' ? VColors.warning : VColors.accent;
       return VPanel(
         padding: EdgeInsets.symmetric(
           horizontal: compact ? 5 : 10, vertical: compact ? 9 : 12),
@@ -661,9 +722,9 @@ class _VaultShellState extends State<VaultShell> {
           Container(
             width: compact ? 25 : 32, height: compact ? 25 : 32,
             decoration: BoxDecoration(
-              color: VColors.accent.withValues(alpha: .10),
+              color: indicatorColor.withValues(alpha: .10),
               shape: BoxShape.circle),
-            child: Icon(icon, color: VColors.accent,
+            child: Icon(icon, color: indicatorColor,
               size: compact ? 16 : 20)),
           SizedBox(width: compact ? 4 : 8),
           Expanded(child: Column(
