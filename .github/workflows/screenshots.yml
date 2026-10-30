@@ -57,12 +57,18 @@ jobs:
             exit 0
           fi
           git commit -m "docs: publish 26 actual Veldigo Flutter UI captures in README"
-          # Security and UI commits may land while screenshot tests execute.
-          # Replay this documentation-only commit on the current PR head.
-          # flutter pub get/test may modify tracked local metadata and create
-          # untracked goldens. These are not part of the screenshot commit.
-          git stash push --include-untracked -m "temporary-screenshot-build-files"
+          # The generated PNG files belong to the exact source revision
+          # checked out at the start of this workflow. Never rebase binary
+          # screenshots onto a newer code revision: they would be stale and
+          # any PNG conflicts are impossible to merge meaningfully.
+          # An artifact is already uploaded above if the branch advanced.
           branch="${GITHUB_REF_NAME}"
           git fetch origin "$branch"
-          git rebase "origin/$branch"
+          captured_base="$(git rev-parse HEAD^)"
+          current_tip="$(git rev-parse "origin/$branch")"
+          if [ "$captured_base" != "$current_tip" ]; then
+            echo "Branch advanced during capture; do not publish stale PNGs."
+            echo "Captured frames remain available as Actions artifacts."
+            exit 0
+          fi
           git push origin "HEAD:$branch"
