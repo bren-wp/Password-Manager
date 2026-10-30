@@ -355,7 +355,11 @@ class _EntryEditorState extends State<EntryEditor> {
       backgroundColor: VColors.background,
       insetPadding: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(),
-      child: SafeArea(child: Column(children: [
+      child: SizedBox(
+        width: MediaQuery.sizeOf(context).width,
+        height: MediaQuery.sizeOf(context).height -
+          MediaQuery.viewInsetsOf(context).bottom,
+        child: SafeArea(child: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 7, 12, 5),
           child: Row(children: [
@@ -633,7 +637,7 @@ class _EntryEditorState extends State<EntryEditor> {
             ),
           ),
         ),
-      ])),
+      ]))),
     );
   }
 
