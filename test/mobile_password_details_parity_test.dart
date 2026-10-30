@@ -68,7 +68,10 @@ void main() {
       reason: 'Only the detail card label is counted, not the dashboard stat.');
     expect(find.text('Zadnja izmjena'), findsOneWidget);
     expect(find.text('Kopiraj lozinku'), findsOneWidget);
-    expect(find.text('developer@example.test'), findsOneWidget);
+    expect(find.descendant(
+      of: find.byType(MobilePasswordDetails),
+      matching: find.text('developer@example.test'),
+    ), findsOneWidget);
     expect(find.text('private-password-not-for-logs'), findsNothing);
     expect(tester.widget<Text>(
       find.byKey(const ValueKey('mobile-detail-password'))).data,
@@ -97,6 +100,43 @@ void main() {
     expect(button.onTap, isNull,
       reason: 'Unsupported secret sharing must be clearly disabled.');
     expect(tester.takeException(), isNull);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('full-screen branded detail title never overflows phone AppBar',
+      (tester) async {
+    final testVault = await tester.runAsync(fixture);
+    if (testVault == null) throw StateError('Fixture could not be created');
+    addTearDown(() async {
+      testVault.store.lock();
+      testVault.store.dispose();
+      if (await testVault.dir.exists()) {
+        await testVault.dir.delete(recursive: true);
+      }
+    });
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+
+    for (final size in <Size>[
+      const Size(320, 640),
+      const Size(393, 852),
+      const Size(431, 912),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(MaterialApp(
+        key: ValueKey('detail-route-${size.width}'),
+        theme: veldigoTheme(),
+        home: VaultShell(store: testVault.store),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GitHub').first);
+      await tester.pumpAndSettle();
+      expect(find.byType(MobilePasswordDetails), findsOneWidget);
+      expect(tester.takeException(), isNull,
+        reason: 'Detail header must fit the available width at $size');
+      final bar = tester.widget<AppBar>(find.byType(AppBar).last);
+      expect(bar.title, isNotNull);
+    }
   }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets('Android 05 remains usable at narrow and tall phone widths',
