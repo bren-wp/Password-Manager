@@ -584,6 +584,7 @@ class _EntryEditorState extends State<EntryEditor> {
                     key: const ValueKey('editor-notes'),
                     controller: notes,
                     maxLength: 500,
+                    minLines: 1,
                     maxLines: 2,
                     enableIMEPersonalizedLearning: false,
                     smartDashesType: SmartDashesType.disabled,
