@@ -15,7 +15,7 @@
 | 02 Postavljanje glavne lozinke | 28.84 | Dorađeno – provjera u CI |
 | 03 Otkljucavanje | 31.20 | Dorađeno – provjera u CI |
 | 04 Dodavanje lozinke | 23.70 | Novi Flutter mobilni editor; ponovno izmjeren RGB MAE **18.36/255**, nije 1:1 |
-| 05 Detalji lozinke | 25.08 | Sljedeći |
+| 05 Detalji lozinke | 25.08 | Dorađen mobilni prikaz, nova snimka **21.56/255** (još nije 1:1) |
 | 06 Generator lozinki | 27.55 | Prethodna dorada + novi logo |
 | 07 Sigurnosni centar | 25.68 | Sljedeći |
 | 08 Sigurne biljeske | 23.98 | Sljedeći |
@@ -81,3 +81,13 @@ Ne postoji valjano dokazano stanje "svih 26 1:1". Tridesetak piksela ukupne pogr
 - Kompaktni raspored s lokalnim vektorskim ikonama omogućuje vodoravno pomicanje izbora usluge na 320dp uređajima i proširivanje bilješke pri unosu. Android editor ne mijenja Windows kartice, bilješke ili TOTP urednike.
 - Regresije u `test/android_password_editor_parity_test.dart` pokrivaju odabir usluge, zaštitu polja lozinke, favorite, spremanje, pogreške pohrane i tri mobilne širine. Ažuriran stari `v029_visual_layout_regression_test.dart` jer mobilni editor sada ima gumb **Natrag** umjesto zastarjele kontrole **Odustani**.
 - Sljedeća vizualna provjera: upariti sadržajni ROI bez statusne trake; obraditi preostale razlike logotipa, fontova, profila servisa i stanja kategorije/favorita te potvrditi dostupnost na fizičkim uređajima. Korisnički izvornici ostaju privatni.
+
+## Iteracija 4 — Android 05 Detalji lozinke (isti PR #18)
+
+- Originalna privatna referenca: `Android/05_Detalji_lozinke.png`, **862×1824 fizičkih piksela**. Izmjerena postojeća Flutter snimka prije izmjena: **25.1009/255 RGB MAE**.
+- Novi zasebni `lib/ui/mobile_password_details.dart` (stvarni Android full-screen modal) ima vektorski lokalni znak usluge, tirkizni val i kategoriju, zasebne kartice korisničkog imena, skrivene lozinke, web-adrese, bilješke i datuma, glavni gumb za kopiranje, stvarne kontrole uređivanja/kopiranja te izravno dostupno brisanje u Koš.
+- Sva kopiranja idu kroz postojeći lokalni sigurnosno ograničen međuspremnik; korisnik uvijek mora svjesno pritisnuti `Prikaži` za otkrivanje lozinke. Kad se zapis promijeni, lozinka se ponovno skriva; kad se trezor zaključa, roditeljski modal se prazni i zatvara. Dijeljenje je jasno **onemogućeno**, ne implementira se neprovjeren prijenos tajni.
+- Za vizualni test koriste se samo privremeni GitHub demo podaci koji odgovaraju referentnom izgledu. Te vrijednosti ne ulaze u korisnikov trezor niti se objavljuju privatni screenshot izvornici.
+- Prva nova snimka iz `Capture real Veldigo screen gallery` runa **41131590860**: **21.1992/255 globalni RGB MAE**. Nakon dodatnog vektorskog znaka i suptilnijeg vala, run **41131904952**: **21.5627/255 globalni MAE**. Vizualni napredak u odnosu na početnu verziju potvrđen je, no posljednja mikroiteracija je **malo povećala** globalnu pogrešku. U glavnom sadržajnom području s primijenjenim poravnanjem Y pomaka (prethodna verzija 58 px, nova 28 px) pogreška se smanjila s **26.373 na 19.849/255**; ovo NIJE dokaz točne 1:1 podudarnosti.
+- UI se i dalje razlikuje od reference u sistemskoj Android statusnoj traci, fontovima, nijansama, oblicima ikona i valnoj dekoraciji. Automatski Flutter screenshotovi ne uključuju stvarni status-bar OS-a, pa ga ne treba umjetno crtati u samoj aplikaciji.
+- Novi `test/mobile_password_details_parity_test.dart` provjerava maskiranje/otkrivanje, nepodržano dijeljenje i tri mobilna viewporta, uz postojeći test zatvaranja kada se trezor zaključa. Status Android/Windows CI-a obavezno provjeriti prije spajanja.
