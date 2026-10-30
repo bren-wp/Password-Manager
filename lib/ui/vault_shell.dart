@@ -363,24 +363,28 @@ class _VaultShellState extends State<VaultShell> {
                 ),
                 centerTitle: live.kind == ItemKind.password,
                 title: live.kind == ItemKind.password
-                  ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                  ? const Row(children: [
                       VeldigoLogo(size: 35, showName: false),
                       SizedBox(width: 10),
-                      Column(
+                      Expanded(child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('V E L D I G O',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 14,
                               color: VColors.text,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.1)),
                           Text('VAŠE LOZINKE. UVIJEK SIGURNE.',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 7,
                               color: VColors.muted,
                               letterSpacing: .65)),
                         ],
-                      ),
+                      )),
                     ])
                   : const VeldigoLogo(size: 29),
                 actions: [
