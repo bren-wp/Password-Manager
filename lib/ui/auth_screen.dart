@@ -132,35 +132,55 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final desktop = width >= 850;
+    final size = MediaQuery.sizeOf(context);
+    final desktop = size.width >= 850;
+    final compactMobile = !desktop && size.height < 730;
     final form = Form(
       key: formKey,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min, children: [
         if (!desktop) ...[
-          const Center(child: VeldigoLogo(size: 136, showName: false)),
-          const SizedBox(height: 14),
-          const Center(child: Text('VELDIGO',
-            style: TextStyle(
-              fontSize: 27, color: VColors.text, letterSpacing: 6,
-              fontWeight: FontWeight.w800))),
-          const SizedBox(height: 4),
-          const Center(child: Text('PASSWORD MANAGER',
-            style: TextStyle(
-              color: VColors.muted, fontSize: 9, letterSpacing: 2.6))),
-          const SizedBox(height: 28),
+          if (widget.create) ...[
+            Row(children: [
+              const Icon(Icons.shield_outlined,
+                color: VColors.accent, size: 18),
+              const Spacer(),
+              const Text('VELDIGO',
+                style: TextStyle(fontSize: 13, color: VColors.text,
+                  fontWeight: FontWeight.w800, letterSpacing: 3)),
+              const Spacer(),
+              const Text('1 / 1',
+                style: TextStyle(color: VColors.muted, fontSize: 12)),
+            ]),
+            SizedBox(height: compactMobile ? 16 : 22),
+          ],
+          Center(child: VeldigoLogo(
+            size: widget.create ? (compactMobile ? 98 : 116)
+                : (compactMobile ? 126 : 151),
+            showName: false)),
+          SizedBox(height: widget.create ? 9 : 14),
+          if (!widget.create) ...[
+            const Center(child: Text('VELDIGO',
+              style: TextStyle(
+                fontSize: 27, color: VColors.text, letterSpacing: 6,
+                fontWeight: FontWeight.w800))),
+            const SizedBox(height: 4),
+            const Center(child: Text('PASSWORD MANAGER',
+              style: TextStyle(
+                color: VColors.muted, fontSize: 9, letterSpacing: 2.6))),
+          ],
+          SizedBox(height: widget.create ? 17 : 27),
         ],
         Text(widget.create ? 'Zaštitite svoj trezor' : 'Dobro došli natrag',
           textAlign: desktop ? TextAlign.start : TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 12),
         Text(widget.create
-            ? 'Postavite glavnu lozinku za šifriranje svih podataka.'
-            : 'Otključajte svoj Veldigo trezor i nastavite gdje ste stali.',
+            ? 'Postavite glavnu lozinku za pristup svim svojim podacima.'
+            : 'Otključajte svoj Veldigo trezor',
           textAlign: desktop ? TextAlign.start : TextAlign.center,
           style: const TextStyle(color: VColors.muted)),
-        const SizedBox(height: 30),
+        SizedBox(height: widget.create ? 17 : 30),
         TextFormField(
           controller: password, obscureText: !visible,
           autofillHints: const [], enableSuggestions: false,
@@ -257,10 +277,31 @@ class _AuthScreenState extends State<AuthScreen> {
               );
             },
           ),
-          const SizedBox(height: 16),
-          const Text('Glavnu lozinku nije moguće vratiti. I sigurnosne kopije '
-            'zahtijevaju istu lozinku. Čuvajte je na sigurnome mjestu.',
-            style: TextStyle(color: VColors.muted, fontSize: 12)),
+          const SizedBox(height: 14),
+          const VPanel(
+            padding: EdgeInsets.all(12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded,
+                  color: VColors.accent, size: 21),
+                SizedBox(width: 12),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Glavnu lozinku ne možemo oporaviti.',
+                      style: TextStyle(color: VColors.text,
+                        fontWeight: FontWeight.w700, fontSize: 12)),
+                    SizedBox(height: 4),
+                    Text('Vaša glavna lozinka štiti lokalno šifrirani trezor. '
+                      'Ako je zaboravite, bez nje ne možemo vratiti '
+                      'pristup podacima ili šifriranoj kopiji.',
+                      style: TextStyle(color: VColors.muted,
+                        fontSize: 11, height: 1.35)),
+                  ],
+                )),
+              ],
+            ),
+          ),
         ],
         if (error != null) ...[
           const SizedBox(height: 14),
@@ -281,14 +322,38 @@ class _AuthScreenState extends State<AuthScreen> {
             label: const Text('Uvezi postojeću šifriranu kopiju')),
         ],
         if (!widget.create) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 13),
           OutlinedButton.icon(
             onPressed: busy ? null : recover,
             icon: const Icon(Icons.settings_backup_restore),
             label: const Text('Oporavi iz lokalne sigurnosne kopije'),
           ),
+          if (!desktop) ...[
+            const SizedBox(height: 13),
+            TextButton(
+              onPressed: busy ? null : () => showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Zaboravili ste lozinku?'),
+                  content: const Text('Glavnu lozinku nije moguće '
+                    'poništiti. Za pristup trezoru potrebna je ispravna '
+                    'glavna lozinka; lokalna šifrirana sigurnosna kopija '
+                    'također zahtijeva lozinku kojom je zaštićena.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Razumijem')),
+                  ],
+                )),
+              child: const Text('Zaboravili ste lozinku?',
+                style: TextStyle(
+                  color: VColors.accent,
+                  fontSize: 12,
+                  decoration: TextDecoration.underline)),
+            ),
+          ],
         ],
-        const SizedBox(height: 25),
+        SizedBox(height: widget.create ? 18 : 20),
         if (!desktop && !widget.create) ...[
           const SizedBox(height: 8),
           const Row(children: [
@@ -312,44 +377,65 @@ class _AuthScreenState extends State<AuthScreen> {
         child: Align(
           alignment: desktop ? Alignment.center : Alignment.topCenter,
           child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24,
-            desktop ? 24 : (MediaQuery.sizeOf(context).height < 690 ? 18 : 52),
-            24, 24),
+          padding: EdgeInsets.fromLTRB(
+            desktop ? 24 : 22,
+            desktop ? 24 : (compactMobile ? 12 : (widget.create ? 16 : 38)),
+            desktop ? 24 : 22,
+            24),
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: desktop ? 980 : 460),
+            constraints: BoxConstraints(maxWidth: desktop ? 1060 : 460),
             child: desktop
               ? VPanel(
                   padding: EdgeInsets.zero,
                   child: Row(children: [
                     Expanded(child: Container(
                       padding: const EdgeInsets.all(50),
-                      constraints: const BoxConstraints(minHeight: 530),
+                      constraints: const BoxConstraints(minHeight: 600),
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF083A49), VColors.surface],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight),
+                        gradient: RadialGradient(
+                          center: Alignment(-.1, -.6), radius: 1.3,
+                          colors: [
+                            Color(0xFF0C4352),
+                            Color(0xFF08293D),
+                            VColors.background,
+                          ]),
                         borderRadius: BorderRadius.horizontal(
                           left: Radius.circular(18))),
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          VeldigoLogo(size: 100, showName: false),
-                          SizedBox(height: 24),
-                          VeldigoLogo(size: 38),
-                          SizedBox(height: 18),
+                          VeldigoLogo(size: 124, showName: false),
+                          SizedBox(height: 12),
+                          Text('V E L D I G O', style: TextStyle(
+                            color: VColors.text, fontSize: 23,
+                            letterSpacing: 3, fontWeight: FontWeight.w800)),
+                          SizedBox(height: 6),
                           Text('VAŠE LOZINKE. VAŠA KONTROLA.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: VColors.muted, letterSpacing: 2)),
-                          SizedBox(height: 42),
-                          Text('Sigurno spremanje • Potpuna privatnost • Bez računa',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: VColors.muted)),
+                            style: TextStyle(
+                              color: VColors.muted,
+                              fontSize: 10, letterSpacing: 1.7)),
+                          SizedBox(height: 36),
+                          _AuthBenefit(
+                            icon: Icons.lock_outline,
+                            title: 'Sigurno spremanje',
+                            detail: 'Sve vaše lozinke na jednom mjestu.'),
+                          SizedBox(height: 12),
+                          _AuthBenefit(
+                            icon: Icons.verified_user_outlined,
+                            title: 'Potpuna privatnost',
+                            detail: 'Vaši podaci šifrirani su samo lokalno.'),
+                          SizedBox(height: 12),
+                          _AuthBenefit(
+                            icon: Icons.desktop_windows_outlined,
+                            title: 'Uvijek dostupno',
+                            detail: 'Na vašim uređajima, bez računa.'),
                         ],
                       ),
                     )),
                     Expanded(child: Padding(
-                      padding: const EdgeInsets.all(48), child: form)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 44, vertical: 28), child: form)),
                   ]))
               : form,
           ),
@@ -357,4 +443,43 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
+}
+
+/// Descriptive, noninteractive security features: never advertise a
+/// biometric unlock method unless a hardware-backed authenticator is wired.
+class _AuthBenefit extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String detail;
+  const _AuthBenefit({
+    required this.icon, required this.title, required this.detail,
+  });
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(
+          color: VColors.accent.withValues(alpha: .09),
+          border: Border.all(color: VColors.border),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon, color: VColors.accent, size: 19),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(
+            color: VColors.text, fontSize: 12,
+            fontWeight: FontWeight.w700)),
+          const SizedBox(height: 3),
+          Text(detail, style: const TextStyle(
+            color: VColors.muted, fontSize: 10)),
+        ],
+      )),
+    ],
+  );
 }
