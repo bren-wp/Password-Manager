@@ -61,7 +61,11 @@ void main() {
     expect(find.text('Korisničko ime'), findsOneWidget);
     expect(find.text('Lozinka'), findsOneWidget);
     expect(find.text('Web-adresa'), findsOneWidget);
-    expect(find.text('Bilješke'), findsOneWidget);
+    expect(find.descendant(
+      of: find.byType(MobilePasswordDetails),
+      matching: find.text('Bilješke'),
+    ), findsOneWidget,
+      reason: 'Only the detail card label is counted, not the dashboard stat.');
     expect(find.text('Zadnja izmjena'), findsOneWidget);
     expect(find.text('Kopiraj lozinku'), findsOneWidget);
     expect(find.text('developer@example.test'), findsOneWidget);
