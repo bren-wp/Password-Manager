@@ -157,41 +157,87 @@ class VeldigoLogo extends StatelessWidget {
 class _ShieldPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Path()
-      ..moveTo(size.width * .5, size.height * .05)
-      ..lineTo(size.width * .9, size.height * .21)
-      ..lineTo(size.width * .84, size.height * .65)
-      ..quadraticBezierTo(size.width * .75, size.height * .86,
-          size.width * .5, size.height * .97)
-      ..quadraticBezierTo(size.width * .25, size.height * .86,
-          size.width * .16, size.height * .65)
-      ..lineTo(size.width * .1, size.height * .21)
+    final width = size.width;
+    final height = size.height;
+    final bounds = Offset.zero & size;
+
+    // Trace the user's shield reference with a rounded, pointed silhouette
+    // instead of the older angular polygon. Keep this path vector-based so
+    // one genuine brand mark remains sharp on high-DPI Android and Windows.
+    final shield = Path()
+      ..moveTo(width * .5, height * .045)
+      ..cubicTo(width * .62, height * .107,
+          width * .77, height * .154,
+          width * .903, height * .18)
+      ..lineTo(width * .91, height * .48)
+      ..cubicTo(width * .905, height * .70,
+          width * .74, height * .85,
+          width * .5, height * .965)
+      ..cubicTo(width * .26, height * .85,
+          width * .095, height * .70,
+          width * .09, height * .48)
+      ..lineTo(width * .097, height * .18)
+      ..cubicTo(width * .23, height * .154,
+          width * .38, height * .107,
+          width * .5, height * .045)
       ..close();
-    // The supplied Veldigo emblem has a soft teal halo behind a crisp
-    // shield outline. Paint the glow first to preserve sharp 1px edges.
-    canvas.drawPath(p, Paint()
-      ..color = VColors.accent.withValues(alpha: .26)
+
+    canvas.drawPath(shield, Paint()
+      ..color = VColors.accent.withValues(alpha: .12)
+      ..style = PaintingStyle.fill);
+    canvas.drawPath(shield, Paint()
+      ..color = VColors.accent.withValues(alpha: .78)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .09
-      ..strokeJoin = StrokeJoin.round
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * .075));
-    canvas.drawPath(p, Paint()..color = VColors.accent
-      ..style = PaintingStyle.stroke..strokeWidth = size.width * .066
-      ..strokeJoin = StrokeJoin.round);
-    final v = Path()..moveTo(size.width * .32, size.height * .32)
-      ..lineTo(size.width * .5, size.height * .69)
-      ..lineTo(size.width * .7, size.height * .32);
-    canvas.drawPath(v, Paint()
-      ..color = VColors.accent.withValues(alpha: .22)
+      ..strokeWidth = width * .068
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * .045));
+    canvas.drawPath(shield, Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .11
+      ..strokeWidth = width * .052
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * .06));
-    canvas.drawPath(v, Paint()..color = VColors.accent
-      ..style = PaintingStyle.stroke..strokeWidth = size.width * .09
-      ..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF75FFF2), VColors.accent, Color(0xFF08BDAF)],
+      ).createShader(bounds));
+
+    // The reference has a filled, bevelled V rather than a stroked letter.
+    // Two joined vector facets retain their detail at small app-icon sizes.
+    final leftFacet = Path()
+      ..moveTo(width * .235, height * .32)
+      ..lineTo(width * .39, height * .32)
+      ..lineTo(width * .50, height * .607)
+      ..lineTo(width * .50, height * .786)
+      ..quadraticBezierTo(width * .46, height * .782,
+          width * .432, height * .721)
+      ..close();
+    final rightFacet = Path()
+      ..moveTo(width * .50, height * .607)
+      ..lineTo(width * .622, height * .32)
+      ..lineTo(width * .778, height * .32)
+      ..lineTo(width * .565, height * .728)
+      ..quadraticBezierTo(width * .53, height * .788,
+          width * .50, height * .786)
+      ..close();
+    final emblem = Path.combine(
+      PathOperation.union, leftFacet, rightFacet);
+    canvas.drawPath(emblem, Paint()
+      ..color = VColors.accent.withValues(alpha: .4)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * .027));
+    canvas.drawPath(leftFacet, Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF81FFEE), Color(0xFF09DCCB)],
+      ).createShader(bounds));
+    canvas.drawPath(rightFacet, Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF20EBDB), Color(0xFF009A9F)],
+      ).createShader(bounds));
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
