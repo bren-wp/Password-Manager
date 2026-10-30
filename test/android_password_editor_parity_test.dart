@@ -73,8 +73,13 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('editor-secret')),
       'strong-secret-generated-in-a-test-12!');
     await tester.pump();
-    expect(find.text('strong-secret-generated-in-a-test-12!'),
-      findsNothing, reason: 'Password remains obscured by default.');
+    // Finder text matches EditableText internals even when masked; verify
+    // the actual rendered input privacy contract instead.
+    expect(tester.widget<TextField>(find.descendant(
+      of: find.byKey(const ValueKey('editor-secret')),
+      matching: find.byType(TextField),
+    )).obscureText, isTrue,
+      reason: 'The password input must mask characters by default.');
 
     await tester.ensureVisible(find.byKey(const ValueKey('editor-username')));
     await tester.enterText(find.byKey(const ValueKey('editor-username')),
