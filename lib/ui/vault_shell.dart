@@ -1132,33 +1132,39 @@ class _VaultShellState extends State<VaultShell> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: VColors.background,
-        leadingWidth: 49,
+        toolbarHeight: 67,
+        leadingWidth: 60,
         leading: Builder(builder: (ctx) => IconButton(
           tooltip: 'Otvori izbornik',
           onPressed: () => Scaffold.of(ctx).openDrawer(),
-          icon: const VeldigoLogo(size: 25, showName: false),
+          icon: const VeldigoLogo(size: 35, showName: false),
         )),
         titleSpacing: 0,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('VELDIGO', style: TextStyle(fontSize: 14,
-              fontWeight: FontWeight.w800, letterSpacing: 2.6,
+            Text('V E L D I G O', style: TextStyle(fontSize: 15,
+              fontWeight: FontWeight.w800, letterSpacing: 1.9,
               color: VColors.text)),
-            SizedBox(height: 1),
-            Text('VAŠE LOZINKE, UVIJEK SIGURNE',
+            SizedBox(height: 3),
+            Text('SIGURNIJI DIGITALNI TI',
               maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 7, letterSpacing: 1,
+              style: TextStyle(fontSize: 8, letterSpacing: 1.35,
                 color: VColors.muted)),
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Zaključaj trezor',
-            icon: const Icon(Icons.lock_outline, color: VColors.accent),
-            onPressed: widget.store.lock,
-          ),
+          Padding(padding: const EdgeInsets.only(right: 9),
+            child: IconButton(
+              tooltip: 'Zaključaj trezor',
+              icon: const CircleAvatar(
+                radius: 17,
+                backgroundColor: VColors.raised,
+                child: Icon(Icons.lock_outline,
+                  color: VColors.text, size: 17)),
+              onPressed: widget.store.lock,
+            )),
         ]),
       drawer: Drawer(backgroundColor: VColors.surface,
         child: SafeArea(child: navMenu(drawer: true))),
@@ -1172,8 +1178,10 @@ class _VaultShellState extends State<VaultShell> {
       floatingActionButton: (page == 'Trezor' || page == 'Sve lozinke')
           ? FloatingActionButton(
               tooltip: 'Dodaj novu lozinku',
+              elevation: 0,
               backgroundColor: VColors.accent,
               foregroundColor: VColors.background,
+              shape: const CircleBorder(),
               onPressed: () => edit(),
               child: const Icon(Icons.add, size: 30))
           : null,
