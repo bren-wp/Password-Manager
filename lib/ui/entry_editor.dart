@@ -601,7 +601,9 @@ class _EntryEditorState extends State<EntryEditor> {
                     color: VColors.surface,
                     border: Border.all(color: VColors.border),
                     borderRadius: BorderRadius.circular(12)),
-                  child: SwitchListTile.adaptive(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile.adaptive(
                     key: const ValueKey('editor-favorite'),
                     contentPadding: EdgeInsets.zero,
                     secondary: const Icon(Icons.star,
@@ -616,7 +618,7 @@ class _EntryEditorState extends State<EntryEditor> {
                     value: favorite,
                     onChanged: busy ? null :
                       (value) => setState(() => favorite = value),
-                  ),
+                  )),
                 ),
               ],
             ),
