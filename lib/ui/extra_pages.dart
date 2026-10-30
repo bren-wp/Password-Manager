@@ -228,7 +228,8 @@ class _GeneratorPageState extends State<GeneratorPage> {
               style: const TextStyle(fontSize: 12, color: VColors.text)),
             Slider(
               value: length.toDouble(),
-              min: 8, max: 128, divisions: 120,
+              // Windows reference range is 8–64; Android keeps 8–128.
+              min: 8, max: 64, divisions: 56,
               activeColor: VColors.accent,
               onChanged: (value) {
                 setState(() => length = value.toInt());
@@ -239,7 +240,7 @@ class _GeneratorPageState extends State<GeneratorPage> {
               Text('8', style: TextStyle(
                 fontSize: 10, color: VColors.muted)),
               Spacer(),
-              Text('128', style: TextStyle(
+              Text('64', style: TextStyle(
                 fontSize: 10, color: VColors.muted)),
             ]),
             const SizedBox(height: 7),
