@@ -191,7 +191,9 @@ class _GeneratorPageState extends State<GeneratorPage> {
               child: Row(children: [
                 Expanded(child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: SelectableText(generated, maxLines: 1,
+                  child: SelectableText(generated,
+                    key: const ValueKey('veldigo-generated-password'),
+                    maxLines: 1,
                     style: const TextStyle(fontSize: 22,
                       letterSpacing: .5, color: VColors.text)),
                 )),
@@ -227,14 +229,16 @@ class _GeneratorPageState extends State<GeneratorPage> {
             Text('Duljina lozinke: $length znakova',
               style: const TextStyle(fontSize: 12, color: VColors.text)),
             Slider(
+              key: const ValueKey('veldigo-generator-length'),
               value: length.toDouble(),
               // Windows reference range is 8–64; Android keeps 8–128.
               min: 8, max: 64, divisions: 56,
               activeColor: VColors.accent,
-              onChanged: (value) {
-                setState(() => length = value.toInt());
-                regenerate();
-              },
+              // Dragging previews the length. Generate exactly once on
+              // release: no stream of short-lived plaintext passwords or
+              // history entries for every intermediate mouse movement.
+              onChanged: (value) => setState(() => length = value.toInt()),
+              onChangeEnd: (_) => regenerate(),
             ),
             const Row(children: [
               Text('8', style: TextStyle(
@@ -329,7 +333,9 @@ class _GeneratorPageState extends State<GeneratorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final strength = estimatedStrength;
+    // Show strength for the currently displayed password, not a length
+    // preview that has not generated its secret yet.
+    final strength = _generatedStrength;
     final strengthName = strength >= .85
         ? 'Vrlo jaka' : strength >= .55 ? 'Jaka' : 'Umjerena';
     if (MediaQuery.sizeOf(context).width >= 850) {
@@ -362,13 +368,18 @@ class _GeneratorPageState extends State<GeneratorPage> {
                     .withValues(alpha: .65)),
                   borderRadius: BorderRadius.circular(10)),
                 child: Row(children: [
-                  Expanded(child: SelectableText(generated,
-                    style: const TextStyle(
-                      color: VColors.text,
-                      fontSize: 16,
-                      fontFamily: 'Roboto',
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .3))),
+                  Expanded(child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SelectableText(generated,
+                      key: const ValueKey('veldigo-generated-password'),
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: VColors.text,
+                        fontSize: 16,
+                        fontFamily: 'Roboto',
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: .3)),
+                  )),
                   IconButton(
                     tooltip: 'Kopiraj lozinku',
                     icon: const Icon(Icons.copy_outlined,
@@ -396,13 +407,12 @@ class _GeneratorPageState extends State<GeneratorPage> {
                 fontSize: 13, fontWeight: FontWeight.w800)),
             ]),
             Slider(
+              key: const ValueKey('veldigo-generator-length'),
               min: 8, max: 128, divisions: 120,
               value: length.toDouble(),
               activeColor: VColors.accent,
-              onChanged: (value) {
-                setState(() => length = value.toInt());
-                regenerate();
-              },
+              onChanged: (value) => setState(() => length = value.toInt()),
+              onChangeEnd: (_) => regenerate(),
             ),
             const Row(children: [
               Text('8', style: TextStyle(
