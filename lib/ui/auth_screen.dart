@@ -9,8 +9,9 @@ class AuthScreen extends StatefulWidget {
   final VaultStore store;
   final bool create;
   final bool importOnOpen;
+  final VoidCallback? onBack;
   const AuthScreen({super.key, required this.store, required this.create,
-    this.importOnOpen = false});
+    this.importOnOpen = false, this.onBack});
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -21,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final confirmation = TextEditingController();
   bool busy = false;
   bool visible = false;
+  bool confirmationVisible = false;
   String? error;
 
   @override
@@ -159,15 +161,22 @@ class _AuthScreenState extends State<AuthScreen> {
         if (!desktop) ...[
           if (widget.create) ...[
             Row(children: [
-              const Icon(Icons.shield_outlined,
-                color: VColors.accent, size: 18),
-              const Spacer(),
-              const Text('VELDIGO',
+              SizedBox(width: 44, child: widget.onBack == null
+                ? const Icon(Icons.shield_outlined,
+                    color: VColors.accent, size: 18)
+                : IconButton(
+                    tooltip: 'Natrag na dobrodošlicu',
+                    onPressed: busy ? null : widget.onBack,
+                    icon: const Icon(Icons.arrow_back,
+                      color: VColors.accent),
+                  )),
+              const Expanded(child: Text('VELDIGO',
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: VColors.text,
-                  fontWeight: FontWeight.w800, letterSpacing: 3)),
-              const Spacer(),
-              const Text('1 / 1',
-                style: TextStyle(color: VColors.muted, fontSize: 12)),
+                  fontWeight: FontWeight.w800, letterSpacing: 3))),
+              const SizedBox(width: 44, child: Center(
+                child: Text('1 / 1', style: TextStyle(
+                  color: VColors.muted, fontSize: 12)))),
             ]),
             SizedBox(height: compactMobile ? 16 : 22),
           ],
@@ -199,6 +208,7 @@ class _AuthScreenState extends State<AuthScreen> {
           style: const TextStyle(color: VColors.muted)),
         SizedBox(height: widget.create ? 17 : 30),
         TextFormField(
+          key: const ValueKey('veldigo-master-password-field'),
           controller: password, obscureText: !visible,
           textInputAction: widget.create
               ? TextInputAction.next : TextInputAction.done,
@@ -232,16 +242,26 @@ class _AuthScreenState extends State<AuthScreen> {
         if (widget.create) ...[
           const SizedBox(height: 14),
           TextFormField(
-            controller: confirmation, obscureText: !visible,
+            key: const ValueKey('veldigo-confirm-password-field'),
+            controller: confirmation, obscureText: !confirmationVisible,
             textInputAction: TextInputAction.done,
             autocorrect: false, enableSuggestions: false,
             enableIMEPersonalizedLearning: false,
             smartDashesType: SmartDashesType.disabled,
             smartQuotesType: SmartQuotesType.disabled,
             autofillHints: const [],
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Potvrdite lozinku',
-              prefixIcon: Icon(Icons.verified_user_outlined)),
+              prefixIcon: const Icon(Icons.verified_user_outlined),
+              suffixIcon: IconButton(
+                tooltip: confirmationVisible
+                    ? 'Sakrij potvrdu' : 'Prikaži potvrdu',
+                icon: Icon(confirmationVisible
+                    ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() =>
+                    confirmationVisible = !confirmationVisible),
+              ),
+            ),
             validator: (value) => value != password.text
               ? 'Lozinke se ne podudaraju.' : null,
             onFieldSubmitted: (_) => submit(),
@@ -288,18 +308,30 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                   ]),
                   const SizedBox(height: 12),
-                  for (final entry in checks)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 5),
-                      child: Row(children: [
-                        Icon(entry.$2 ? Icons.check_circle : Icons.circle_outlined,
-                          color: entry.$2 ? VColors.accent : VColors.muted,
-                          size: 15),
-                        const SizedBox(width: 8),
-                        Text(entry.$1, style: const TextStyle(
-                          color: VColors.muted, fontSize: 11)),
-                      ]),
+                  VPanel(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final entry in checks)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 5),
+                            child: Row(children: [
+                              Icon(entry.$2
+                                  ? Icons.check_circle : Icons.circle_outlined,
+                                color: entry.$2
+                                    ? VColors.accent : VColors.muted,
+                                size: 15),
+                              const SizedBox(width: 8),
+                              Flexible(child: Text(entry.$1,
+                                style: const TextStyle(
+                                  color: VColors.muted, fontSize: 11))),
+                            ]),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               );
             },
