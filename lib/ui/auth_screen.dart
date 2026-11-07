@@ -147,7 +147,10 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final desktop = size.width >= 850;
+    // The Windows runner supports a minimum 820px-wide window. Do not
+    // switch it to Android-style authentication just below 850px.
+    final windowsWindow = Theme.of(context).platform == TargetPlatform.windows;
+    final desktop = size.width >= 850 || (windowsWindow && size.width >= 700);
     final compactMobile = !desktop && size.height < 730;
     final form = Form(
       key: formKey,
@@ -197,6 +200,8 @@ class _AuthScreenState extends State<AuthScreen> {
         SizedBox(height: widget.create ? 17 : 30),
         TextFormField(
           controller: password, obscureText: !visible,
+          textInputAction: widget.create
+              ? TextInputAction.next : TextInputAction.done,
           autofillHints: const [], enableSuggestions: false,
           autocorrect: false, enableIMEPersonalizedLearning: false,
           smartDashesType: SmartDashesType.disabled,
@@ -216,12 +221,19 @@ class _AuthScreenState extends State<AuthScreen> {
             }
             return null;
           },
-          onFieldSubmitted: (_) => submit(),
+          onFieldSubmitted: (_) {
+            if (widget.create) {
+              FocusScope.of(context).nextFocus();
+            } else {
+              submit();
+            }
+          },
         ),
         if (widget.create) ...[
           const SizedBox(height: 14),
           TextFormField(
             controller: confirmation, obscureText: !visible,
+            textInputAction: TextInputAction.done,
             autocorrect: false, enableSuggestions: false,
             enableIMEPersonalizedLearning: false,
             smartDashesType: SmartDashesType.disabled,
@@ -232,6 +244,7 @@ class _AuthScreenState extends State<AuthScreen> {
               prefixIcon: Icon(Icons.verified_user_outlined)),
             validator: (value) => value != password.text
               ? 'Lozinke se ne podudaraju.' : null,
+            onFieldSubmitted: (_) => submit(),
           ),
           const SizedBox(height: 18),
           ValueListenableBuilder<TextEditingValue>(
