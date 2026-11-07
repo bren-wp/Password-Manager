@@ -44,6 +44,7 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
   bool previouslyUnlocked = false;
   bool loading = true;
   bool welcomeCompleted = false;
+  bool importRequested = false;
   String? error;
 
   @override
@@ -127,12 +128,20 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
             padding: const EdgeInsets.all(24),
             child: Text(error!, textAlign: TextAlign.center)))); }
         if (!store.hasVault && !welcomeCompleted) {
-          return WelcomeScreen(onStart: () => setState(() {
-            welcomeCompleted = true;
-          }));
+          return WelcomeScreen(
+            onStart: () => setState(() {
+              importRequested = false;
+              welcomeCompleted = true;
+            }),
+            onImport: () => setState(() {
+              importRequested = true;
+              welcomeCompleted = true;
+            }),
+          );
         }
         if (!store.hasVault) { return AuthScreen(
-          key: const ValueKey('create'), store: store, create: true); }
+          key: const ValueKey('create'), store: store, create: true,
+          importOnOpen: importRequested); }
         if (!store.isUnlocked) { return AuthScreen(
           key: const ValueKey('unlock'), store: store, create: false); }
         return VaultShell(store: store);
