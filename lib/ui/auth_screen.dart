@@ -465,12 +465,15 @@ class _AuthScreenState extends State<AuthScreen> {
         // Paint the full mobile viewport without drawing fake OS bars.
         decoration: BoxDecoration(
           gradient: desktop ? null : const RadialGradient(
-            center: Alignment(0, -.52),
-            radius: 1.22,
+            // The source artwork is nearly black/navy outside the shield.
+            // Keep the cyan halo local so it cannot tint every input card.
+            center: Alignment(0, -.78),
+            radius: .65,
+            stops: [0, .42, 1],
             colors: [
-              Color(0xFF073742),
-              Color(0xFF061E30),
-              VColors.background,
+              Color(0xFF053440),
+              Color(0xFF031A2B),
+              Color(0xFF02101C),
             ],
           ),
         ),
