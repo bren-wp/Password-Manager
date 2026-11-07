@@ -91,3 +91,15 @@ Ne postoji valjano dokazano stanje "svih 26 1:1". Tridesetak piksela ukupne pogr
 - Prva nova snimka iz `Capture real Veldigo screen gallery` runa **41131590860**: **21.1992/255 globalni RGB MAE**. Nakon dodatnog vektorskog znaka i suptilnijeg vala, run **41131904952**: **21.5627/255 globalni MAE**. Vizualni napredak u odnosu na početnu verziju potvrđen je, no posljednja mikroiteracija je **malo povećala** globalnu pogrešku. U glavnom sadržajnom području s primijenjenim poravnanjem Y pomaka (prethodna verzija 58 px, nova 28 px) pogreška se smanjila s **26.373 na 19.849/255**; ovo NIJE dokaz točne 1:1 podudarnosti.
 - UI se i dalje razlikuje od reference u sistemskoj Android statusnoj traci, fontovima, nijansama, oblicima ikona i valnoj dekoraciji. Automatski Flutter screenshotovi ne uključuju stvarni status-bar OS-a, pa ga ne treba umjetno crtati u samoj aplikaciji.
 - Novi `test/mobile_password_details_parity_test.dart` provjerava maskiranje/otkrivanje, nepodržano dijeljenje i tri mobilna viewporta, uz postojeći test zatvaranja kada se trezor zaključa. Status Android/Windows CI-a obavezno provjeriti prije spajanja.
+
+
+## Iteracija 5 — Android 14 / 15, prvi ulazak (studeni 2026.)
+
+- **14 Uvodni ekran:** zadržan postojeći vektorski štit i početni gradijent; dodan viewport regresijski test rasporeda logotipa i podnožja za 320×640, 393×852 i 480×900. Vizualni RGB MAE iz prethodnih mjerenja **nije ažuriran**.
+- **15 Dobrodošlica:** gradijent pokriva cijelu površinu zaslona, uključujući područje ispod Android sistemskih inseta; kontrole ostaju unutar `SafeArea`, a sadržaj je na širokim prozorima ograničen na 480 logičkih piksela.
+- Radnja **„Već imate trezor? Uvezite kopiju”** sada otvara postojeći stvarni dijalog za odabir šifrirane `.veldigo` kopije preko `AuthScreen(importOnOpen: true)`, umjesto da samo ponovi radnju „Započni”. Očuvani su zahtjev za glavnom lozinkom uvoza i provjere datoteke.
+- Novi `test/first_run_screen_parity_test.dart` pokriva stvarno odvojene akcije, dostupnost gumba, ograničenu širinu na Windowsu i položaj podnožja uvodnog ekrana.
+- Na svim PR-ovima sa zahvaćenim UI kodom, `screenshots.yml` izrađuje 26 stvarnih Flutter testnih snimki kao preuzimljivi Actions artefakt, **bez automatskog commita slika iz PR-a**. Snimke iz testnog okruženja nisu zamjena za fizičke uređaje.
+- **Status:** implementacija i automatizirana regresijska pokrivenost; dok se ne usporede nove snimke s izvornim privatnim PNG referencama po ROI regijama, **nije potvrđena 1:1 podudarnost**. Izvorne reference ne objavljivati u repozitoriju.
+
+Sljedeći prioritet prema posljednjoj mjeri odstupanja: Windows 02 Otključavanje, Windows 04 Generator; Android 03 Otključavanje, Android 02 Postavljanje glavne lozinke te Android 06 Generator.
