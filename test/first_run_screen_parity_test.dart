@@ -33,13 +33,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final start = find.text('Započni');
-      final import = find.text('Već imate trezor? Uvezite kopiju');
+      final importAction = find.text('Već imate trezor? Uvezite kopiju');
       expect(start, findsOneWidget);
-      expect(import, findsOneWidget);
+      expect(importAction, findsOneWidget);
       expect(tester.getRect(start).bottom, lessThanOrEqualTo(size.height));
-      expect(tester.getRect(import).bottom, lessThanOrEqualTo(size.height));
+      expect(tester.getRect(importAction).bottom, lessThanOrEqualTo(size.height));
 
-      await tester.tap(import);
+      await tester.tap(importAction);
       await tester.pump();
       expect(imports, 1, reason: 'Import is separate from creating a vault.');
       expect(starts, 0);
