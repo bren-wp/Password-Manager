@@ -210,16 +210,16 @@ class _GeneratorPageState extends State<GeneratorPage> {
               ]),
             ),
             const SizedBox(height: 11),
+            const Text('Snaga lozinke', style: TextStyle(
+              color: VColors.muted, fontSize: 11)),
+            const SizedBox(height: 7),
             Row(children: [
-              const Text('Snaga lozinke', style: TextStyle(
-                color: VColors.muted, fontSize: 11)),
-              const Spacer(),
+              Expanded(child: _strengthSegments(strength)),
+              const SizedBox(width: 14),
               Text(strengthName, style: const TextStyle(
-                color: VColors.accent, fontSize: 11,
+                color: VColors.success, fontSize: 12,
                 fontWeight: FontWeight.bold)),
             ]),
-            const SizedBox(height: 5),
-            _strengthSegments(strength),
           ],
         )),
         const SizedBox(height: 12),
@@ -228,24 +228,41 @@ class _GeneratorPageState extends State<GeneratorPage> {
           children: [
             Text('Duljina lozinke: $length znakova',
               style: const TextStyle(fontSize: 12, color: VColors.text)),
-            Slider(
-              key: const ValueKey('veldigo-generator-length'),
-              value: length.toDouble(),
-              // Windows reference range is 8–64; Android keeps 8–128.
-              min: 8, max: 64, divisions: 56,
-              activeColor: VColors.accent,
-              // Dragging previews the length. Generate exactly once on
-              // release: no stream of short-lived plaintext passwords or
-              // history entries for every intermediate mouse movement.
-              onChanged: (value) => setState(() => length = value.toInt()),
-              onChangeEnd: (_) => regenerate(),
-            ),
+            Row(children: [
+              Expanded(child: Slider(
+                key: const ValueKey('veldigo-generator-length'),
+                value: length.toDouble(),
+                // Windows reference range is 8–64; Android keeps 8–128.
+                min: 8, max: 64, divisions: 56,
+                activeColor: VColors.accent,
+                // One generated secret for the completed drag gesture.
+                onChanged: (value) => setState(() => length = value.toInt()),
+                onChangeEnd: (_) => regenerate(),
+              )),
+              const SizedBox(width: 12),
+              Container(
+                key: const ValueKey('veldigo-desktop-length-value'),
+                alignment: Alignment.center,
+                width: 64, height: 38,
+                decoration: BoxDecoration(
+                  color: VColors.raised,
+                  border: Border.all(color: VColors.border),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('$length', style: const TextStyle(
+                  color: VColors.text, fontSize: 14,
+                  fontWeight: FontWeight.w600)),
+              ),
+            ]),
             const Row(children: [
-              Text('8', style: TextStyle(
-                fontSize: 10, color: VColors.muted)),
-              Spacer(),
-              Text('64', style: TextStyle(
-                fontSize: 10, color: VColors.muted)),
+              Expanded(child: Row(children: [
+                Text('8', style: TextStyle(
+                  fontSize: 10, color: VColors.muted)),
+                Spacer(),
+                Text('64', style: TextStyle(
+                  fontSize: 10, color: VColors.muted)),
+              ])),
+              SizedBox(width: 76),
             ]),
             const SizedBox(height: 7),
             Wrap(spacing: 7, runSpacing: 3, children: [
