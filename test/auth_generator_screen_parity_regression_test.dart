@@ -75,8 +75,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final fields = tester.widgetList<TextFormField>(
-        find.byType(TextFormField)).toList();
+    final fields = tester.widgetList<TextField>(
+        find.byType(TextField)).toList();
     expect(fields, hasLength(2));
     expect(fields.first.textInputAction, TextInputAction.next);
     expect(fields.last.textInputAction, TextInputAction.done);
