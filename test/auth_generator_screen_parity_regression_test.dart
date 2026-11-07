@@ -155,4 +155,27 @@ void main() {
         reason: 'Long secrets must scroll horizontally, not resize the card.');
     expect(tester.takeException(), isNull);
   });
+  testWidgets('Windows generator remains desktop at 820px minimum width',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(820, 560);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(MaterialApp(
+      theme: veldigoTheme().copyWith(platform: TargetPlatform.windows),
+      home: const Scaffold(body: GeneratorPage()),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CheckboxListTile), findsNWidgets(5));
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.text('Povijest generiranih lozinki'), findsOneWidget);
+    final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('veldigo-generator-length')));
+    expect(slider.max, 64);
+    await tester.ensureVisible(find.text('Generiraj novu lozinku'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
 }
