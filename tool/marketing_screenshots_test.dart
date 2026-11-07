@@ -201,15 +201,29 @@ void main() {
 
 
     await shot('02_Postavljanje_glavne_lozinke',
-      AuthScreen(store: demo.store, create: true));
+      AuthScreen(store: demo.store, create: true),
+      prepare: () async {
+        // Show both private inputs filled with an invented, masked
+        // demonstration phrase to match the reference's populated state.
+        // This value never reaches a real account or external service.
+        for (final field in [
+          find.byType(TextFormField).first,
+          find.byType(TextFormField).at(1),
+        ]) {
+          await tester.enterText(field, 'Sample-1234Ab');
+        }
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+      });
     expect(find.text('Zaštitite svoj trezor'), findsOneWidget);
     await shot('03_Otkljucavanje',
       AuthScreen(store: demo.store, create: false),
       prepare: () async {
-        // Reference shows a masked demonstration password, not an empty
-        // placeholder. Never submit these fake values to a real vault.
+        // The reference uses a populated masked sample, with no caret.
         await tester.enterText(
-          find.byType(TextFormField).first, 'DEMO-only!');
+          find.byType(TextFormField).first, 'Sample-1234');
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
       });
     expect(find.text('Dobro došli natrag'), findsOneWidget);
     // Fill the real password editor only in this golden test. These
