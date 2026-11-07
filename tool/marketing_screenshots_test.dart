@@ -204,7 +204,13 @@ void main() {
       AuthScreen(store: demo.store, create: true));
     expect(find.text('Zaštitite svoj trezor'), findsOneWidget);
     await shot('03_Otkljucavanje',
-      AuthScreen(store: demo.store, create: false));
+      AuthScreen(store: demo.store, create: false),
+      prepare: () async {
+        // Reference shows a masked demonstration password, not an empty
+        // placeholder. Never submit these fake values to a real vault.
+        await tester.enterText(
+          find.byType(TextFormField).first, 'DEMO-only!');
+      });
     expect(find.text('Dobro došli natrag'), findsOneWidget);
     // Fill the real password editor only in this golden test. These
     // demonstrational details are never part of a user's actual vault.
@@ -253,9 +259,10 @@ void main() {
       demo.store.lock();
       if (await demo.dir.exists()) await demo.dir.delete(recursive: true);
     });
-    Future<void> shot(String filename, Widget screen) =>
+    Future<void> shot(String filename, Widget screen,
+        {Future<void> Function()? prepare}) =>
       snap(tester, 'windows', filename, screen,
-        windowsReferencePixels[filename]!);
+        windowsReferencePixels[filename]!, prepare: prepare);
     await shot('01_Glavni_trezor', VaultShell(store: demo.store));
     await shot('02_Otkljucavanje',
       AuthScreen(store: demo.store, create: false));
@@ -263,7 +270,15 @@ void main() {
       const Scaffold(body: Center(child:
         EntryEditor(kind: ItemKind.password))));
     await shot('04_Generator_lozinki',
-      VaultShell(store: demo.store, initialPage: 'Generator'));
+      VaultShell(store: demo.store, initialPage: 'Generator'),
+      prepare: () async {
+        // Populate history with three demo-only secrets as in the
+        // reference. The screenshot fixture never uses real credentials.
+        for (var i = 0; i < 3; i++) {
+          await tester.tap(find.text('Generiraj novu lozinku'));
+          await tester.pump();
+        }
+      });
     await shot('05_Sigurnosni_centar',
       VaultShell(store: demo.store, initialPage: 'Sigurnost'));
     await shot('06_Sigurne_biljeske',

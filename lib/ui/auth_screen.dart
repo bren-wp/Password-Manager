@@ -147,7 +147,10 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final desktop = size.width >= 850;
+    // The Windows runner supports a minimum 820px-wide window. Do not
+    // switch it to Android-style authentication just below 850px.
+    final windowsWindow = Theme.of(context).platform == TargetPlatform.windows;
+    final desktop = size.width >= 850 || (windowsWindow && size.width >= 700);
     final compactMobile = !desktop && size.height < 730;
     final form = Form(
       key: formKey,
@@ -197,6 +200,8 @@ class _AuthScreenState extends State<AuthScreen> {
         SizedBox(height: widget.create ? 17 : 30),
         TextFormField(
           controller: password, obscureText: !visible,
+          textInputAction: widget.create
+              ? TextInputAction.next : TextInputAction.done,
           autofillHints: const [], enableSuggestions: false,
           autocorrect: false, enableIMEPersonalizedLearning: false,
           smartDashesType: SmartDashesType.disabled,
@@ -216,12 +221,19 @@ class _AuthScreenState extends State<AuthScreen> {
             }
             return null;
           },
-          onFieldSubmitted: (_) => submit(),
+          onFieldSubmitted: (_) {
+            if (widget.create) {
+              FocusScope.of(context).nextFocus();
+            } else {
+              submit();
+            }
+          },
         ),
         if (widget.create) ...[
           const SizedBox(height: 14),
           TextFormField(
             controller: confirmation, obscureText: !visible,
+            textInputAction: TextInputAction.done,
             autocorrect: false, enableSuggestions: false,
             enableIMEPersonalizedLearning: false,
             smartDashesType: SmartDashesType.disabled,
@@ -232,6 +244,7 @@ class _AuthScreenState extends State<AuthScreen> {
               prefixIcon: Icon(Icons.verified_user_outlined)),
             validator: (value) => value != password.text
               ? 'Lozinke se ne podudaraju.' : null,
+            onFieldSubmitted: (_) => submit(),
           ),
           const SizedBox(height: 18),
           ValueListenableBuilder<TextEditingValue>(
@@ -322,11 +335,32 @@ class _AuthScreenState extends State<AuthScreen> {
           Text(error!, style: const TextStyle(color: VColors.red)),
         ],
         const SizedBox(height: 25),
-        VPrimaryButton(
-          label: busy ? 'Obrada…' : widget.create
-              ? 'Stvori sigurni trezor' : 'Otključaj trezor',
-          icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
-          onPressed: busy ? null : submit,
+        if (!widget.create && !desktop) ...[
+          // Keep the real local-recovery action in the secondary slot
+          // above the mobile primary CTA. A mock biometric button would
+          // advertise an insecure, unimplemented unlock mechanism.
+          OutlinedButton.icon(
+            key: const ValueKey('veldigo-auth-recovery'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 72),
+              side: const BorderSide(color: VColors.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(19)),
+            ),
+            onPressed: busy ? null : recover,
+            icon: const Icon(Icons.settings_backup_restore),
+            label: const Text('Oporavi iz lokalne sigurnosne kopije'),
+          ),
+          const SizedBox(height: 22),
+        ],
+        SizedBox(
+          height: !widget.create && !desktop ? 68 : 52,
+          child: VPrimaryButton(
+            label: busy ? 'Obrada…' : widget.create
+                ? 'Stvori sigurni trezor' : 'Otključaj trezor',
+            icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
+            onPressed: busy ? null : submit,
+          ),
         ),
         if (widget.create) ...[
           const SizedBox(height: 12),
@@ -336,12 +370,14 @@ class _AuthScreenState extends State<AuthScreen> {
             label: const Text('Uvezi postojeću šifriranu kopiju')),
         ],
         if (!widget.create) ...[
-          const SizedBox(height: 13),
-          OutlinedButton.icon(
-            onPressed: busy ? null : recover,
-            icon: const Icon(Icons.settings_backup_restore),
-            label: const Text('Oporavi iz lokalne sigurnosne kopije'),
-          ),
+          if (desktop) ...[
+            const SizedBox(height: 13),
+            OutlinedButton.icon(
+              onPressed: busy ? null : recover,
+              icon: const Icon(Icons.settings_backup_restore),
+              label: const Text('Oporavi iz lokalne sigurnosne kopije'),
+            ),
+          ],
           if (!desktop) ...[
             const SizedBox(height: 13),
             TextButton(
