@@ -6,11 +6,14 @@ import 'brand.dart';
 /// including on 320x640 phones and when Android changes the font scale.
 class WelcomeScreen extends StatelessWidget {
   final VoidCallback onStart;
-  const WelcomeScreen({super.key, required this.onStart});
+  final VoidCallback? onImport;
+  const WelcomeScreen({super.key, required this.onStart, this.onImport});
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(child: Container(
+    // Paint the gradient beneath the system insets, like the splash screen.
+    // Keep controls inside SafeArea and the content bounded on wide displays.
+    body: Container(
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: RadialGradient(
@@ -19,7 +22,9 @@ class WelcomeScreen extends StatelessWidget {
           colors: [Color(0xFF07515A), Color(0xFF071A2B), VColors.background],
         ),
       ),
-      child: LayoutBuilder(builder: (context, bounds) {
+      child: SafeArea(child: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: LayoutBuilder(builder: (context, bounds) {
         final compact = bounds.maxHeight < 760;
         return Column(children: [
           Expanded(child: LayoutBuilder(builder: (context, scrollBounds) =>
@@ -94,14 +99,15 @@ class WelcomeScreen extends StatelessWidget {
                 child: VPrimaryButton(label: 'Započni',
                   icon: Icons.arrow_forward, onPressed: onStart)),
               TextButton(
-                onPressed: onStart,
+                onPressed: onImport ?? onStart,
                 child: const Text('Već imate trezor? Uvezite kopiju',
                   style: TextStyle(color: VColors.muted, fontSize: 12))),
             ]),
           ),
         ]);
-      }),
-    )),
+        }),
+      ))),
+    ),
   );
 }
 

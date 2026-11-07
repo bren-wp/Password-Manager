@@ -8,7 +8,9 @@ import 'encrypted_backup_input.dart';
 class AuthScreen extends StatefulWidget {
   final VaultStore store;
   final bool create;
-  const AuthScreen({super.key, required this.store, required this.create});
+  final bool importOnOpen;
+  const AuthScreen({super.key, required this.store, required this.create,
+    this.importOnOpen = false});
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -20,6 +22,18 @@ class _AuthScreenState extends State<AuthScreen> {
   bool busy = false;
   bool visible = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.create && widget.importOnOpen) {
+      // The user selected "Uvezite kopiju" on the welcome screen.
+      // Open the real encrypted-import flow once, after this route exists.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) importBackup();
+      });
+    }
+  }
 
   @override
   void dispose() {
