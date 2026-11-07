@@ -142,14 +142,16 @@ void main() {
     const lengthKey = ValueKey('veldigo-generator-length');
     const passwordKey = ValueKey('veldigo-generated-password');
     final slider = find.byKey(lengthKey);
-    await tester.ensureVisible(slider);
-    await tester.timedDrag(slider, const Offset(300, 0),
-        const Duration(milliseconds: 300));
+    // Exercise the exact upper bound without introducing a scrolling/flaky
+    // off-screen drag: gesture behavior is covered by the Windows drag test.
+    tester.widget<Slider>(slider).onChanged!(128);
+    await tester.pump();
+    tester.widget<Slider>(slider).onChangeEnd!(128);
     await tester.pumpAndSettle();
     final value = tester.widget<Slider>(slider).value.toInt();
     final password = tester.widget<SelectableText>(
         find.byKey(passwordKey));
-    expect(value, greaterThan(20));
+    expect(value, 128);
     expect(password.data!.length, value);
     expect(password.maxLines, 1,
         reason: 'Long secrets must scroll horizontally, not resize the card.');
