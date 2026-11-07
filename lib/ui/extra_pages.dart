@@ -338,7 +338,9 @@ class _GeneratorPageState extends State<GeneratorPage> {
     final strength = _generatedStrength;
     final strengthName = strength >= .85
         ? 'Vrlo jaka' : strength >= .55 ? 'Jaka' : 'Umjerena';
-    if (MediaQuery.sizeOf(context).width >= 850) {
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final windowsWindow = Theme.of(context).platform == TargetPlatform.windows;
+    if (viewportWidth >= 850 || (windowsWindow && viewportWidth >= 800)) {
       return _desktopGenerator(strength, strengthName);
     }
     // Keep the primary action visible above Android bottom navigation.
