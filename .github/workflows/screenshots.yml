@@ -12,6 +12,17 @@ on:
       - .github/workflows/screenshots.yml
       - 'lib/ui/**'
       - lib/core/totp.dart
+  pull_request:
+    branches: [main]
+    paths:
+      - tool/marketing_screenshots_test.dart
+      - tool/flutter_test_config.dart
+      - pubspec.yaml
+      - pubspec.lock
+      - tools/publish_real_screenshots.py
+      - .github/workflows/screenshots.yml
+      - 'lib/ui/**'
+      - lib/core/totp.dart
   workflow_dispatch:
 
 permissions:
@@ -48,6 +59,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Commit real UI screenshots to PR branch
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
