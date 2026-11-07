@@ -180,4 +180,32 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('mobile unlock keeps real recovery above the primary action',
+      (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+    final store = VaultStore(vaultFileOverride:
+        File('${Directory.systemTemp.path}/veldigo-recovery-order-unused'));
+    addTearDown(store.dispose);
+
+    await tester.pumpWidget(MaterialApp(
+      theme: veldigoTheme(),
+      home: AuthScreen(store: store, create: false),
+    ));
+    await tester.pumpAndSettle();
+
+    final recovery = find.byKey(const ValueKey('veldigo-auth-recovery'));
+    final primary = find.text('Otključaj trezor');
+    expect(recovery, findsOneWidget);
+    expect(primary, findsOneWidget);
+    expect(tester.getRect(recovery).top,
+        lessThan(tester.getRect(primary).top));
+    await tester.ensureVisible(primary);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(primary).bottom, lessThanOrEqualTo(852));
+    expect(tester.takeException(), isNull);
+  });
+
 }
