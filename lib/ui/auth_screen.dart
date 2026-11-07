@@ -218,6 +218,8 @@ class _AuthScreenState extends State<AuthScreen> {
           smartQuotesType: SmartQuotesType.disabled,
           decoration: InputDecoration(
             labelText: 'Glavna lozinka',
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16, vertical: desktop ? 14 : 20),
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               tooltip: visible ? 'Sakrij' : 'Prikaži',
@@ -252,6 +254,8 @@ class _AuthScreenState extends State<AuthScreen> {
             autofillHints: const [],
             decoration: InputDecoration(
               labelText: 'Potvrdite lozinku',
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16, vertical: desktop ? 14 : 20),
               prefixIcon: const Icon(Icons.verified_user_outlined),
               suffixIcon: IconButton(
                 tooltip: confirmationVisible
@@ -455,7 +459,22 @@ class _AuthScreenState extends State<AuthScreen> {
     );
 
     return Scaffold(
-      body: SafeArea(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        // Paint the full mobile viewport without drawing fake OS bars.
+        decoration: BoxDecoration(
+          gradient: desktop ? null : const RadialGradient(
+            center: Alignment(0, -.52),
+            radius: 1.22,
+            colors: [
+              Color(0xFF073742),
+              Color(0xFF061E30),
+              VColors.background,
+            ],
+          ),
+        ),
+        child: SafeArea(
         child: Align(
           alignment: desktop ? Alignment.center : Alignment.topCenter,
           child: SingleChildScrollView(
@@ -522,6 +541,7 @@ class _AuthScreenState extends State<AuthScreen> {
               : form,
           ),
         )),
+      ),
       ),
     );
   }
