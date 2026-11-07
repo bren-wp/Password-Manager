@@ -335,11 +335,32 @@ class _AuthScreenState extends State<AuthScreen> {
           Text(error!, style: const TextStyle(color: VColors.red)),
         ],
         const SizedBox(height: 25),
-        VPrimaryButton(
-          label: busy ? 'Obrada…' : widget.create
-              ? 'Stvori sigurni trezor' : 'Otključaj trezor',
-          icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
-          onPressed: busy ? null : submit,
+        if (!widget.create && !desktop) ...[
+          // Keep the real local-recovery action in the secondary slot
+          // above the mobile primary CTA. A mock biometric button would
+          // advertise an insecure, unimplemented unlock mechanism.
+          OutlinedButton.icon(
+            key: const ValueKey('veldigo-auth-recovery'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 72),
+              side: const BorderSide(color: VColors.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(19)),
+            ),
+            onPressed: busy ? null : recover,
+            icon: const Icon(Icons.settings_backup_restore),
+            label: const Text('Oporavi iz lokalne sigurnosne kopije'),
+          ),
+          const SizedBox(height: 22),
+        ],
+        SizedBox(
+          height: !widget.create && !desktop ? 68 : 52,
+          child: VPrimaryButton(
+            label: busy ? 'Obrada…' : widget.create
+                ? 'Stvori sigurni trezor' : 'Otključaj trezor',
+            icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
+            onPressed: busy ? null : submit,
+          ),
         ),
         if (widget.create) ...[
           const SizedBox(height: 12),
@@ -349,12 +370,14 @@ class _AuthScreenState extends State<AuthScreen> {
             label: const Text('Uvezi postojeću šifriranu kopiju')),
         ],
         if (!widget.create) ...[
-          const SizedBox(height: 13),
-          OutlinedButton.icon(
-            onPressed: busy ? null : recover,
-            icon: const Icon(Icons.settings_backup_restore),
-            label: const Text('Oporavi iz lokalne sigurnosne kopije'),
-          ),
+          if (desktop) ...[
+            const SizedBox(height: 13),
+            OutlinedButton.icon(
+              onPressed: busy ? null : recover,
+              icon: const Icon(Icons.settings_backup_restore),
+              label: const Text('Oporavi iz lokalne sigurnosne kopije'),
+            ),
+          ],
           if (!desktop) ...[
             const SizedBox(height: 13),
             TextButton(
