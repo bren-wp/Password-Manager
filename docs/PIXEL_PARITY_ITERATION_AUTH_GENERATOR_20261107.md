@@ -40,3 +40,24 @@ Postojeći CI i foto-galerija trebaju ponovno pokrenuti testove nakon commita. *
 Za svaki od 26 ekrana snimiti stvarni build istoga commita, istim DPI-jem, dimenzijom, fontom, lokalizacijom i testnim podacima kao izvornu privatnu referencu. Usporediti zasebne ROI regije aplikacije (ne Windows pozadinu ni OS trake), izmjeriti RGB MAE, udio RGB-identičnih piksela, rubove, tipografiju i interaktivnost. Izvornici nisu javno dostupni u repozitoriju; dok nisu dostupni, **apsolutno nulto odstupanje nije dokazivo**. Ne objavljivati korisničke privatne reference ili vjerodajnice u javnim artefaktima.
 
 Nisu mijenjani AES-256-GCM, Argon2id, format trezora, datoteke sigurnosnih kopija ni korisnički podaci.
+
+
+## Dvije izvorne reference — nova provjera baznog stanja
+
+Dostupne su privatne originalne slike vlasnika (nisu objavljene u repozitoriju) i stvarne Flutter testne PNG snimke iz Actions runa **42408804157**. Mjerenje je provedeno u izvornim dimenzijama, bez rastezanja, Python Pillow/NumPy metodom.
+
+| Ekran | Dimenzija | RGB MAE/255 cijele slike | RGB-identični pikseli | Dodatni ROI |
+| --- | --- | ---: | ---: | --- |
+| Android 03 Otključavanje | 887×1774 | **31,54** | 0,00 % | Obrazac (x40–845, y700–1420): 55,52 |
+| Windows 04 Generator | 1586×992 | **33,59** | 0,0003 % | Središnji pravokutnik (x70–1518, y80–940): 27,54 |
+
+**Važne granice:** ove vrijednosti su iz prethodne snimke i ne uključuju kasnije promjene redoslijeda kontrola, numeričkog polja duljine, podataka demonstracijskog generatora niti maskiranog unosa na prijavi. Windows original sadržava OS pozadinu i rubove prozora, pa čak ni središnji ROI još ne izolira točan app viewport. Android original sadržava sustavne trake koje se ne crtaju u Flutter testnoj snimci. Nulti RGB MAE nije postignut.
+
+### Dodatne dorade nakon navedene snimke
+
+- Windows 04: oznaka snage sada je uz segmentiranu traku, a numerička duljina u posebnom polju desno od klizača.
+- Flutter screenshot fixture generira tri maskirana demo zapisa u Windows povijesti, te ispunjava Android prijavu **samo demonstracijskim** (maskiranim) unosom. Niti jedan stvaran korisnički pristupni podatak nije izložen.
+- Android 03: istinita radnja oporavka iz lokalne šifrirane kopije pojavljuje se kao sekundarna kartica iznad primarnog CTA-a, bliže rasporedu izvornog predloška. Ne prikazuje se lažni gumb za biometrijsko otključavanje dok nema provjerene hardverske integracije.
+- Nadodani widget-testovi ciljaju jednoredni prikaz 128 znakova, sekvencu tipkovnice i mobilni redoslijed kontrola.
+
+Za sljedeću poštenu usporedbu treba preuzeti najnoviji screenshot artefakt baš s commita nakon ovih izmjena i ponovno izračunati **isti** ROI. Ne koristiti ovu staru brojku za tvrdnju da je novija verzija bolja ili lošija bez nove analize.
