@@ -141,7 +141,14 @@ class _VeldigoAppState extends State<VeldigoApp> with WidgetsBindingObserver {
         }
         if (!store.hasVault) { return AuthScreen(
           key: const ValueKey('create'), store: store, create: true,
-          importOnOpen: importRequested); }
+          importOnOpen: importRequested,
+          onBack: () => setState(() {
+            // Back returns to onboarding without attempting to create,
+            // overwrite, or unlock the encrypted vault.
+            importRequested = false;
+            welcomeCompleted = false;
+          }),
+        ); }
         if (!store.isUnlocked) { return AuthScreen(
           key: const ValueKey('unlock'), store: store, create: false); }
         return VaultShell(store: store);
