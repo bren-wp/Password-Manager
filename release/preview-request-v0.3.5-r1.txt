@@ -9,3 +9,5 @@ Release gates: flutter analyze, flutter test, local_crypto_smoke_test, release b
 Do not create a production/Play Store update from preview-signed files.
 Pixel parity is ongoing; do not claim RGB 1:1 or zero deviation until measured.
 Manual release trigger: after PR #24 is merged, create release/veldigo-v035-preview from merged main, then update this request file in that release branch to trigger .github/workflows/preview-v035.yml.
+
+Release branch trigger: source commit 4ba29ac7f1d5d20b0cb29f8c21852ce19fabc11d, preview-only candidate; publish only after workflow tests and SHA-256 verification.
