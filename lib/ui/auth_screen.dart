@@ -154,6 +154,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final windowsWindow = Theme.of(context).platform == TargetPlatform.windows;
     final desktop = size.width >= 850 || (windowsWindow && size.width >= 700);
     final compactMobile = !desktop && size.height < 730;
+    final mobileSetup = widget.create && !desktop;
     final form = Form(
       key: formKey,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,16 +176,17 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: TextStyle(fontSize: 13, color: VColors.text,
                   fontWeight: FontWeight.w800, letterSpacing: 3))),
               const SizedBox(width: 44, child: Center(
+                // One actual setup step; do not invent a three-step flow.
                 child: Text('1 / 1', style: TextStyle(
                   color: VColors.muted, fontSize: 12)))),
             ]),
             SizedBox(height: compactMobile ? 16 : 22),
           ],
           Center(child: VeldigoLogo(
-            size: widget.create ? (compactMobile ? 98 : 116)
+            size: widget.create ? (compactMobile ? 98 : 132)
                 : (compactMobile ? 126 : 151),
             showName: false)),
-          SizedBox(height: widget.create ? 9 : 14),
+          SizedBox(height: mobileSetup ? 12 : (widget.create ? 9 : 14)),
           if (!widget.create) ...[
             const Center(child: Text('VELDIGO',
               style: TextStyle(
@@ -195,18 +197,28 @@ class _AuthScreenState extends State<AuthScreen> {
               style: TextStyle(
                 color: VColors.muted, fontSize: 9, letterSpacing: 2.6))),
           ],
-          SizedBox(height: widget.create ? 17 : 27),
+          SizedBox(height: mobileSetup ? 21 : (widget.create ? 17 : 27)),
         ],
         Text(widget.create ? 'Zaštitite svoj trezor' : 'Dobro došli natrag',
           textAlign: desktop ? TextAlign.start : TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 12),
-        Text(widget.create
-            ? 'Postavite glavnu lozinku za pristup svim svojim podacima.'
-            : 'Otključajte svoj Veldigo trezor',
-          textAlign: desktop ? TextAlign.start : TextAlign.center,
-          style: const TextStyle(color: VColors.muted)),
-        SizedBox(height: widget.create ? 17 : 30),
+        if (mobileSetup)
+          Center(child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: const Text(
+              'Postavite glavnu lozinku za pristup svim svojim podacima.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: VColors.muted, height: 1.42),
+            ),
+          ))
+        else
+          Text(widget.create
+              ? 'Postavite glavnu lozinku za pristup svim svojim podacima.'
+              : 'Otključajte svoj Veldigo trezor',
+            textAlign: desktop ? TextAlign.start : TextAlign.center,
+            style: const TextStyle(color: VColors.muted)),
+        SizedBox(height: mobileSetup ? 22 : (widget.create ? 17 : 30)),
         TextFormField(
           key: const ValueKey('veldigo-master-password-field'),
           controller: password, obscureText: !visible,
@@ -218,9 +230,12 @@ class _AuthScreenState extends State<AuthScreen> {
           smartQuotesType: SmartQuotesType.disabled,
           decoration: InputDecoration(
             labelText: 'Glavna lozinka',
+            floatingLabelBehavior: mobileSetup
+                ? FloatingLabelBehavior.always : FloatingLabelBehavior.auto,
             contentPadding: EdgeInsets.symmetric(
-              horizontal: 16, vertical: desktop ? 14 : 20),
-            prefixIcon: const Icon(Icons.lock_outline),
+              horizontal: mobileSetup ? 18 : 16,
+              vertical: desktop ? 14 : (mobileSetup ? 26 : 20)),
+            prefixIcon: mobileSetup ? null : const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
               tooltip: visible ? 'Sakrij' : 'Prikaži',
               icon: Icon(visible ? Icons.visibility_off : Icons.visibility),
@@ -242,7 +257,7 @@ class _AuthScreenState extends State<AuthScreen> {
           },
         ),
         if (widget.create) ...[
-          const SizedBox(height: 14),
+          SizedBox(height: mobileSetup ? 16 : 14),
           TextFormField(
             key: const ValueKey('veldigo-confirm-password-field'),
             controller: confirmation, obscureText: !confirmationVisible,
@@ -254,9 +269,13 @@ class _AuthScreenState extends State<AuthScreen> {
             autofillHints: const [],
             decoration: InputDecoration(
               labelText: 'Potvrdite lozinku',
+              floatingLabelBehavior: mobileSetup
+                  ? FloatingLabelBehavior.always : FloatingLabelBehavior.auto,
               contentPadding: EdgeInsets.symmetric(
-                horizontal: 16, vertical: desktop ? 14 : 20),
-              prefixIcon: const Icon(Icons.verified_user_outlined),
+                horizontal: mobileSetup ? 18 : 16,
+                vertical: desktop ? 14 : (mobileSetup ? 26 : 20)),
+              prefixIcon: mobileSetup ? null
+                  : const Icon(Icons.verified_user_outlined),
               suffixIcon: IconButton(
                 tooltip: confirmationVisible
                     ? 'Sakrij potvrdu' : 'Prikaži potvrdu',
@@ -270,7 +289,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ? 'Lozinke se ne podudaraju.' : null,
             onFieldSubmitted: (_) => submit(),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: mobileSetup ? 15 : 18),
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: password,
             builder: (context, value, _) {
@@ -286,41 +305,53 @@ class _AuthScreenState extends State<AuthScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(children: [
-                    const Text('Jačina lozinke',
-                      style: TextStyle(color: VColors.muted, fontSize: 12)),
-                    const Spacer(),
-                    Text(met == 4 ? 'Vrlo jaka' : met >= 2
-                      ? 'Srednja' : 'Slaba',
-                      style: TextStyle(
-                        color: met == 4 ? VColors.accent
-                            : met >= 2 ? VColors.warning : VColors.red,
-                        fontSize: 12, fontWeight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 8),
+                  if (!mobileSetup) ...[
+                    Row(children: [
+                      const Text('Jačina lozinke',
+                        style: TextStyle(color: VColors.muted, fontSize: 12)),
+                      const Spacer(),
+                      Text(met == 4 ? 'Vrlo jaka' : met >= 2
+                        ? 'Srednja' : 'Slaba',
+                        style: TextStyle(
+                          color: met == 4 ? VColors.accent
+                              : met >= 2 ? VColors.warning : VColors.red,
+                          fontSize: 12, fontWeight: FontWeight.w700)),
+                    ]),
+                    const SizedBox(height: 8),
+                  ],
                   Row(children: [
                     for (var i = 0; i < 4; i++) ...[
                       Expanded(child: Container(
-                        height: 4,
+                        height: mobileSetup ? 8 : 4,
                         decoration: BoxDecoration(
                           color: i < met ? (met == 4
                             ? VColors.accent : VColors.warning)
                             : VColors.border,
                           borderRadius: BorderRadius.circular(5)),
                       )),
-                      if (i < 3) const SizedBox(width: 5),
+                      if (i < 3) SizedBox(width: mobileSetup ? 5 : 5),
+                    ],
+                    if (mobileSetup) ...[
+                      const SizedBox(width: 12),
+                      Text(met == 4 ? 'Jaka lozinka'
+                          : met >= 2 ? 'Srednja' : 'Slaba',
+                        style: TextStyle(
+                          color: met == 4 ? VColors.accent
+                              : met >= 2 ? VColors.warning : VColors.red,
+                          fontSize: 12, fontWeight: FontWeight.w700)),
                     ],
                   ]),
-                  const SizedBox(height: 12),
+                  SizedBox(height: mobileSetup ? 16 : 12),
                   VPanel(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: mobileSetup ? 18 : 12,
+                      vertical: mobileSetup ? 16 : 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         for (final entry in checks)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 5),
+                            padding: EdgeInsets.only(bottom: mobileSetup ? 7 : 5),
                             child: Row(children: [
                               Icon(entry.$2
                                   ? Icons.check_circle : Icons.circle_outlined,
@@ -330,7 +361,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(width: 8),
                               Flexible(child: Text(entry.$1,
                                 style: const TextStyle(
-                                  color: VColors.muted, fontSize: 11))),
+                                  color: VColors.muted,
+                                  fontSize: mobileSetup ? 12 : 11))),
                             ]),
                           ),
                       ],
@@ -340,9 +372,9 @@ class _AuthScreenState extends State<AuthScreen> {
               );
             },
           ),
-          const SizedBox(height: 14),
-          const VPanel(
-            padding: EdgeInsets.all(12),
+          SizedBox(height: mobileSetup ? 16 : 14),
+          VPanel(
+            padding: EdgeInsets.all(mobileSetup ? 17 : 12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline_rounded,
@@ -390,20 +422,47 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 22),
         ],
         SizedBox(
-          height: !widget.create && !desktop ? 68 : 52,
+          height: !widget.create && !desktop ? 68
+              : mobileSetup ? 58 : 52,
           child: VPrimaryButton(
             label: busy ? 'Obrada…' : widget.create
                 ? 'Stvori sigurni trezor' : 'Otključaj trezor',
-            icon: widget.create ? Icons.shield_outlined : Icons.lock_open,
+            icon: widget.create
+                ? (mobileSetup ? Icons.arrow_forward : Icons.shield_outlined)
+                : Icons.lock_open,
+            iconOnRight: mobileSetup,
             onPressed: busy ? null : submit,
           ),
         ),
         if (widget.create) ...[
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: busy ? null : importBackup,
-            icon: const Icon(Icons.file_download_outlined),
-            label: const Text('Uvezi postojeću šifriranu kopiju')),
+          SizedBox(height: mobileSetup ? 8 : 12),
+          if (mobileSetup)
+            Row(children: [
+              const Expanded(child: Divider(color: VColors.border)),
+              Flexible(
+                flex: 4,
+                child: TextButton(
+                  key: const ValueKey('veldigo-setup-import'),
+                  onPressed: busy ? null : importBackup,
+                  child: const Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'Već imate trezor? ',
+                        style: TextStyle(color: VColors.muted)),
+                      TextSpan(text: 'Uvezite kopiju',
+                        style: TextStyle(color: VColors.accent)),
+                    ]),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider(color: VColors.border)),
+            ])
+          else
+            OutlinedButton.icon(
+              onPressed: busy ? null : importBackup,
+              icon: const Icon(Icons.file_download_outlined),
+              label: const Text('Uvezi postojeću šifriranu kopiju')),
         ],
         if (!widget.create) ...[
           if (desktop) ...[
@@ -450,11 +509,12 @@ class _AuthScreenState extends State<AuthScreen> {
           ]),
           const SizedBox(height: 8),
         ],
-        Text(widget.create
-            ? 'Vaši podaci ostaju pod vašom kontrolom.'
-            : 'Vaše lozinke ostaju samo vaše.',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: VColors.muted, fontSize: 12)),
+        if (!mobileSetup)
+          Text(widget.create
+              ? 'Vaši podaci ostaju pod vašom kontrolom.'
+              : 'Vaše lozinke ostaju samo vaše.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: VColors.muted, fontSize: 12)),
       ]),
     );
 
@@ -483,7 +543,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             desktop ? 24 : 22,
-            desktop ? 24 : (compactMobile ? 12 : (widget.create ? 16 : 38)),
+            desktop ? 24 : (compactMobile ? 12 : (mobileSetup ? 33 : 38)),
             desktop ? 24 : 22,
             24),
           child: ConstrainedBox(

@@ -1,0 +1,11 @@
+Veldigo v0.3.5 Preview 1 — gated release request
+App version: 0.3.5+18
+Release tag: v0.3.5-preview.1
+Release branch: release/veldigo-v035-preview
+Source: exact green, merged main revision containing the Android setup corrections from PR #24
+Android: Veldigo-Android.apk and Veldigo-Android.aab, PREVIEW debug-signed only if the production upload keystore is not supplied
+Windows: portable.exe, setup.exe, portable ZIP, no Authenticode signature
+Release gates: flutter analyze, flutter test, local_crypto_smoke_test, release builds on both platforms and SHA-256 verification
+Do not create a production/Play Store update from preview-signed files.
+Pixel parity is ongoing; do not claim RGB 1:1 or zero deviation until measured.
+Manual release trigger: after PR #24 is merged, create release/veldigo-v035-preview from merged main, then update this request file in that release branch to trigger .github/workflows/preview-v035.yml.
