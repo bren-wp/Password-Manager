@@ -64,7 +64,7 @@ class WelcomeScreen extends StatelessWidget {
                       Text('Jedan siguran trezor.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: VColors.accent,
-                          fontSize: compact ? 25 : 29,
+                          fontSize: compact ? 25 : 31,
                           height: 1.18, fontWeight: FontWeight.w700)),
                       SizedBox(height: compact ? 14 : 16),
                       const Text(
