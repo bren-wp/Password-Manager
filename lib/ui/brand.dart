@@ -138,12 +138,17 @@ ThemeData veldigoTheme() => ThemeData(
 class VeldigoLogo extends StatelessWidget {
   final double size;
   final bool showName;
-  const VeldigoLogo({super.key, this.size = 56, this.showName = true});
+  /// Flat cyan version for the original Android splash reference only.
+  /// All other screens keep the existing dimensional vector brand mark.
+  final bool flatReference;
+  const VeldigoLogo({super.key, this.size = 56, this.showName = true,
+    this.flatReference = false});
 
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(width: size, height: size, child: CustomPaint(painter: _ShieldPainter())),
+      SizedBox(width: size, height: size,
+        child: CustomPaint(painter: _ShieldPainter(flatReference: flatReference))),
       if (showName) ...[
         const SizedBox(width: 12),
         Text('VELDIGO', style: TextStyle(
@@ -155,6 +160,9 @@ class VeldigoLogo extends StatelessWidget {
 }
 
 class _ShieldPainter extends CustomPainter {
+  final bool flatReference;
+  const _ShieldPainter({this.flatReference = false});
+
   @override
   void paint(Canvas canvas, Size size) {
     final width = size.width;
@@ -181,6 +189,32 @@ class _ShieldPainter extends CustomPainter {
           width * .38, height * .107,
           width * .5, height * .045)
       ..close();
+
+    if (flatReference) {
+      // The owner's Android Splash PNG has a solid, rounded cyan contour
+      // and a single-line V, not the faceted metallic brand mark elsewhere.
+      // Keep this vector-only and isolated to the splash screen.
+      canvas.drawPath(shield, Paint()
+        ..color = const Color(0xFF052235)
+        ..style = PaintingStyle.fill);
+      canvas.drawPath(shield, Paint()
+        ..color = const Color(0xFF29ECE1)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * .052
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round);
+      final v = Path()
+        ..moveTo(width * .28, height * .33)
+        ..lineTo(width * .5, height * .76)
+        ..lineTo(width * .72, height * .33);
+      canvas.drawPath(v, Paint()
+        ..color = const Color(0xFF35F5E3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width * .085
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round);
+      return;
+    }
 
     canvas.drawPath(shield, Paint()
       ..color = VColors.accent.withValues(alpha: .12)
@@ -239,7 +273,8 @@ class _ShieldPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ShieldPainter oldDelegate) =>
+      oldDelegate.flatReference != flatReference;
 }
 
 class VPanel extends StatelessWidget {
