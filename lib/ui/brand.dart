@@ -298,7 +298,10 @@ class VPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
-  const VPrimaryButton({super.key, required this.label, this.onPressed, this.icon});
+  /// Keep existing buttons unchanged; the Android welcome reference uses a trailing arrow.
+  final bool iconOnRight;
+  const VPrimaryButton({super.key, required this.label, this.onPressed,
+    this.icon, this.iconOnRight = false});
   @override
   Widget build(BuildContext context) {
     final style = FilledButton.styleFrom(
@@ -324,12 +327,22 @@ class VPrimaryButton extends StatelessWidget {
       ),
       child: icon == null
           ? FilledButton(style: style, onPressed: onPressed, child: Text(label))
-          : FilledButton.icon(
-              style: style,
-              onPressed: onPressed,
-              icon: Icon(icon, size: 18),
-              label: Text(label),
-            ),
+          : iconOnRight
+              ? FilledButton(
+                  style: style,
+                  onPressed: onPressed,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(label),
+                    const SizedBox(width: 9),
+                    Icon(icon, size: 18),
+                  ]),
+                )
+              : FilledButton.icon(
+                  style: style,
+                  onPressed: onPressed,
+                  icon: Icon(icon, size: 18),
+                  label: Text(label),
+                ),
     );
   }
 }
