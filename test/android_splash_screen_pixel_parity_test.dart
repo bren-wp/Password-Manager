@@ -83,8 +83,12 @@ void main() {
         find.byKey(const ValueKey('veldigo-splash-progress')));
     expect(loading.value, .58);
     expect(find.bySemanticsLabel('Logotip Veldigo'), findsOneWidget);
-    expect(find.bySemanticsLabel('Pokretanje aplikacije Veldigo'),
-        findsOneWidget);
+    // Flutter merges parent/child semantics during accessibility traversal;
+    // assert the configured label rather than an exact merged node string.
+    expect(find.byWidgetPredicate((widget) =>
+      widget is Semantics &&
+      widget.properties.label == 'Pokretanje aplikacije Veldigo'),
+      findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
