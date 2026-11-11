@@ -20,21 +20,23 @@ class SplashScreen extends StatelessWidget {
       height: double.infinity,
       decoration: const BoxDecoration(
         gradient: RadialGradient(
-          center: Alignment(0, -.28),
-          radius: 1.05,
+          // Measured against the owner's original 832×1856 Android
+          // reference: the old halo was too bright and too concentrated.
+          center: Alignment(0, -.342),
+          radius: 1.512,
           colors: [
-            Color(0xFF075059),
-            Color(0xFF062536),
-            VColors.background,
+            Color(0xFF093A4C),
+            Color(0xFF061525),
+            Color(0xFF04101E),
           ],
         ),
       ),
       child: SafeArea(
         child: LayoutBuilder(builder: (context, bounds) {
           final compact = bounds.maxHeight < 690;
-          final logoSize = math.min(102.0,
-              math.max(72.0, bounds.maxWidth * .245));
-          final headingSize = bounds.maxWidth < 360 ? 32.0 : 37.0;
+          final logoSize = math.min(110.0,
+              math.max(80.0, bounds.maxWidth * .264));
+          final headingSize = bounds.maxWidth < 360 ? 34.0 : 42.0;
           return Column(children: [
             Expanded(
               child: LayoutBuilder(builder: (context, heroBounds) =>
@@ -48,7 +50,7 @@ class SplashScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                         child: Transform.translate(
-                          offset: Offset(0, compact ? -8 : -20),
+                          offset: Offset(0, compact ? -8 : -17),
                           child: Column(
                             key: const ValueKey('veldigo-splash-hero'),
                             mainAxisSize: MainAxisSize.min,
@@ -68,19 +70,19 @@ class SplashScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: headingSize,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: 6,
+                                    letterSpacing: 6.4,
                                     color: VColors.text,
                                   )),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               const Text('PASSWORD MANAGER',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   letterSpacing: 2.4,
                                   color: VColors.muted,
                                 )),
-                              SizedBox(height: compact ? 26 : 45),
+                              SizedBox(height: compact ? 26 : 41),
                               const Text('Vaše lozinke.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -104,7 +106,7 @@ class SplashScreen extends StatelessWidget {
             ),
             Padding(
               padding: EdgeInsets.only(
-                bottom: compact ? 24 : 47,
+                bottom: compact ? 24 : 59,
                 left: 16,
                 right: 16,
               ),
