@@ -73,7 +73,6 @@ void main() {
   testWidgets('Screenshot splash uses a reproducible fixed preview progress',
       (tester) async {
     final handle = tester.ensureSemantics();
-    addTearDown(handle.dispose);
     await tester.pumpWidget(MaterialApp(
       theme: veldigoTheme(),
       home: const SplashScreen(progress: .58),
@@ -90,5 +89,7 @@ void main() {
       widget.properties.label == 'Pokretanje aplikacije Veldigo'),
       findsOneWidget);
     expect(tester.takeException(), isNull);
+    // Widget tests check active semantics handles before addTearDown runs.
+    handle.dispose();
   });
 }
