@@ -6,7 +6,7 @@ Datum: 11. studenoga 2026. Izvorni naziv u 15-referentnoj matrici: `14_Uvodni_ek
 
 - `main` je sadržavao centrirani Veldigo štit, naziv, slogan, tamni radijalni gradijent i donji indikator fiksiran na 58 %.
 - Prethodni arhivski RGB MAE iz `docs/PIXEL_PARITY_MEASURED_V030.md` za ovaj ekran: **7,97 / 255** (29. 10. 2026.). To nije mjerenje novog koda.
-- Za provjeru su dostupne stvarne Flutter testne snimke, ne privatni izvorni Splash PNG. Stoga se nova apsolutna RGB 1:1 podudarnost ne može izmjeriti; nula odstupanja **nije dokazana**.
+- Izvorni PNG pronađen je u korisnikovoj privatnoj biblioteci u arhivi `Veldigo_Android_Ekrani(2).zip`. Izvornik je ostao privatan, a stvarni Flutter screenshotovi uspoređeni su u istoj fizičkoj rezoluciji. Za međustanje nakon gradijenta MAE se smanjio s **7,9959/255** na **4,6300/255**, a udio identičnih RGB piksela narastao s **2,36 %** na **32,74 %**. Posljednja dorada flat štita još čeka novu PNG usporedbu; nula odstupanja **nije dokazana**.
 
 ## Implementacija
 
@@ -28,4 +28,4 @@ Datum: 11. studenoga 2026. Izvorni naziv u 15-referentnoj matrici: `14_Uvodni_ek
 
 ## Sljedeći korak
 
-Nakon zelenog CI-ja na točnom commitu te vizualnog pregleda novog PNG-a: Android **Dobrodošlica** (`15_Dobrodoslica.png`), zatim **Postavljanje glavne lozinke**, **Otključavanje**, **Glavni trezor** i ostali. Vizualna 1:1 potvrda zahtijeva privatni original, identičnu fizičku veličinu, font/locale/DPI i nula različitih RGB piksela u odgovarajućem app ROI području.
+Ekran **Dobrodošlica** (`15_Dobrodoslica.png`) sada je također obrađen u istom PR-u #23, s posebnim dokumentom `ANDROID_SCREEN_BY_SCREEN_WELCOME_20261111.md`. Sljedeći ekran nakon provjere obje snimke jest **Postavljanje glavne lozinke**, zatim **Otključavanje**, **Glavni trezor** i ostali. Vizualna 1:1 potvrda zahtijeva privatni original, identičnu fizičku veličinu, font/locale/DPI i nula različitih RGB piksela u odgovarajućem app ROI području.
