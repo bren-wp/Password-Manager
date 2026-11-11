@@ -15,11 +15,18 @@ class WelcomeScreen extends StatelessWidget {
     // Keep controls inside SafeArea and the content bounded on wide displays.
     body: Container(
       width: double.infinity,
+      height: double.infinity,
       decoration: const BoxDecoration(
+        // The owner-supplied Splash and Welcome PNGs share a common
+        // navy/turquoise backdrop. Reuse the measured Splash gradient.
         gradient: RadialGradient(
-          center: Alignment(0, -.3),
-          radius: 1.15,
-          colors: [Color(0xFF07515A), Color(0xFF071A2B), VColors.background],
+          center: Alignment(0, -.342),
+          radius: 1.512,
+          colors: [
+            Color(0xFF093A4C),
+            Color(0xFF061525),
+            Color(0xFF04101E),
+          ],
         ),
       ),
       child: SafeArea(child: Center(child: ConstrainedBox(
@@ -29,7 +36,7 @@ class WelcomeScreen extends StatelessWidget {
         return Column(children: [
           Expanded(child: LayoutBuilder(builder: (context, scrollBounds) =>
             SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight: scrollBounds.maxHeight),
@@ -37,27 +44,39 @@ class WelcomeScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(children: [
-                      SizedBox(height: compact ? 22 : 63),
-                      VeldigoLogo(size: compact ? 75 : 96, showName: false),
+                      SizedBox(height: compact ? 22 : 115),
+                      Semantics(
+                        image: true,
+                        label: 'Veldigo štit',
+                        child: ExcludeSemantics(
+                          child: VeldigoLogo(
+                            size: compact ? 75 : 112,
+                            showName: false,
+                            flatReference: true,
+                          ),
+                        ),
+                      ),
                       SizedBox(height: compact ? 27 : 64),
                       Text('Sve vaše lozinke.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: compact ? 25 : 29,
+                        style: TextStyle(fontSize: compact ? 25 : 31,
                           height: 1.18, fontWeight: FontWeight.w700)),
                       Text('Jedan siguran trezor.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: VColors.accent,
-                          fontSize: compact ? 25 : 29,
+                          fontSize: compact ? 25 : 31,
                           height: 1.18, fontWeight: FontWeight.w700)),
-                      SizedBox(height: compact ? 14 : 24),
+                      SizedBox(height: compact ? 14 : 16),
                       const Text(
                         'Spremite pristupne podatke, kartice i privatne '
                         'bilješke u preglednom i zaštićenom prostoru.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: VColors.muted,
                           fontSize: 14, height: 1.4)),
-                      SizedBox(height: compact ? 20 : 36),
+                      SizedBox(height: compact ? 20 : 40),
                       const VPanel(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 18),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -73,17 +92,25 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     ]),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(0, 24, 0, 15),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 24, 0, 15),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.fiber_manual_record,
-                            size: 15, color: VColors.accent),
-                          Icon(Icons.fiber_manual_record,
-                            size: 10, color: VColors.muted),
-                          Icon(Icons.fiber_manual_record,
-                            size: 10, color: VColors.muted),
+                          Container(
+                            key: const ValueKey('veldigo-welcome-page-indicator'),
+                            width: 22, height: 7,
+                            decoration: BoxDecoration(
+                              color: VColors.accent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          const Icon(Icons.circle,
+                            size: 7, color: Color(0xFF3B5D74)),
+                          const SizedBox(width: 7),
+                          const Icon(Icons.circle,
+                            size: 7, color: Color(0xFF3B5D74)),
                         ],
                       ),
                     ),
@@ -93,15 +120,25 @@ class WelcomeScreen extends StatelessWidget {
             ),
           )),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
+            padding: EdgeInsets.fromLTRB(20, 8, 20, compact ? 12 : 29),
             child: Column(children: [
-              SizedBox(width: double.infinity,
-                child: VPrimaryButton(label: 'Započni',
-                  icon: Icons.arrow_forward, onPressed: onStart)),
+              SizedBox(width: double.infinity, height: 47,
+                child: VPrimaryButton(
+                  label: 'Započni',
+                  icon: Icons.arrow_forward,
+                  iconOnRight: true,
+                  onPressed: onStart,
+                )),
               TextButton(
-                onPressed: onImport ?? onStart,
-                child: const Text('Već imate trezor? Uvezite kopiju',
-                  style: TextStyle(color: VColors.muted, fontSize: 12))),
+                // Never turn an unavailable import flow into vault creation.
+                onPressed: onImport,
+                child: const Text.rich(TextSpan(children: [
+                  TextSpan(text: 'Već imate trezor?',
+                    style: TextStyle(color: VColors.muted)),
+                  TextSpan(text: ' Uvezite kopiju',
+                    style: TextStyle(color: VColors.accent)),
+                ]), style: TextStyle(fontSize: 12)),
+              ),
             ]),
           ),
         ]);

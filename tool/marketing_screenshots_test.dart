@@ -259,8 +259,11 @@ void main() {
       VaultShell(store: demo.store, initialPage: 'Sigurnosna kopija'));
     await shot('13_Kartice',
       VaultShell(store: demo.store, initialPage: 'Kartice'));
-    await shot('14_Uvodni_ekran', const SplashScreen());
-    await shot('15_Dobrodoslica', WelcomeScreen(onStart: () {}));
+    // Reference captures a fixed bar position; the shipped startup uses
+    // indeterminate progress until vault initialization actually completes.
+    await shot('14_Uvodni_ekran', const SplashScreen(progress: .58));
+    await shot('15_Dobrodoslica', WelcomeScreen(
+      onStart: () {}, onImport: () {}));
   }, timeout: const Timeout(Duration(minutes: 6)));
 
   testWidgets('capture all 11 Windows layout views from real Flutter UI',
