@@ -130,7 +130,8 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: onStart,
                 )),
               TextButton(
-                onPressed: onImport ?? onStart,
+                // Never turn an unavailable import flow into vault creation.
+                onPressed: onImport,
                 child: const Text.rich(TextSpan(children: [
                   TextSpan(text: 'Već imate trezor?',
                     style: TextStyle(color: VColors.muted)),
